@@ -1,0 +1,1 @@
+export type button='large' | 'default' | 'small'
