@@ -4,7 +4,7 @@
     :placeholder="'请输入' + dataFinal.label"
     v-model="bindValue"
     ref="_ref"
-    :clearable="dataFinal.clearable"
+    :clearable="dataFinal.clearable??false"
     :class="`_class${dataFinal.prop}`"
     :type="dataFinal.inputType ?? 'text'"
     :maxlength="dataFinal.maxlength"
@@ -34,14 +34,31 @@
     @input="dataFinal.input"
     @clear="dataFinal.clear"
   >
+  <template #prefix v-if="slots['prefix']||slots[`prefix-${dataFinal.prop}`]">
+    <slot :name="`prefix-${dataFinal.prop}`" v-if="slots[`prefix-${dataFinal.prop}`]"></slot>
+    <slot :name="`prefix`" v-else></slot>
+  </template>
+  <template #suffix v-if="slots['suffix']||slots[`suffix-${dataFinal.prop}`]">
+    <slot :name="`suffix-${dataFinal.prop}`" v-if="slots[`suffix-${dataFinal.prop}`]"></slot>
+    <slot :name="`suffix`" v-else></slot>
+  </template>
+  <template #prepend v-if="slots['prepend']||slots[`prepend-${dataFinal.prop}`]">
+    <slot :name="`prepend-${dataFinal.prop}`" v-if="slots[`prepend-${dataFinal.prop}`]"></slot>
+    <slot :name="`prepend`" v-else></slot>
+  </template>
+  <template #append v-if="slots['append']||slots[`append-${dataFinal.prop}`]">
+    <slot :name="`append-${dataFinal.prop}`" v-if="slots[`append-${dataFinal.prop}`]"></slot>
+    <slot :name="`append`" v-else></slot>
+  </template>
   </el-input>
 </el-config-provider>
 </template>
 
 <script setup name="Input" lang="ts">
-import { type PropType, computed, ref } from 'vue'
+import { type PropType, computed, ref, useSlots } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import type { inputInnerType } from '../form/types'
+const slots=useSlots()
 const props = defineProps({
   language: {
     type: Object,

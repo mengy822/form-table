@@ -23,12 +23,13 @@
       @change="change"
       ref="_ref"
     >
-      <template #active-action v-if="slot[`active-action-${data.prop}`]">
-        <slot :name="`active-action-${data.prop}`"></slot>
+      <template #active-action v-if="slot[`active-action-${data.prop}`]||slot[`active-action`]">
+        <slot :name="`active-action-${data.prop}`" v-if="slot[`active-action-${data.prop}`]"></slot>
+        <slot :name="`active-action`" v-if="slot[`active-action`]"></slot>
       </template>
-      <template #inactive-action v-if="slot[`inactive-action-${data.prop}`]">
-        <slot :name="`inactive-action-${data.prop}`"
-        ></slot>
+      <template #inactive-action v-if="slot[`inactive-action-${data.prop}`]||slot[`inactive-action`]">
+        <slot :name="`inactive-action-${data.prop}`" v-if="slot[`inactive-action-${data.prop}`]"></slot>
+        <slot :name="`inactive-action`" v-if="slot[`inactive-action`]"></slot>
       </template>
     </el-switch>
   </el-config-provider>

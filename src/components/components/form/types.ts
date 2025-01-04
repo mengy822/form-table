@@ -18,6 +18,7 @@ interface columnType {
   type: 'input' | 'date' | 'radio' | 'select' | 'switch' | 'checkbox';
   span?: number;
   for?: string; //和原生标签相同能力
+  readonly?:boolean;//只读
   validateStatus?: '' | 'error' | 'validating' | 'success'; //formitem 校验的状态
   isDefault?: boolean;//是否有默认选中
   isRequired?: boolean|((rule: any, value: any, callback: any)=>void);//是否必填

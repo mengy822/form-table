@@ -1,6 +1,6 @@
 <template>
   <el-config-provider :locale="language">
-    <el-select
+    <el-select-v2
       :class="`_class${dataFinal.prop}`"
       v-model='bindValue'
       ref="_ref"
@@ -86,7 +86,7 @@
           </div>
         </slot>
       </template>
-    </el-select>
+    </el-select-v2>
   </el-config-provider>
 </template>
 

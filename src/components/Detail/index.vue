@@ -26,12 +26,12 @@
           :label-class-name="item.labelClassName"
         >
           <template #label>
-            <slot :name="'label_'+item.prop" :data="dataFinal">
+            <slot :name="'label_'+item.prop" :prop="item.prop" :data="dataFinal">
               {{ item.label }}
             </slot>
           </template>
           <template #default>
-            <slot :name="item.prop" :data="dataFinal">
+            <slot :name="item.prop" :prop="item.prop" :data="dataFinal">
               {{ item.fun(dataFinal, item.prop) }}
             </slot>
           </template>
@@ -48,7 +48,7 @@
   </el-config-provider>
 </template>
 <script lang="ts" setup name='MyDetail'>
-import { ref, watch, computed, PropType } from 'vue'
+import { ref, watch, computed,type PropType } from 'vue'
 
 interface columnType {
   prop: string;
@@ -101,9 +101,15 @@ const props = defineProps({
   //列表的尺寸
   desSize: { type: String as PropType<'' | 'large' | 'default' | 'small'>, default: '' },
   //标题文本，显示在左上方
-  desTitle: {},
+  desTitle: {
+    type: String,
+    default: ''
+  },
   //操作区文本，显示在右上方
-  desExtra: {},
+  desExtra: {
+    type: String,
+    default: ''
+  },
   column: {
     type: Array<columnType>,
     required: true

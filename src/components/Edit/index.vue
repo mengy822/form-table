@@ -2,7 +2,7 @@
   <el-config-provider :locale="language">
     <el-dialog
       v-model="dialogVisible"
-      :title="title"
+      :title="isAdd?title.add:title.edit"
       :width="width"
       ref="editDialog"
       :top="top"
@@ -32,21 +32,21 @@
             :key="JSON.stringify(item)"
             :class="`class_${item.prop}`"
           >
-            <slot :name="item.prop" :prop="item.prop" :data="dynamicComputedMap">
+            <slot :name="`item_${item.prop}`" :prop="item.prop" :data="dynamicComputedMap">
               <el-form-item
                 :ref="(el:any) => dynamicCreateRef(el, item.prop)"
                 :label="item.label"
                 :prop="item.prop"
               >
-                <template #label>
-                  <slot :name="`label_${item.prop}`"> </slot>
+                <template #label v-if="slots[`label_${item.prop}`]">
+                  <slot :name="`label_${item.prop}`"  :prop="item.prop" :data="dynamicComputedMap"> </slot>
                 </template>
-                <template #error>
-                  <slot :name="`error_${item.prop}`"></slot>
+                <template #error v-if="slots[`error_${item.prop}`]">
+                  <slot :name="`error_${item.prop}`" :prop="item.prop" :data="dynamicComputedMap"></slot>
                 </template>
 
                 <template #default>
-                  <slot :name="item.prop" :data="dynamicComputedMap">
+                  <slot :name="item.prop" :prop="item.prop" :data="dynamicComputedMap">
                     <Input
                       :data="item"
                       v-if="item.type === 'input'"
@@ -89,7 +89,7 @@
       <template #footer>
         <slot name="footer">
           <div class="dialog-footer">
-            <el-button type="primary" @click="submitFun"> {{ submitButtonTxt }}</el-button>
+            <el-button type="primary" @click="submitFun"> {{ isAdd?submitButtonTxt.add:submitButtonTxt.edit }}</el-button>
             <el-button @click="cancelFun"> {{ cancelButtonTxt }}</el-button>
           </div>
         </slot>
@@ -98,7 +98,7 @@
   </el-config-provider>
 </template>
 <script lang="ts" setup name='MyEdit'>
-import { ref, watch, computed, type PropType, nextTick, type Ref } from 'vue'
+import { ref, useSlots, computed, type PropType, nextTick, type Ref } from 'vue'
 import type { FormRules } from 'element-plus'
 import Input from '../components/input/index.vue'
 import Select from '../components/select/index.vue'
@@ -117,6 +117,7 @@ import type {
 import MyComputedData from '../utils/hooks/MyComputedData'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 const top = ref('15vh')
+const slots=useSlots()
 const props = defineProps({
   language: {
     type: Object,
@@ -124,15 +125,23 @@ const props = defineProps({
       return zhCn
     },
   },
-  hasChangeCheck: {
+  notNeedChangeCheck: {
     type: Array<String>,
     default: () => {
       return ['input']
     },
   },
   submitButtonTxt: {
-    type: String,
-    default: '提交',
+    type: Object as PropType<{
+      add: String
+      edit: String
+    }>,
+    default: () => {
+      return {
+        add:'提交',
+        edit:'修改'
+      }
+    },
   },
   cancelButtonTxt: {
     type: String,
@@ -145,8 +154,16 @@ const props = defineProps({
   },
   //弹框标题
   title: {
-    type: String,
-    default: '新增',
+    type: Object as PropType<{
+      add: String
+      edit: String
+    }>,
+    default: () => {
+      return {
+        add:'新增',
+        edit:'编辑'
+      }
+    },
   },
   //列
   column: {
@@ -257,7 +274,7 @@ const columnFinal = computed(() => {
           trigger: 'change',
         }
       }
-      if (required != null && props.hasChangeCheck.indexOf(item.prop) > -1) {
+      if (required != null && props.notNeedChangeCheck.indexOf(item.prop) === -1) {
         if (rules.value[item.prop] && Array.isArray(rules.value[item.prop]))
           rules.value[item.prop].push(required)
       }
@@ -287,7 +304,11 @@ const handleClose = () => {
   dialogVisible.value = false
 }
 const editDialog = ref(null)
+const isAdd=ref(true)
 const init = (data: object = {}) => {
+  if(Object.keys(data).length>0){
+    isAdd.value=false
+  }
   dataFinal.value = { ...data }
   let { dynamicComputedFun: dynamicComputedFun1, dynamicComputedMap: dynamicComputedMap1 } =
     MyComputedData(data, dataFinal)
@@ -303,7 +324,6 @@ const init = (data: object = {}) => {
           f = true
         } else {
           dynamicComputedFun(
-
             (item as dateInnerType).prop,
             'variable',
             (item as dateInnerType).aliases || ''

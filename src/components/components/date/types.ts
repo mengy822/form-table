@@ -2,15 +2,14 @@ import {button} from "../../js/sizeType";
 
 export interface dateType {
 
-  startPlaceholder?: string;
-  rangeSeparator?: string;
-  endPlaceholder?: string;
-  aliases?: string;
-  readonly?: boolean;
+  startPlaceholder?: string;//时间范围开始时间
+  rangeSeparator?: string;//时间范围连接符
+  endPlaceholder?: string;//时间范围结束时间
+  aliases?: string;//时间范围转义单字段
   editable?: boolean;
-  valueFormat?: string;
-  format?: string;
-  dateType?: EpPropMergeType<(new (...args: any[]) =>'year' | 'years'|'yearrange' | 'month' | 'date' | 'dates' | 'datetime' | 'week' | 'datetimerange' | 'daterange' | 'monthrange';
+  valueFormat?: string;//时间绑定格式
+  format?: string;//时间显示格式
+  dateType?: EpPropMergeType<(new (...args: any[]) =>'year' | 'years'|'yearrange' | 'month' | 'date' | 'dates' | 'datetime' | 'week' | 'datetimerange' | 'daterange' | 'monthrange';//类型
   change?: (val: any) => void;//用户确认选定的值时触发
 
   blur?: (e: FocusEvent) => void;//在组件 Input 失去焦点时触发

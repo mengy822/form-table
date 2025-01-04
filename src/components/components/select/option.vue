@@ -7,6 +7,10 @@
     :value="String(optionItem.value??optionItem.label)"
     :disabled="optionItem.disabled"
   >
+  <template #default="scope" v-if="$slots['option-default']">
+    <slot :name="'option-default'" :data="scope"></slot>
+
+  </template>
     <template #loading>
       <svg class="circular" viewBox="0 0 50 50">
         <circle class="path" cx="25" cy="25" r="20" fill="none" />
@@ -16,7 +20,7 @@
 </template>
 
 <script name='option' setup lang='ts'>
-import { selectOptionsType } from './types';
+import { type selectOptionsType } from './types';
 const props = defineProps({
   options: {
     type: Array<selectOptionsType>,
