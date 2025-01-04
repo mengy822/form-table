@@ -25,6 +25,7 @@ interface columnType {
   size?: button;//	多选框组尺寸	 enum —
   disabled?: boolean;//	是否禁用	 boolean false
   clearable?: boolean;
+  showFun?:(dataForm:any)=>boolean;
 }
 export interface inputInnerType extends columnType, inputType { }
 export interface selectInnerType extends columnType, selectType { }

@@ -37,6 +37,7 @@
                 :ref="(el:any) => dynamicCreateRef(el, item.prop)"
                 :label="item.label"
                 :prop="item.prop"
+                v-if="item.showFun(dynamicComputedMap)"
               >
                 <template #label v-if="slots[`label_${item.prop}`]">
                   <slot :name="`label_${item.prop}`"  :prop="item.prop" :data="dynamicComputedMap"> </slot>
@@ -248,7 +249,7 @@ const rules = ref<FormRules>({})
 const columnFinal = computed(() => {
   return props.column.map((item: any) => {
     if (item.isRequired) {
-      let required = null
+      let required: null
       if (typeof item.isRequired === 'boolean') {
         rules.value[item.prop] = [
           {
@@ -274,7 +275,7 @@ const columnFinal = computed(() => {
           trigger: 'change',
         }
       }
-      if (required != null && props.notNeedChangeCheck.indexOf(item.prop) === -1) {
+      if (props.notNeedChangeCheck.indexOf(item.prop) === -1) {
         if (rules.value[item.prop] && Array.isArray(rules.value[item.prop]))
           rules.value[item.prop].push(required)
       }
@@ -283,6 +284,7 @@ const columnFinal = computed(() => {
     item.inlineMessage = item.inlineMessage ?? ''
     item.labelPosition = item.labelPosition ?? ''
     item.labelWidth = item.labelWidth ?? ''
+    item.showFun=item.showFun??(()=>true)
     return item
   })
 })
