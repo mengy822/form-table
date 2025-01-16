@@ -7,7 +7,7 @@ import { ref, watchEffect, onUnmounted } from 'vue';
  * @param {string} type - 'debounce' 或 'throttle'，表示防抖或节流
  * @returns {Function} - 触发防抖或节流操作的函数
  */
-function useDebounceThrottle(callback, delay = 500, type = 'debounce') {
+function useDebounceThrottle(callback:Function, delay:number = 500, type:string = 'debounce'):Function {
   // 标志是否正在等待延迟执行
   let timer;
   // 标志节流的上次执行时间

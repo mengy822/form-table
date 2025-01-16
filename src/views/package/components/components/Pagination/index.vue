@@ -27,7 +27,7 @@ export default {
 <script setup lang="ts">
 import { scrollTo } from '../../utils/scroll-to'
 import { PropType, computed } from 'vue';
-import { isMobile } from '@/components/js/utils'
+import { isMobile } from '../../js/utils'
 
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 const props = defineProps({

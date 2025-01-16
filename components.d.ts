@@ -7,10 +7,6 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    Checkbox: typeof import('./src/components/components/checkbox/index.vue')['default']
-    Date: typeof import('./src/components/components/date/index.vue')['default']
-    Detail: typeof import('./src/components/Detail/index.vue')['default']
-    Edit: typeof import('./src/components/Edit/index.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCard: typeof import('element-plus/es')['ElCard']
     ElCol: typeof import('element-plus/es')['ElCol']
@@ -30,22 +26,12 @@ declare module 'vue' {
     ElRadioButton: typeof import('element-plus/es')['ElRadioButton']
     ElRadioGroup: typeof import('element-plus/es')['ElRadioGroup']
     ElRow: typeof import('element-plus/es')['ElRow']
-    ElSelect: typeof import('element-plus/es')['ElSelect']
+    ElSelectV2: typeof import('element-plus/es')['ElSelectV2']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
     ElTable: typeof import('element-plus/es')['ElTable']
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     ElTree: typeof import('element-plus/es')['ElTree']
-    Form: typeof import('./src/components/Form/index.vue')['default']
-    Input: typeof import('./src/components/components/input/index.vue')['default']
-    Item: typeof import('./src/components/components/form/item.vue')['default']
-    Option: typeof import('./src/components/components/select/option.vue')['default']
-    Pagination: typeof import('./src/components/components/Pagination/index.vue')['default']
-    Radio: typeof import('./src/components/components/radio/index.vue')['default']
-    RightToolbar: typeof import('./src/components/components/RightToolbar/index.vue')['default']
-    Select: typeof import('./src/components/components/select/index.vue')['default']
-    Switch: typeof import('./src/components/components/switch/index.vue')['default']
-    Table: typeof import('./src/components/Table/index.vue')['default']
   }
   export interface ComponentCustomProperties {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

@@ -285,6 +285,7 @@ const columnFinal = computed(() => {
     item.labelPosition = item.labelPosition ?? ''
     item.labelWidth = item.labelWidth ?? ''
     item.showFun=item.showFun??(()=>true)
+    item.type=item.type??'input'
     return item
   })
 })

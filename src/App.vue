@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import MyTabel from './components/Table'
-import MyForm from './components/Form'
-import MyEdit from './components/Edit'
-import MyDetail from './components/Detail/index'
+import MyTabel from './views/package/components/Table'
+import MyForm from './views/package/components/Form'
+import MyEdit from './views/package/components/Edit'
+import MyDetail from './views/package/components/Detail/index'
 import type {
   checkboxInnerType,
   dateInnerType,
