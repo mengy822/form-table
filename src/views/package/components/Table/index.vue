@@ -88,6 +88,7 @@
           width="120"
           v-if="hasOperation"
         >
+
           <template #default="scope">
             <slot name="detail" :data="scope.row">
               <el-tooltip
@@ -101,7 +102,7 @@
               </el-tooltip>
             </slot>
 
-            <slot name="update" :data="scope.row">
+            <!-- <slot name="update" :data="scope.row">
               <el-tooltip
                 content="修改"
                 placement="top"
@@ -123,7 +124,7 @@
                   {{ typeof hasRemove === 'boolean' ? '' : hasRemove }}
                 </el-button>
               </el-tooltip>
-            </slot>
+            </slot> -->
 
             <slot :name="`operation`" :data="scope.row"> </slot>
           </template>
@@ -171,6 +172,7 @@ interface tableColumnItem {
   isForm?: boolean
   showOverflow?: boolean
   width?: number
+  unit?:string;//单位
   hidden?: boolean
   visible?: boolean
   align?: 'center' | 'left' | 'right'
@@ -356,8 +358,10 @@ const tableColumnFinal = computed({
           item.visible = item.visible ?? true
           item.selectable = item.selectable ?? true
           item.fun =
-            item.fun ?? ((row: dataItemType, prop: string, index?: number) => String(row[prop]))
+            item.fun ?? ((row: dataItemType, prop: string, index?: number) => String(row[prop])+(item.unit??''))
+
           item.hasDetail = item.hasDetail ?? ((row: dataItemType) => true)
+          console.log(item,'item.hasDetail')
           item.hasUpload = item.hasUpload ?? ((row: dataItemType) => true)
           item.hasRemove = item.hasRemove ?? ((row: dataItemType) => true)
           return item

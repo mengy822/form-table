@@ -40,7 +40,7 @@
       <template #footer>
         <slot name="footer" :data="dataFinal">
           <div class="dialog-footer">
-            <el-button @click="dialogVisible = false"> 关闭</el-button>
+            <el-button @click="dialogVisible = false">关闭</el-button>
           </div>
         </slot>
       </template>
@@ -125,11 +125,13 @@ const columnFinal = computed(() => {
     return item
   })
 })
+const emit=defineEmits(['close'])
 const dialogVisible = ref<boolean>(false)
 //窗口关闭前事件
 const handleClose = () => {
   dataFinal.value = {}
   dialogVisible.value = false
+  emit('close')
 }
 const init = (data: any) => {
   dataFinal.value = {...data}

@@ -1,8 +1,5 @@
 <script setup lang="ts">
-import MyTabel from './views/package/components/Table'
-import MyForm from './views/package/components/Form'
-import MyEdit from './views/package/components/Edit'
-import MyDetail from './views/package/components/Detail/index'
+import { MyTabel, MyForm, MyEdit, MyDetail } from './views/package/index'
 import type {
   checkboxInnerType,
   dateInnerType,
@@ -10,7 +7,7 @@ import type {
   radioInnerType,
   selectInnerType,
   switchInnerType,
-} from './components/components/form/types'
+} from './views/package/index'
 import { ref, onMounted, computed } from 'vue'
 
 const data = ref([])
@@ -114,9 +111,27 @@ const table = ref([
   { prop: 'dates', label: '日期-多日', hidden: true, visible: false },
   { prop: 'datetime', label: '日期-天时间', hidden: true, visible: true },
   { prop: 'week', label: '日期-周', hidden: true, visible: false },
-  { prop: 'datetimerange', label: '日期-多时间', hidden: true, visible: true,fun:(row,prop)=>row['startDateTime']+'/'+row['endDateTime'] },
-  { prop: 'daterange', label: '日期-多天', hidden: true, visible: false ,fun:(row,prop)=>row['startDate']+'/'+row['endDate']},
-  { prop: 'monthrange', label: '日期-多月', hidden: true, visible: true ,fun:(row,prop)=>row['startMouth']+'/'+row['endMouth']},
+  {
+    prop: 'datetimerange',
+    label: '日期-多时间',
+    hidden: true,
+    visible: true,
+    fun: (row, prop) => row['startDateTime'] + '/' + row['endDateTime'],
+  },
+  {
+    prop: 'daterange',
+    label: '日期-多天',
+    hidden: true,
+    visible: false,
+    fun: (row, prop) => row['startDate'] + '/' + row['endDate'],
+  },
+  {
+    prop: 'monthrange',
+    label: '日期-多月',
+    hidden: true,
+    visible: true,
+    fun: (row, prop) => row['startMouth'] + '/' + row['endMouth'],
+  },
   { prop: 'switch', label: '开关', hidden: true, visible: false },
   { prop: 'checkboxNumber', label: '多选框数字', hidden: true, visible: true },
   { prop: 'radioNumber', label: '单选框数字', hidden: true, visible: false },
@@ -133,7 +148,7 @@ const editColumn = ref([
     label: '文本输入框',
     type: 'input',
     inputType: 'text',
-    isRequired:true
+    isRequired: true,
   } as inputInnerType,
   {
     prop: 'textarea',
@@ -260,7 +275,7 @@ const editColumn = ref([
     label: '选择器数字多选',
     type: 'select',
     options: 10,
-    multiple:true,
+    multiple: true,
   } as selectInnerType,
   {
     prop: 'checkbox',
@@ -340,15 +355,13 @@ onMounted(() => {
   //   )
   // )
 })
-const submitFun=(e={})=>{
-  console.log(e,'保存')
+const submitFun = (e = {}) => {
+  console.log(e, '保存')
 }
 </script>
 
 <template>
-  <div v-if="true" class="app1">
-    <MyEdit ref="editRef" :column="editColumn" @submit='submitFun'></MyEdit>
-    <MyDetail des-column="3" ref="detailRef" :column="table"></MyDetail>
+  <div class="app1">
     <MyForm
       :default-search="true"
       :search-value="dataForm"
@@ -372,6 +385,8 @@ const submitFun=(e={})=>{
       @query="query"
     >
     </MyTabel>
+    <MyEdit ref="editRef" :column="editColumn" @submit="submitFun"></MyEdit>
+    <MyDetail des-column="3" ref="detailRef" :column="table"></MyDetail>
   </div>
 </template>
 

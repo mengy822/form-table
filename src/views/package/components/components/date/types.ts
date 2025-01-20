@@ -1,4 +1,4 @@
-import {button} from "../../js/sizeType";
+import type  {button} from "../../js/sizeType";
 
 export interface dateType {
 

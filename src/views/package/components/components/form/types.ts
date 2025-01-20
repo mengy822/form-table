@@ -1,10 +1,10 @@
-import { checkboxGroupType } from "../checkbox/types";
-import { dateType } from "../date/types";
-import { inputType } from "../input/types";
-import { radioGroupType } from "../radio/types";
-import { selectType } from "../select/types";
-import { switchType } from "../switch/types";
-import {button} from "../../js/sizeType";
+import type { checkboxGroupType } from "../checkbox/types";
+import type { dateType } from "../date/types";
+import type { inputType } from "../input/types";
+import type { radioGroupType } from "../radio/types";
+import type { selectType } from "../select/types";
+import type { switchType } from "../switch/types";
+import type { button } from "../../js/sizeType";
 interface columnType {
   prop: string; //model 的键名。 它可以是一个属性的值(如 a.b.0 或 ['a', 'b', '0'])。 在使用了 validate、resetFields 的方法时，该属性是必填的。
   label: string;
@@ -18,14 +18,14 @@ interface columnType {
   type: 'input' | 'date' | 'radio' | 'select' | 'switch' | 'checkbox';
   span?: number;
   for?: string; //和原生标签相同能力
-  readonly?:boolean;//只读
+  readonly?: boolean;//只读
   validateStatus?: '' | 'error' | 'validating' | 'success'; //formitem 校验的状态
   isDefault?: boolean;//是否有默认选中
-  isRequired?: boolean|((rule: any, value: any, callback: any)=>void);//是否必填
+  isRequired?: boolean | ((rule: any, value: any, callback: any) => void);//是否必填
   size?: button;//	多选框组尺寸	 enum —
   disabled?: boolean;//	是否禁用	 boolean false
   clearable?: boolean;
-  showFun?:(dataForm:any)=>boolean;
+  showFun?: (dataForm: any) => boolean;
 }
 export interface inputInnerType extends columnType, inputType { }
 export interface selectInnerType extends columnType, selectType { }

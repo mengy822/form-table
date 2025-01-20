@@ -1,4 +1,4 @@
-import {button} from "../../js/sizeType";
+import type { button } from "../../js/sizeType";
 
 export interface checkboxGroupType {
   min?: number;//	可被勾选的 checkbox 的最小数量	 number —

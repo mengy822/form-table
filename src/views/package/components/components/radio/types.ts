@@ -1,4 +1,4 @@
-import {button} from "../../js/sizeType";
+import  type {button} from "../../js/sizeType";
 
 export interface radioGroupType {
   textColor?: string;//	当按钮为活跃状态时的字体颜色	#ffffff

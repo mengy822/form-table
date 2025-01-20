@@ -51,6 +51,7 @@
       @clear="dataFinal.clear"
       @blur="blur"
       @focus="dataFinal.focus"
+      :options="dataFinal.options"
     >
       <template #header v-if="slots[`header_${dataFinal.prop}`]">
         <slot :name="`header_${dataFinal.prop}`">
@@ -70,20 +71,9 @@
         </slot>
       </template>
 
-      <template #default>
-        <slot :name="`default_${dataFinal.prop}`" :data="dataFinal.options">
-          <div v-if="props.type === 'group'" class="group_option">
-            <el-option-group
-              v-for="group in (dataFinal.options)"
-              :key="group.label"
-              :label="group.label"
-            >
-              <Option :options="group.options"></Option>
-            </el-option-group>
-          </div>
-          <div v-else class="option">
-            <Option :options="dataFinal.options"></Option>
-          </div>
+      <template #default="{item}" v-if="slots[`default_${dataFinal.prop}`]">
+        <slot :name="`default_${dataFinal.prop}`" :item='item' :data="dataFinal.options">
+
         </slot>
       </template>
     </el-select-v2>
@@ -92,7 +82,6 @@
 
 <script setup lang="ts" name="select">
 import { type PropType, ref, computed, watch, useSlots } from 'vue'
-import Option from '../select/option.vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import type { selectInnerType } from '../form/types'
 import type { selectOptionsGroupType, selectOptionsType } from './types'
@@ -158,8 +147,6 @@ const dataFinal = computed(() => {
     }
     //设置默认值
     if (data.isDefault && data.options.length > 0) {
-      console.log(data.options, data.prop, data.options.constructor)
-
       if (props.type === '') {
         const isDefault: selectOptionsType | undefined = (data.options as selectOptionsType[]).find((item: selectOptionsType) => !item.disabled)
         // bindValue.value = (isDefault && isDefault.value) ?? ''
