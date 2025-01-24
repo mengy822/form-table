@@ -23,13 +23,8 @@
       @change="change"
       ref="_ref"
     >
-      <template #active-action v-if="slot[`active-action-${data.prop}`]||slot[`active-action`]">
-        <slot :name="`active-action-${data.prop}`" v-if="slot[`active-action-${data.prop}`]"></slot>
-        <slot :name="`active-action`" v-if="slot[`active-action`]"></slot>
-      </template>
-      <template #inactive-action v-if="slot[`inactive-action-${data.prop}`]||slot[`inactive-action`]">
-        <slot :name="`inactive-action-${data.prop}`" v-if="slot[`inactive-action-${data.prop}`]"></slot>
-        <slot :name="`inactive-action`" v-if="slot[`inactive-action`]"></slot>
+      <template v-for="(_,name) in slots" #[getName(name)]="scopeData">
+        <slot :name="name" v-bind="scopeData"></slot>
       </template>
     </el-switch>
   </el-config-provider>
@@ -56,7 +51,7 @@ const props = defineProps({
     default: () => [],
   },
 })
-
+import {getName} from '../../js/utils'
 const dataFinal = computed(() => {
   let data = { ...props.data }
   data.change = data.change || function () {}

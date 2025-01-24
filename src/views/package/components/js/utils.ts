@@ -4,3 +4,7 @@ export const isMobile = () => {
     );
     return (flag&&flag.length > 0) ?? false;
   };
+export const getName=(name:string|number)=>{
+  name=String(name)
+  return name.indexOf('_')>-1?name.split('_')[0]??name:name
+}

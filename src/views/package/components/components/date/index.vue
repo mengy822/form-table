@@ -24,29 +24,8 @@
       @panel-change="dataFinal.panelChange"
       @visible-change="dataFinal.visibleChange"
     >
-      <template #default v-if="slots['default'] || slots[`default-${dataFinal.prop}`]">
-        <slot :name="`default-${dataFinal.prop}`" v-if="slots[`default-${dataFinal.prop}`]"></slot>
-        <slot :name="`default`" v-else></slot>
-      </template>
-      <template #range-separator v-if="slots['range-separator'] || slots[`range-separator-${dataFinal.prop}`]">
-        <slot :name="`range-separator-${dataFinal.prop}`" v-if="slots[`range-separator-${dataFinal.prop}`]"></slot>
-        <slot :name="`range-separator`" v-else></slot>
-      </template>
-      <template #prev-month v-if="slots['prev-month'] || slots[`prev-month-${dataFinal.prop}`]">
-        <slot :name="`prev-month-${dataFinal.prop}`" v-if="slots[`prev-month-${dataFinal.prop}`]"></slot>
-        <slot :name="`prev-month`" v-else></slot>
-      </template>
-      <template #next-month v-if="slots['next-month'] || slots[`next-month-${dataFinal.prop}`]">
-        <slot :name="`next-month-${dataFinal.prop}`" v-if="slots[`next-month-${dataFinal.prop}`]"></slot>
-        <slot :name="`next-month`" v-else></slot>
-      </template>
-      <template #prev-year v-if="slots['prev-year'] || slots[`prev-year-${dataFinal.prop}`]">
-        <slot :name="`prev-year-${dataFinal.prop}`" v-if="slots[`prev-year-${dataFinal.prop}`]"></slot>
-        <slot :name="`prev-year`" v-else></slot>
-      </template>
-      <template #next-year v-if="slots['next-year'] || slots[`next-year-${dataFinal.prop}`]">
-        <slot :name="`next-year-${dataFinal.prop}`" v-if="slots[`next-year-${dataFinal.prop}`]"></slot>
-        <slot :name="`next-year`" v-else></slot>
+      <template v-for="(_,name) in slots" #[getName(name)]="scopeData">
+        <slot :name="name" v-bind="scopeData"></slot>
       </template>
 
     </el-date-picker>
@@ -58,6 +37,7 @@ import { type PropType, computed, ref, useSlots } from 'vue'
 import { ElDatePicker } from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import type { dateInnerType } from '../form/types'
+import {getName} from '../../js/utils'
 const slots = useSlots()
 const props = defineProps({
   language: {

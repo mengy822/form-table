@@ -53,28 +53,8 @@
       @focus="dataFinal.focus"
       :options="dataFinal.options"
     >
-      <template #header v-if="slots[`header_${dataFinal.prop}`]">
-        <slot :name="`header_${dataFinal.prop}`">
-        </slot>
-      </template>
-
-      <template #footer v-if="slots[`footer_${dataFinal.prop}`]">
-        <slot :name="`footer_${dataFinal.prop}`">
-        </slot>
-      </template>
-      <template #empty v-if="slots[`empty_${dataFinal.prop}`]">
-        <slot :name="`empty_${dataFinal.prop}`">
-        </slot>
-      </template>
-      <template #tag v-if="slots[`tag_${dataFinal.prop}`]">
-        <slot :name="`tag_${dataFinal.prop}`">
-        </slot>
-      </template>
-
-      <template #default="{item}" v-if="slots[`default_${dataFinal.prop}`]">
-        <slot :name="`default_${dataFinal.prop}`" :item='item' :data="dataFinal.options">
-
-        </slot>
+      <template v-for="(_,name) in slots" #[getName(name)]="scopeData">
+        <slot :name="name" v-bind="scopeData"></slot>
       </template>
     </el-select-v2>
   </el-config-provider>
@@ -85,7 +65,7 @@ import { type PropType, ref, computed, watch, useSlots } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import type { selectInnerType } from '../form/types'
 import type { selectOptionsGroupType, selectOptionsType } from './types'
-
+import {getName} from '../../js/utils'
 const slots = useSlots()
 const props = defineProps({
   language: {
