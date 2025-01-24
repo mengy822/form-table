@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { MyTabel, MyForm, MyEdit, MyDetail } from './views/package/index'
+import Select from './views/package/components/components/select/index'
+
 import type {
   checkboxInnerType,
   dateInnerType,
@@ -116,21 +118,21 @@ const table = ref([
     label: '日期-多时间',
     hidden: true,
     visible: true,
-    fun: (row, prop) => row['startDateTime'] + '/' + row['endDateTime'],
+    fun: (row: { [x: string]: string }, prop: any) => row['startDateTime'] + '/' + row['endDateTime'],
   },
   {
     prop: 'daterange',
     label: '日期-多天',
     hidden: true,
     visible: false,
-    fun: (row, prop) => row['startDate'] + '/' + row['endDate'],
+    fun: (row: { [x: string]: string }, prop: any) => row['startDate'] + '/' + row['endDate'],
   },
   {
     prop: 'monthrange',
     label: '日期-多月',
     hidden: true,
     visible: true,
-    fun: (row, prop) => row['startMouth'] + '/' + row['endMouth'],
+    fun: (row: { [x: string]: string }, prop: any) => row['startMouth'] + '/' + row['endMouth'],
   },
   { prop: 'switch', label: '开关', hidden: true, visible: false },
   { prop: 'checkboxNumber', label: '多选框数字', hidden: true, visible: true },
@@ -148,24 +150,28 @@ const editColumn = ref([
     label: '文本输入框',
     type: 'input',
     inputType: 'text',
+    disabled:(data:any)=>data['number']%2===0,
     isRequired: true,
   } as inputInnerType,
   {
     prop: 'textarea',
     label: '文本域输入框',
     type: 'input',
+    readonly:(data:any)=>data['number']%2===0,
     inputType: 'textarea',
   } as inputInnerType,
   {
     prop: 'password',
     label: '密码输入框',
     type: 'input',
+    disabled:(data:any)=>data['number']%2!=0,
     inputType: 'password',
   } as inputInnerType,
   {
     prop: 'number',
     label: '数字输入框',
     type: 'input',
+    readonly:(data:any)=>data['number']%2!==0,
     inputType: 'number',
   } as inputInnerType,
   {
@@ -358,10 +364,13 @@ onMounted(() => {
 const submitFun = (e = {}) => {
   console.log(e, '保存')
 }
+
+
 </script>
 
 <template>
-  <div class="app1">
+
+  <div v-if="true" class="app1">
     <MyForm
       :default-search="true"
       :search-value="dataForm"
@@ -374,7 +383,7 @@ const submitFun = (e = {}) => {
       :table-column="table"
       :data-list="data"
       :max-height="'75vh'"
-      :has-detail="true"
+      :has-detail="(data)=>data['number']%2===0"
       :has-remove="true"
       :has-update="true"
       :has-add="true"

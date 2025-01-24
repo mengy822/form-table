@@ -92,39 +92,40 @@
           <template #default="scope">
             <slot name="detail" :data="scope.row">
               <el-tooltip
-                content="详情"
+                :content="`${(typeof hasDetail === 'boolean'?undefined:typeof hasDetail === 'function'?hasOperationName?hasDetail(scope.row):undefined:hasDetail)??'详情'}`"
                 placement="top"
-                v-if="item.hasDetail(scope.row) && hasDetail"
+                v-if="typeof hasDetail === 'function'?hasDetail(scope.row):hasDetail"
               >
                 <el-button link type="primary" :icon="Search" @click="handleDetail(scope.row)">
-                  {{ typeof hasDetail === 'boolean' ? '' : hasDetail }}
+                  {{ (typeof hasDetail === 'boolean'?undefined:typeof hasDetail === 'function'?hasOperationName?hasDetail(scope.row):undefined:hasDetail) }}
                 </el-button>
               </el-tooltip>
             </slot>
 
-            <!-- <slot name="update" :data="scope.row">
+            <slot name="update" :data="scope.row">
               <el-tooltip
-                content="修改"
+              :content="`${(typeof hasUpdate === 'boolean'?undefined:typeof hasUpdate === 'function'?hasOperationName?hasUpdate(scope.row):undefined:hasUpdate)??'修改'}`"
                 placement="top"
-                v-if="item.hasUpdate(scope.row) && hasUpdate"
+                v-if="typeof hasUpdate === 'function'?hasUpdate(scope.row):hasUpdate"
               >
                 <el-button link type="primary" :icon="Edit" @click="handleUpdate(scope.row)">
-                  {{ typeof hasUpdate === 'boolean' ? '' : hasUpdate }}
+                  {{ (typeof hasUpdate === 'boolean'?undefined:typeof hasUpdate === 'function'?hasOperationName?hasUpdate(scope.row):undefined:hasUpdate) }}
                 </el-button>
               </el-tooltip>
             </slot>
 
             <slot name="remove" :data="scope.row">
               <el-tooltip
-                content="删除"
+              :content="`${(typeof hasRemove === 'boolean'?undefined:typeof hasRemove === 'function'?hasOperationName?hasRemove(scope.row):undefined:hasRemove)??'修改'}`"
                 placement="top"
-                v-if="item.hasRemove(scope.row) && hasRemove"
+                v-if="typeof hasRemove === 'function'?hasRemove(scope.row):hasRemove"
+
               >
                 <el-button link type="primary" :icon="Delete" @click="handleRemove(scope.row)">
-                  {{ typeof hasRemove === 'boolean' ? '' : hasRemove }}
+                  {{ (typeof handleRemove === 'boolean'?undefined:typeof handleRemove === 'function'?hasOperationName?handleRemove(scope.row):undefined:handleRemove) }}
                 </el-button>
               </el-tooltip>
-            </slot> -->
+            </slot>
 
             <slot :name="`operation`" :data="scope.row"> </slot>
           </template>
@@ -165,6 +166,7 @@ interface dataItemType {
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { HighlightSpanKind } from 'typescript'
 const slots = useSlots()
+
 interface tableColumnItem {
   prop: string
   label: string
@@ -180,9 +182,6 @@ interface tableColumnItem {
   selectable?:boolean
   fun?: (row: dataItemType, prop: string, index?: number) => string
   classFun?: (row: dataItemType, prop: string) => string
-  hasDetail?: (row: dataItemType) => boolean
-  hasUpload?: (row: dataItemType) => boolean
-  hasRemove?: (row: dataItemType) => boolean
 }
 const props = defineProps({
   language: {
@@ -205,6 +204,10 @@ const props = defineProps({
     type: [Boolean, String],
     default: true,
   },
+  hasOperationName: {
+    type: [Boolean],
+    default: false,
+  },
 
   maxHeight: {
     type: [Number, String],
@@ -215,19 +218,19 @@ const props = defineProps({
     default: undefined,
   },
   hasAdd: {
-    type: [Boolean, String],
+    type: [Boolean, String,Function] as PropType<boolean|string|((data:dataItemType)=>boolean|string)>,
     default: false,
   },
   hasDetail: {
-    type: [Boolean, String],
+    type: [Boolean, String,Function] as PropType<boolean|string|((data:dataItemType)=>boolean|string)>,
     default: true,
   },
   hasUpdate: {
-    type: [Boolean, String],
+    type: [Boolean, String,Function] as PropType<boolean|string|((data:dataItemType)=>boolean|string)>,
     default: true,
   },
   hasRemove: {
-    type: [Boolean, String],
+    type: [Boolean, String,Function] as PropType<boolean|string|((data:dataItemType)=>boolean|string)>,
     default: true,
   },
   tableColumn: {
@@ -359,11 +362,6 @@ const tableColumnFinal = computed({
           item.selectable = item.selectable ?? true
           item.fun =
             item.fun ?? ((row: dataItemType, prop: string, index?: number) => String(row[prop])+(item.unit??''))
-
-          item.hasDetail = item.hasDetail ?? ((row: dataItemType) => true)
-          console.log(item,'item.hasDetail')
-          item.hasUpload = item.hasUpload ?? ((row: dataItemType) => true)
-          item.hasRemove = item.hasRemove ?? ((row: dataItemType) => true)
           return item
         })
     }

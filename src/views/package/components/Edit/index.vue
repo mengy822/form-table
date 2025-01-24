@@ -246,10 +246,38 @@ const props = defineProps({
 })
 const dataFinal = ref<{ [key: string]: any }>({})
 const rules = ref<FormRules>({})
-const columnFinal = computed(() => {
-  return props.column.map((item: any) => {
+type trigger='blur'|'change'
+type ruleType='string'|//: Must be of type string. This is the default type.
+'number'|//: Must be of type number.
+'boolean'|//: Must be of type boolean.
+'method'|//: Must be of type function.
+'regexp'|//: Must be an instance of RegExp or a string that does not generate an exception when creating a new RegExp.
+'integer'|//: Must be of type number and an integer.
+'float'|//: Must be of type number and a floating point number.
+'array'|//: Must be an array as determined by Array.isArray.
+'object'|//: Must be of type object and not Array.isArray.
+'enum'|//: Value must exist in the enum.
+'date'|//: Value must be valid as determined by Date
+'url'|//: Must be of type url.
+'hex'|//: Must be of type hex.
+'email'|//: Must be of type email.
+'any'//: Can be any type.
+const columnFinal = computed<Array<
+      | inputInnerType
+      | switchInnerType
+      | checkboxInnerType
+      | radioInnerType
+      | selectInnerType
+      | dateInnerType
+    >>(() => {
+  return props.column.map((item: inputInnerType
+      | switchInnerType
+      | checkboxInnerType
+      | radioInnerType
+      | selectInnerType
+      | dateInnerType) => {
     if (item.isRequired) {
-      let required: null
+      let required: {trigger:trigger,type?:ruleType}&({required:boolean,message:string}|{pattern:string,message:string}|{validator:(rule: any, value: any, callback: any) => void})
       if (typeof item.isRequired === 'boolean') {
         rules.value[item.prop] = [
           {
@@ -263,6 +291,21 @@ const columnFinal = computed(() => {
           message: item.label + '不能为空',
           trigger: 'change',
         }
+      }else if (typeof item.isRequired === 'string'){
+        rules.value[item.prop] = [
+          {
+            required: true,
+            message: item.label + '不能为空',
+            trigger: 'blur',
+            pattern:item.isRequired
+          },
+        ]
+        required ={
+            required: true,
+            message: item.label + '不能为空',
+            trigger: 'blur',
+            pattern:item.isRequired
+          }
       } else {
         rules.value[item.prop] = [
           {
@@ -277,7 +320,7 @@ const columnFinal = computed(() => {
       }
       if (props.notNeedChangeCheck.indexOf(item.prop) === -1) {
         if (rules.value[item.prop] && Array.isArray(rules.value[item.prop]))
-          rules.value[item.prop].push(required)
+          rules.value[item.prop]?.push(required)
       }
     }
     item.showMessage = item.showMessage ?? true
@@ -285,6 +328,8 @@ const columnFinal = computed(() => {
     item.labelPosition = item.labelPosition ?? ''
     item.labelWidth = item.labelWidth ?? ''
     item.showFun=item.showFun??(()=>true)
+    item.disabled=typeof item.disabled==='boolean'?item.disabled:item.disabled&&item.disabled(dynamicComputedMap.value)
+    item.readonly=typeof item.readonly==='boolean'?item.readonly:item.readonly&&item.readonly(dynamicComputedMap.value)
     item.type=item.type??'input'
     return item
   })
@@ -352,15 +397,17 @@ const init = (data: object = {}) => {
   })
   dialogVisible.value = true
 }
-defineExpose({
-  init,
-})
+
 const formRef = ref()
 const emits = defineEmits(['submit'])
 const cancelFun = () => {
   formRef.value.resetFields()
   dialogVisible.value = false
 }
+defineExpose({
+  init,
+  close:cancelFun
+})
 const submitFun = async () => {
   formRef.value?.validate((valid: boolean, fields: any) => {
     if (valid) {

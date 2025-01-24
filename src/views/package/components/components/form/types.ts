@@ -18,12 +18,12 @@ interface columnType {
   type: 'input' | 'date' | 'radio' | 'select' | 'switch' | 'checkbox';
   span?: number;
   for?: string; //和原生标签相同能力
-  readonly?: boolean;//只读
+  readonly?: boolean|((data:any)=>boolean);//只读
   validateStatus?: '' | 'error' | 'validating' | 'success'; //formitem 校验的状态
   isDefault?: boolean;//是否有默认选中
-  isRequired?: boolean | ((rule: any, value: any, callback: any) => void);//是否必填
+  isRequired?: boolean | ((rule: any, value: any, callback: any) => void)|string;//是否必填
   size?: button;//	多选框组尺寸	 enum —
-  disabled?: boolean;//	是否禁用	 boolean false
+  disabled?: boolean|((data:any)=>boolean);//	是否禁用	 boolean false
   clearable?: boolean;
   showFun?: (dataForm: any) => boolean;
 }
