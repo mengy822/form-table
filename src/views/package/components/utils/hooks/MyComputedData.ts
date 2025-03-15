@@ -35,7 +35,7 @@ export default function create(propsSearchValue:any={},searchValue:any) {
           return getkey.map(item => searchValue.value[item])
         },
         set(data) {
-          getkey.map((item, index) => searchValue.value[item] = data[index])
+          getkey.map((item, index) => searchValue.value[item] = data&&data[index])
         }
       })
       // console.log(dynamicComputedMap.value[prop],'dynamicComputedMapArray');

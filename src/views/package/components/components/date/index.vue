@@ -56,11 +56,11 @@ const props = defineProps({
   },
 })
 const blur = (e: FocusEvent) => {
-  if (bindValue.value) {
-    document.querySelector(`._class${dataFinal.value.prop}`)?.classList.remove('error')
-  } else {
-    document.querySelector(`._class${dataFinal.value.prop}`)?.classList.add('error')
-  }
+  // if (bindValue.value) {
+  //   document.querySelector(`._class${dataFinal.value.prop}`)?.classList.remove('error')
+  // } else {
+  //   document.querySelector(`._class${dataFinal.value.prop}`)?.classList.add('error')
+  // }
   dataFinal.value && dataFinal.value.blur && dataFinal.value.blur(e)
 }
 const dataFinal = computed(() => {

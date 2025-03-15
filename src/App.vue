@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { MyTabel, MyForm, MyEdit, MyDetail } from './views/package/index'
-import Select from './views/package/components/components/select/index'
 
 import type {
   checkboxInnerType,
@@ -44,6 +43,37 @@ onMounted(() => {
     span: 8,
     aliases: 'start,end',
   } as dateInnerType)
+ for(let i=0;i<1;i++){
+  searchList.value.push({
+    isRequired: true,
+    prop: 'inputNumber'+i,
+    label: 'number'+i,
+    max: 10,
+    type: 'input',
+    inputType: 'number',
+    span: 5,
+  } as inputInnerType)
+  searchList.value.push({ isRequired: true, prop: 'input'+i, label: 'input'+i, type: 'input', span: 5 })
+  searchList.value.push({
+    prop: 'select'+i,
+    label: 'select'+i,
+    type: 'select',
+    options: 10,
+    multiple: true,
+    span: 5,
+  } as selectInnerType)
+
+  searchList.value.push({
+    prop: 'daterange'+i,
+    label: 'daterange'+i,
+    type: 'date',
+    dateType: 'daterange',
+    valueFormat: 'YYYY-MM-DD',
+    format: 'YYYY-MM-DD',
+    span: 8,
+    aliases: 'start'+i+',end'+i,
+  } as dateInnerType)
+ }
 })
 const detail = (e: unknown) => {
   console.log(e, '详情')
@@ -365,13 +395,14 @@ const submitFun = (e = {}) => {
   console.log(e, '保存')
 }
 
-
+const showSearch=ref(true)
 </script>
 
 <template>
 
   <div v-if="true" class="app1">
     <MyForm
+    :show-search="showSearch"
       :default-search="true"
       :search-value="dataForm"
       :search="searchList"
@@ -383,10 +414,11 @@ const submitFun = (e = {}) => {
       :table-column="table"
       :data-list="data"
       :max-height="'75vh'"
-      :has-detail="(data)=>data['number']%2===0"
+      :has-detail="(data:any)=>data['number']%2===0"
       :has-remove="true"
       :has-update="true"
       :has-add="true"
+      v-model:showSearch="showSearch"
       @detail="detail"
       @update="update"
       @remove="remove"

@@ -105,11 +105,11 @@ const change = (e: typeof props.modelValue) => {
 }
 const blur = (e: any) => {
   // return (...args) => {
-  if (bindValue.value) {
-    document.querySelector(`._class${dataFinal.value.prop}`)?.classList.remove('error')
-  } else {
-    document.querySelector(`._class${dataFinal.value.prop}`)?.classList.add('error')
-  }
+  // if (bindValue.value) {
+  //   document.querySelector(`._class${dataFinal.value.prop}`)?.classList.remove('error')
+  // } else {
+  //   document.querySelector(`._class${dataFinal.value.prop}`)?.classList.add('error')
+  // }
   dataFinal.value && dataFinal.value.blur && dataFinal.value.blur(e)
   // }
 }
@@ -159,3 +159,8 @@ defineExpose({
   _ref
 })
 </script>
+<style scoped lang="scss">
+:deep(.el-select__selection){
+  min-width:100px;
+}
+</style>

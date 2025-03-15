@@ -22,9 +22,11 @@ interface columnType {
   validateStatus?: '' | 'error' | 'validating' | 'success'; //formitem 校验的状态
   isDefault?: boolean;//是否有默认选中
   isRequired?: boolean | ((rule: any, value: any, callback: any) => void)|string;//是否必填
+  dynamicRequired?: (data:any) => boolean;//是否必填
   size?: button;//	多选框组尺寸	 enum —
   disabled?: boolean|((data:any)=>boolean);//	是否禁用	 boolean false
   clearable?: boolean;
+  showLabel?: boolean;
   showFun?: (dataForm: any) => boolean;
 }
 export interface inputInnerType extends columnType, inputType { }

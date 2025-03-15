@@ -1,6 +1,6 @@
 <template>
   <el-config-provider :locale="language">
-    <el-card shadow="hover">
+    <el-card shadow="hover" class="table-plus-operation">
       <template #header>
         <slot name="header">
           <el-row :gutter="10">
@@ -21,6 +21,7 @@
         </slot>
       </template>
       <el-table
+        class="table-plus-main"
         :height="height"
         :max-height="maxHeight"
         v-loading="loading"
@@ -40,7 +41,12 @@
         :row-key="rowKey"
         :empty-text="emptyText"
       >
-        <el-table-column v-if="hasSelection" type="selection" :selectable="typeof hasSelection==='boolean'?()=>true:hasSelection" width="55" />
+        <el-table-column
+          v-if="hasSelection"
+          type="selection"
+          :selectable="typeof hasSelection === 'boolean' ? () => true : hasSelection"
+          width="55"
+        />
         <el-table-column
           fixed="left"
           v-if="hasIndex"
@@ -88,41 +94,87 @@
           width="120"
           v-if="hasOperation"
         >
-
           <template #default="scope">
             <slot name="detail" :data="scope.row">
               <el-tooltip
-                :content="`${(typeof hasDetail === 'boolean'?undefined:typeof hasDetail === 'function'?hasOperationName?hasDetail(scope.row):undefined:hasDetail)??'详情'}`"
+                :content="`${
+                  (typeof hasDetail === 'boolean'
+                    ? undefined
+                    : typeof hasDetail === 'function'
+                    ? hasOperationName
+                      ? hasDetail(scope.row)
+                      : undefined
+                    : hasDetail) ?? '详情'
+                }`"
                 placement="top"
-                v-if="typeof hasDetail === 'function'?hasDetail(scope.row):hasDetail"
+                v-if="typeof hasDetail === 'function' ? hasDetail(scope.row) : hasDetail"
               >
                 <el-button link type="primary" :icon="Search" @click="handleDetail(scope.row)">
-                  {{ (typeof hasDetail === 'boolean'?undefined:typeof hasDetail === 'function'?hasOperationName?hasDetail(scope.row):undefined:hasDetail) }}
+                  {{
+                    typeof hasDetail === 'boolean'
+                      ? undefined
+                      : typeof hasDetail === 'function'
+                      ? hasOperationName
+                        ? hasDetail(scope.row)
+                        : undefined
+                      : hasDetail
+                  }}
                 </el-button>
               </el-tooltip>
             </slot>
 
             <slot name="update" :data="scope.row">
               <el-tooltip
-              :content="`${(typeof hasUpdate === 'boolean'?undefined:typeof hasUpdate === 'function'?hasOperationName?hasUpdate(scope.row):undefined:hasUpdate)??'修改'}`"
+                :content="`${
+                  (typeof hasUpdate === 'boolean'
+                    ? undefined
+                    : typeof hasUpdate === 'function'
+                    ? hasOperationName
+                      ? hasUpdate(scope.row)
+                      : undefined
+                    : hasUpdate) ?? '修改'
+                }`"
                 placement="top"
-                v-if="typeof hasUpdate === 'function'?hasUpdate(scope.row):hasUpdate"
+                v-if="typeof hasUpdate === 'function' ? hasUpdate(scope.row) : hasUpdate"
               >
                 <el-button link type="primary" :icon="Edit" @click="handleUpdate(scope.row)">
-                  {{ (typeof hasUpdate === 'boolean'?undefined:typeof hasUpdate === 'function'?hasOperationName?hasUpdate(scope.row):undefined:hasUpdate) }}
+                  {{
+                    typeof hasUpdate === 'boolean'
+                      ? undefined
+                      : typeof hasUpdate === 'function'
+                      ? hasOperationName
+                        ? hasUpdate(scope.row)
+                        : undefined
+                      : hasUpdate
+                  }}
                 </el-button>
               </el-tooltip>
             </slot>
 
             <slot name="remove" :data="scope.row">
               <el-tooltip
-              :content="`${(typeof hasRemove === 'boolean'?undefined:typeof hasRemove === 'function'?hasOperationName?hasRemove(scope.row):undefined:hasRemove)??'修改'}`"
+                :content="`${
+                  (typeof hasRemove === 'boolean'
+                    ? undefined
+                    : typeof hasRemove === 'function'
+                    ? hasOperationName
+                      ? hasRemove(scope.row)
+                      : undefined
+                    : hasRemove) ?? '修改'
+                }`"
                 placement="top"
-                v-if="typeof hasRemove === 'function'?hasRemove(scope.row):hasRemove"
-
+                v-if="typeof hasRemove === 'function' ? hasRemove(scope.row) : hasRemove"
               >
                 <el-button link type="primary" :icon="Delete" @click="handleRemove(scope.row)">
-                  {{ (typeof handleRemove === 'boolean'?undefined:typeof handleRemove === 'function'?hasOperationName?handleRemove(scope.row):undefined:handleRemove) }}
+                  {{
+                    typeof handleRemove === 'boolean'
+                      ? undefined
+                      : typeof handleRemove === 'function'
+                      ? hasOperationName
+                        ? handleRemove(scope.row)
+                        : undefined
+                      : handleRemove
+                  }}
                 </el-button>
               </el-tooltip>
             </slot>
@@ -131,10 +183,10 @@
           </template>
         </el-table-column>
         <template #empty v-if="slots['empty']">
-          <slot name='empty'></slot>
+          <slot name="empty"></slot>
         </template>
       </el-table>
-      <pagination
+      <pagination class="table-plus-pagination"
         v-show="total > 0"
         :total="total"
         v-model:page="queryParams.pageNum"
@@ -146,7 +198,7 @@
 </template>
 
 <script setup lang="ts" name="MyTable">
-import { computed, ref, watch, useSlots, onMounted,type PropType, type CSSProperties } from 'vue'
+import { computed, ref, watch, useSlots, onMounted, type PropType, type CSSProperties } from 'vue'
 import pagination from '../components/Pagination/index.vue'
 import RightToolbar from '../components/RightToolbar/index.vue'
 import { Plus, Search, Delete, Edit } from '@element-plus/icons-vue'
@@ -174,12 +226,12 @@ interface tableColumnItem {
   isForm?: boolean
   showOverflow?: boolean
   width?: number
-  unit?:string;//单位
+  unit?: string //单位
   hidden?: boolean
   visible?: boolean
   align?: 'center' | 'left' | 'right'
   fixed?: false | true | 'left' | 'right'
-  selectable?:boolean
+  selectable?: boolean
   fun?: (row: dataItemType, prop: string, index?: number) => string
   classFun?: (row: dataItemType, prop: string) => string
 }
@@ -196,7 +248,7 @@ const props = defineProps({
   },
 
   hasSelection: {
-    type: [Boolean,Function] as PropType<boolean|((row: any, index: number) => boolean)>,
+    type: [Boolean, Function] as PropType<boolean | ((row: any, index: number) => boolean)>,
     default: false,
   },
 
@@ -218,19 +270,27 @@ const props = defineProps({
     default: undefined,
   },
   hasAdd: {
-    type: [Boolean, String,Function] as PropType<boolean|string|((data:dataItemType)=>boolean|string)>,
+    type: [Boolean, String, Function] as PropType<
+      boolean | string | ((data: dataItemType) => boolean | string)
+    >,
     default: false,
   },
   hasDetail: {
-    type: [Boolean, String,Function] as PropType<boolean|string|((data:dataItemType)=>boolean|string)>,
+    type: [Boolean, String, Function] as PropType<
+      boolean | string | ((data: dataItemType) => boolean | string)
+    >,
     default: true,
   },
   hasUpdate: {
-    type: [Boolean, String,Function] as PropType<boolean|string|((data:dataItemType)=>boolean|string)>,
+    type: [Boolean, String, Function] as PropType<
+      boolean | string | ((data: dataItemType) => boolean | string)
+    >,
     default: true,
   },
   hasRemove: {
-    type: [Boolean, String,Function] as PropType<boolean|string|((data:dataItemType)=>boolean|string)>,
+    type: [Boolean, String, Function] as PropType<
+      boolean | string | ((data: dataItemType) => boolean | string)
+    >,
     default: true,
   },
   tableColumn: {
@@ -257,64 +317,94 @@ const props = defineProps({
     default: 0,
   },
 
-  highlightCurrentRow: {//是否要高亮当前行
+  highlightCurrentRow: {
+    //是否要高亮当前行
     type: Boolean,
     default: false,
   },
-  currentRowKey: {//当前行的 key，只写属性
-    type: [String,Number],
-    default: "",
+  currentRowKey: {
+    //当前行的 key，只写属性
+    type: [String, Number],
+    default: '',
   },
-  rowClassName: {//行的 className 的回调方法，也可以使用字符串为所有行设置一个固定的 className。
-    type: [String,Function] as PropType<string|((data: { row: any, rowIndex: number }) => string)>,
-    default: "",
+  rowClassName: {
+    //行的 className 的回调方法，也可以使用字符串为所有行设置一个固定的 className。
+    type: [String, Function] as PropType<
+      string | ((data: { row: any; rowIndex: number }) => string)
+    >,
+    default: '',
   },
-  rowStyle: {//行的 style 的回调方法，也可以使用一个固定的 Object 为所有行设置一样的 Style。
-    type: [Object,Function] as PropType<CSSProperties|((data: { row: any, rowIndex: number }) => CSSProperties)>,
-    default: ()=>{
-      return{}
+  rowStyle: {
+    //行的 style 的回调方法，也可以使用一个固定的 Object 为所有行设置一样的 Style。
+    type: [Object, Function] as PropType<
+      CSSProperties | ((data: { row: any; rowIndex: number }) => CSSProperties)
+    >,
+    default: () => {
+      return {}
     },
   },
-  cellClassName: {//单元格的 className 的回调方法，也可以使用字符串为所有单元格设置一个固定的 className。
-    type: [String,Function] as PropType<string|((data: { row: any, column: any, rowIndex: number, columnIndex: number }) => string)>,
-    default: "",
+  cellClassName: {
+    //单元格的 className 的回调方法，也可以使用字符串为所有单元格设置一个固定的 className。
+    type: [String, Function] as PropType<
+      string | ((data: { row: any; column: any; rowIndex: number; columnIndex: number }) => string)
+    >,
+    default: '',
   },
-  cellStyle: {//单元格的 style 的回调方法，也可以使用一个固定的 Object 为所有单元格设置一样的 Style。
-    type: [Object,Function] as PropType<CSSProperties|((data: { row: any, column: any, rowIndex: number, columnIndex: number }) => CSSProperties)>,
-    default: ()=>{
-      return{}
+  cellStyle: {
+    //单元格的 style 的回调方法，也可以使用一个固定的 Object 为所有单元格设置一样的 Style。
+    type: [Object, Function] as PropType<
+      | CSSProperties
+      | ((data: { row: any; column: any; rowIndex: number; columnIndex: number }) => CSSProperties)
+    >,
+    default: () => {
+      return {}
     },
   },
-  headerRowClassName: {//表头行的 className 的回调方法，也可以使用字符串为所有表头行设置一个固定的 className。
-    type: [String,Function] as PropType<string|((data: { row: any, rowIndex: number }) => string)>,
-    default: "",
+  headerRowClassName: {
+    //表头行的 className 的回调方法，也可以使用字符串为所有表头行设置一个固定的 className。
+    type: [String, Function] as PropType<
+      string | ((data: { row: any; rowIndex: number }) => string)
+    >,
+    default: '',
   },
-  headerRowStyle: {//表头行的 style 的回调方法，也可以使用一个固定的 Object 为所有表头行设置一样的 Style。
-    type: [Object,Function] as PropType<CSSProperties|((data: { row: any, rowIndex: number }) => CSSProperties)>,
-    default: ()=>{
-      return{}
+  headerRowStyle: {
+    //表头行的 style 的回调方法，也可以使用一个固定的 Object 为所有表头行设置一样的 Style。
+    type: [Object, Function] as PropType<
+      CSSProperties | ((data: { row: any; rowIndex: number }) => CSSProperties)
+    >,
+    default: () => {
+      return {}
     },
   },
-  headerCellClassName: {//表头单元格的 className 的回调方法，也可以使用字符串为所有表头单元格设置一个固定的 className。
-    type: [String,Function] as PropType<string|((data: { row: any, column: any, rowIndex: number, columnIndex: number }) => string)>,
-    default: "",
+  headerCellClassName: {
+    //表头单元格的 className 的回调方法，也可以使用字符串为所有表头单元格设置一个固定的 className。
+    type: [String, Function] as PropType<
+      string | ((data: { row: any; column: any; rowIndex: number; columnIndex: number }) => string)
+    >,
+    default: '',
   },
-  headerCellStyle: {//表头单元格的 style 的回调方法，也可以使用一个固定的 Object 为所有表头单元格设置一样的 Style。
-    type: [Object,Function] as PropType<CSSProperties|((data: { row: any, column: any, rowIndex: number, columnIndex: number }) => CSSProperties)>,
-    default: ()=>{
-      return{}
+  headerCellStyle: {
+    //表头单元格的 style 的回调方法，也可以使用一个固定的 Object 为所有表头单元格设置一样的 Style。
+    type: [Object, Function] as PropType<
+      | CSSProperties
+      | ((data: { row: any; column: any; rowIndex: number; columnIndex: number }) => CSSProperties)
+    >,
+    default: () => {
+      return {}
     },
   },
-  rowKey: {//行数据的 Key，用来优化 Table 的渲染； 在使用reserve-selection功能与显示树形数据时，该属性是必填的。 类型为 String 时，支持多层访问：user.info.id，但不支持 user.info[0].id，此种情况请使用 Function。
-    type: [String,Function] as PropType<string|((row: any) => string)>,
-    default: "",
+  rowKey: {
+    //行数据的 Key，用来优化 Table 的渲染； 在使用reserve-selection功能与显示树形数据时，该属性是必填的。 类型为 String 时，支持多层访问：user.info.id，但不支持 user.info[0].id，此种情况请使用 Function。
+    type: [String, Function] as PropType<string | ((row: any) => string)>,
+    default: '',
   },
-  emptyText: {//空数据时显示的文本内容， 也可以通过 #empty 设置
-    type: [String] ,
-    default: "没有数据",
+  emptyText: {
+    //空数据时显示的文本内容， 也可以通过 #empty 设置
+    type: [String],
+    default: '没有数据',
   },
 })
-const tableRef=ref<TableInstance>()
+const tableRef = ref<TableInstance>()
 const selectable = (row: tableColumnItem) => row.selectable
 const multipleSelection = ref<tableColumnItem[]>([])
 const toggleSelection = (rows?: tableColumnItem[], ignoreSelectable?: boolean) => {
@@ -361,7 +451,9 @@ const tableColumnFinal = computed({
           item.visible = item.visible ?? true
           item.selectable = item.selectable ?? true
           item.fun =
-            item.fun ?? ((row: dataItemType, prop: string, index?: number) => String(row[prop])+(item.unit??''))
+            item.fun ??
+            ((row: dataItemType, prop: string, index?: number) =>
+              String(row[prop]) + (item.unit ?? ''))
           return item
         })
     }
@@ -374,7 +466,16 @@ const tableColumnFinal = computed({
 
 // const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const loading = ref<boolean>(true)
-const showSearch = ref<boolean>(true)
+const showSearchInner=ref(true)
+const showSearch = computed({
+  get(){
+    return showSearchInner.value
+  },
+  set(value){
+    showSearchInner.value=value,
+    emits('update:showSearch',showSearchInner.value)
+  }
+})
 
 const queryParams = ref<query>({ pageSize: 10, pageNum: 1, ...props.queryParam })
 watch(
@@ -387,17 +488,8 @@ watch(
     immediate: true,
   }
 )
-const emits = defineEmits(['query', 'add', 'update', 'detail', 'remove', 'showSearch'])
+const emits = defineEmits(['query', 'add', 'update', 'detail', 'remove', 'update:showSearch'])
 
-watch(
-  () => showSearch.value,
-  () => {
-    emits('showSearch', showSearch.value)
-  },
-  {
-    immediate: true,
-  }
-)
 watch(
   () => props.dataList,
   () => {
@@ -431,7 +523,7 @@ const handleDetail = (row: dataItemType) => {
   emits('detail', row)
 }
 defineExpose({
-  multipleSelection:multipleSelection.value,
-  toggleSelection
+  multipleSelection: multipleSelection.value,
+  toggleSelection,
 })
 </script>

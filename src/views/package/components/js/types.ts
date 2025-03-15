@@ -61,6 +61,7 @@ export interface button {
   clickFun?: (data: queryInnerType) => {};
   span?: number;
   label?: string;
+  fun:string;
 }
 
 export interface refresh extends button {
