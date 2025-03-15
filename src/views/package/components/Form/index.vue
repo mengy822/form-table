@@ -16,15 +16,8 @@
           :model="dynamicComputedMap"
           :label-width="labelWidth"
         >
-          <!-- <div
-
-            v-for="item in rowItem"
-            :key="JSON.stringify(item)"
-            :class="`col_${item.prop}`"
-          > -->
-
           <slot
-            v-for="item in rowItem"
+            v-for="(item,index) in rowItem"
             :key="JSON.stringify(item)"
             :name="item.prop"
             :prop="item.prop"
@@ -34,6 +27,7 @@
               :ref="(el:any) => dynamicCreateRef(el, item.prop)"
               :label="item.label"
               :prop="item.prop"
+              :class="`my-form-item my-form-item-${rowIndex} my-form-item-${rowIndex}-${index}`"
               :rules="
                 typeof item.dynamicRequired === 'undefined' ||
                 (item.dynamicRequired &&
@@ -172,7 +166,6 @@ import type {
   queryInnerType,
   refresh,
   search,
-  searchItemType,
   searchRefresh,
 } from '../js/types'
 import Input from '../components/input/index.vue'
@@ -182,7 +175,13 @@ import Radio from '../components/radio/index.vue'
 import Date from '../components/date/index.vue'
 import Switch from '../components/switch/index.vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
-import type { dateInnerType, inputInnerType, selectInnerType } from '../components/form/types'
+import type {
+  checkboxInnerType,
+  dateInnerType,
+  inputInnerType,
+  radioInnerType,
+  selectInnerType, switchInnerType
+} from '../components/form/types'
 import MyComputedData from '../utils/hooks/MyComputedData'
 import { createRules } from '../utils/rules'
 
@@ -263,13 +262,13 @@ const emits = defineEmits(['search', 'refresh'])
 const searchFun = (fun: (typeof searchButtonFinal.value)[number]['fun']) => {
   nextTick(() => {
     if (fun === 'refresh') {
-      // initSearchValue(props.search)
+      initSearchValue(props.search)
       // const errors: NodeListOf<Element> = document.querySelectorAll('.error')
       // for (let i = 0; i < errors.length; i++) {
       //   errors[i]?.classList?.remove('error')
       // }
-      formRef.value.map((item: { resetFields: () => void }) => {
-        item.resetFields()
+      formRef.value.map((item: { clearValidate: () => void }) => {
+        item.clearValidate()
       })
 
       if (props.isRefreshSearch) {

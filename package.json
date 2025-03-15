@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "kill -9 $(netstat -nlp | grep :80 | awk '{print $7}' | cut -d'/' -f1) & vite",
+    "dev-win": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
