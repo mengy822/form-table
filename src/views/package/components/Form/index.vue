@@ -17,9 +17,9 @@
           :label-width="labelWidth"
         >
           <slot
-            v-for="(item,index) in rowItem"
+            v-for="(item, index) in rowItem"
             :key="JSON.stringify(item)"
-            :name="item.prop"
+            :name="`my-form-item-${item.prop}`"
             :prop="item.prop"
             :data="searchValue"
           >
@@ -27,7 +27,7 @@
               :ref="(el:any) => dynamicCreateRef(el, item.prop)"
               :label="item.label"
               :prop="item.prop"
-              :class="`my-form-item my-form-item-${rowIndex} my-form-item-${rowIndex}-${index}`"
+              :class="`my-form-item my-form-item-${item.prop} my-form-item-${rowIndex} my-form-item-${rowIndex}-${index}`"
               :rules="
                 typeof item.dynamicRequired === 'undefined' ||
                 (item.dynamicRequired &&
@@ -97,6 +97,7 @@
                 v-for="item in searchButtonFinal"
                 :key="JSON.stringify(item)"
                 style="display: flex"
+                class="my-form-buttons"
                 :span="item.span"
               >
                 <el-button
@@ -161,13 +162,7 @@
 <script setup lang="ts" name="MyForm">
 import { ref, watch, computed, nextTick } from 'vue'
 import { RefreshLeft, ArrowUp, ArrowDown, Search } from '@element-plus/icons-vue'
-import type {
-  button,
-  queryInnerType,
-  refresh,
-  search,
-  searchRefresh,
-} from '../js/types'
+import type { button, queryInnerType, refresh, search, searchRefresh } from '../js/types'
 import Input from '../components/input/index.vue'
 import Select from '../components/select/index.vue'
 import CheckBox from '../components/checkbox/index.vue'
@@ -180,7 +175,8 @@ import type {
   dateInnerType,
   inputInnerType,
   radioInnerType,
-  selectInnerType, switchInnerType
+  selectInnerType,
+  switchInnerType,
 } from '../components/form/types'
 import MyComputedData from '../utils/hooks/MyComputedData'
 import { createRules } from '../utils/rules'
@@ -323,7 +319,6 @@ const searchFun = (fun: (typeof searchButtonFinal.value)[number]['fun']) => {
   })
 }
 const initSearchValue = (search: typeof props.search) => {
-  rules.value = createRules(search)
   search.forEach((item) => {
     let f = false
     switch (item.type) {
@@ -361,7 +356,22 @@ const initSearchValue = (search: typeof props.search) => {
   searchValue.value['pageSize'] = 10
   searchValue.value['pageNum'] = 1
 }
+const searchSign = ref<string[]>([])
+/**
+ * 计算搜索条件标识
+ * @param list 搜索条件
+ * @param flag true比较false计算
+ */
+const computedSearchSign = (list = [], flag = false) => {
+  if (flag) {
+    return new Set([...list.map((item) => `${item.prop}-${item.type}`), ...searchSign.value]).size!==searchSign.value.length
+  } else {
+    searchSign.value = []
+    searchSign.value = list.map((item) => `${item.prop}-${item.type}`)
+  }
+}
 const searchComputed = computed(() => {
+  computedSearchSign(props.search)
   return props.search
     .filter((item) => item.isForm ?? true)
     .map((item) => {
@@ -381,8 +391,9 @@ watch(
   () => searchComputed.value,
   () => {
     let search = searchComputed.value
-    if (search.length === 0) return []
+    if (search.length === 0||!computedSearchSign(search,true)) return []
     initSearchValue(search)
+    rules.value = createRules(search)
     let sum: number = 0
     let searchArr: searchTypes[] = []
     let oneRow: searchTypes = []
@@ -402,7 +413,7 @@ watch(
     if (oneRow.length != 0) {
       searchArr.push(oneRow)
     }
-    searchFinal.value = searchArr
+    searchFinal.value = [search]
     if (props.defaultSearch) {
       searchFun('search')
     }
