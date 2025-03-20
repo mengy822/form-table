@@ -1,4 +1,4 @@
-import { ref, watchEffect, onUnmounted } from 'vue';
+import { ref, watchEffect, onUnmounted, onMounted } from 'vue';
 
 /**
  * 防抖和节流的 Hook 函数
@@ -7,11 +7,11 @@ import { ref, watchEffect, onUnmounted } from 'vue';
  * @param {string} type - 'debounce' 或 'throttle'，表示防抖或节流
  * @returns {Function} - 触发防抖或节流操作的函数
  */
-function useDebounceThrottle(callback:Function, delay:number = 500, type:string = 'debounce'):Function {
+export function useDebounceThrottle(callback:Function, delay:number = 500, type:string = 'debounce'):Function {
   // 标志是否正在等待延迟执行
-  let timer;
+  let timer: number | undefined;
   // 标志节流的上次执行时间
-  let lastExecuted;
+  let lastExecuted: number;
 
   // 触发防抖或节流的函数
   function trigger() {
@@ -48,7 +48,7 @@ export function useMousePosition() {
   const y = ref(0);
 
   // 鼠标移动事件处理函数
-  const handleMouseMove = (event) => {
+  const handleMouseMove = (event: { pageX: number; pageY: number; }) => {
     x.value = event.pageX;
     y.value = event.pageY;
   };
@@ -103,7 +103,7 @@ export function useWindowResize() {
  * @param {number} options.cacheTime - 缓存的有效时间（毫秒），默认 5 分钟
  * @returns {Object} - 包含加载状态、数据和加载函数的对象
  */
-export function useCachePreload(loadFunction, { cacheTime = 5 * 60 * 1000 } = {}) {
+export function useCachePreload(loadFunction: () => any, { cacheTime = 5 * 60 * 1000 } = {}) {
   // 加载状态
   const loading = ref(false);
   // 数据
@@ -149,14 +149,14 @@ export function useCachePreload(loadFunction, { cacheTime = 5 * 60 * 1000 } = {}
  * @param {string} query - 媒体查询语句
  * @returns {boolean} - 媒体查询的匹配结果
  */
-export const useMatchMedia = (query) => {
+export const useMatchMedia = (query: string) => {
   // 创建媒体查询对象
   const mediaQuery = window.matchMedia(query);
   // 使用 ref 创建一个响应式变量来存储匹配结果
   const match = ref(mediaQuery.matches);
 
   // 定义一个在媒体查询状态改变时触发的回调函数
-  const onChange = (e) => {
+  const onChange = (e: { matches: boolean; }) => {
     match.value = e.matches;
   };
 
@@ -196,7 +196,7 @@ export function useScroll() {
   };
 
   // 监听滚动事件
-  const handleScroll = (event) => {
+  const handleScroll = (event: { target: { scrollHeight: any; clientHeight: any; }; }) => {
     scrollTop.value = window.pageYOffset || document.documentElement.scrollTop;
 
     const scrollHeight = event.target.scrollHeight;
@@ -277,7 +277,7 @@ export function useNetworkStatus() {
  * @param {string} text - 要复制的文本
  * @returns {Object} 包含复制状态和复制操作的对象
  */
-export function useCopyToClipboard(text) {
+export function useCopyToClipboard(text: string) {
   // 复制状态，初始为未复制
   const isCopied = ref(false);
 
@@ -312,7 +312,7 @@ export function useCopyToClipboard(text) {
  * @param {HTMLElement} element - 要设置为可拖拽的元素
  * @returns {Object} 包含拖拽相关状态和方法的对象
  */
-export function useDraggable(element) {
+export function useDraggable(element: { offsetLeft: number; offsetTop: number; style: { left: string; top: string; }; addEventListener: (arg0: string, arg1: (event: any) => void) => void; removeEventListener: (arg0: string, arg1: (event: any) => void) => void; }) {
   // 初始时，元素的位置
   const initialPosition = { x: 0, y: 0 };
 
@@ -323,7 +323,7 @@ export function useDraggable(element) {
   const isDragging = ref(false);
 
   // 鼠标按下事件处理函数
-  const handleMouseDown = (event) => {
+  const handleMouseDown = (event: { preventDefault: () => void; clientX: number; clientY: number; }) => {
     event.preventDefault();
     isDragging.value = true;
     mouseDownPosition.x = event.clientX;
@@ -335,7 +335,7 @@ export function useDraggable(element) {
   };
 
   // 鼠标移动事件处理函数
-  const handleMouseMove = (event) => {
+  const handleMouseMove = (event: { clientX: number; clientY: number; }) => {
     if (isDragging.value) {
       const deltaX = event.clientX - mouseDownPosition.x;
       const deltaY = event.clientY - mouseDownPosition.y;
@@ -373,7 +373,7 @@ export function useDraggable(element) {
  * @param {Blob} blob - 要下载的 Blob 数据
  * @param {string} fileName - 下载文件的名称
  */
-export function useFileDownload(blob, fileName) {
+export function useFileDownload(blob: Blob | MediaSource, fileName: any) {
   // 创建一个隐藏的 <a> 元素
   const link = ref(null);
 

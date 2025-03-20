@@ -259,7 +259,24 @@ const props = defineProps({
 })
 const dataFinal = ref<{ [key: string]: any }>({})
 const rules = ref<FormRules>({})
-
+//搜索条件标识,判断是不是需要重新渲染
+const searchSign = ref<string[]>([])
+/**
+ * 计算搜索条件标识
+ * @param list 搜索条件
+ * @param flag true比较false计算
+ */
+const computedSearchSign = (list = [], flag = false) => {
+  if (flag) {
+    return (
+      new Set([...list.map((item) => `${item.prop}-${item.type}`), ...searchSign.value]).size !==
+      searchSign.value.length
+    )
+  } else {
+    searchSign.value = []
+    searchSign.value = list.map((item) => `${item.prop}-${item.type}`)
+  }
+}
 const columnFinal = computed<
   Array<
     | inputInnerType
@@ -270,6 +287,7 @@ const columnFinal = computed<
     | dateInnerType
   >
 >(() => {
+  // computedSearchSign(props.column)
   rules.value = createRules(props.column, props.notNeedChangeCheck)
   return props.column.map(
     (
@@ -376,7 +394,7 @@ defineExpose({
 const submitFun = async () => {
   formRef.value?.validate((valid: boolean, fields: any) => {
     if (valid) {
-      emits('submit', dataFinal.value)
+      emits('submit', dataFinal.value,)
     } else {
       console.log('error submit!', fields)
     }

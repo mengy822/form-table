@@ -1,6 +1,6 @@
 {
   "name": "form-table-vue3",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": false,
   "main": "./dist/form-table-vue3.umd.js",
   "type": "module",
@@ -12,7 +12,8 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --build --force",
     "lint": "eslint . --fix",
-    "format": "prettier --write src/"
+    "format": "prettier --write src/",
+    "push": "cd dist & npm publish"
   },
   "dependencies": {
     "element-plus": "2.9.1",

@@ -22,8 +22,8 @@
       </template>
       <el-table
         class="table-plus-main"
-        :height="height"
-        :max-height="maxHeight"
+        :height="height ?? heightInner"
+        :max-height="maxHeight ?? maxHeightInner"
         v-loading="loading"
         :data="dataList"
         @selection-change="handleSelectionChange"
@@ -186,7 +186,8 @@
           <slot name="empty"></slot>
         </template>
       </el-table>
-      <pagination class="table-plus-pagination"
+      <pagination
+        class="table-plus-pagination"
         v-show="total > 0"
         :total="total"
         v-model:page="queryParams.pageNum"
@@ -198,7 +199,18 @@
 </template>
 
 <script setup lang="ts" name="MyTable">
-import { computed, ref, watch, useSlots, onMounted, type PropType, type CSSProperties } from 'vue'
+import {
+  computed,
+  ref,
+  watch,
+  useSlots,
+  onMounted,
+  type PropType,
+  type CSSProperties,
+  provide,
+  nextTick,
+  inject,
+} from 'vue'
 import pagination from '../components/Pagination/index.vue'
 import RightToolbar from '../components/RightToolbar/index.vue'
 import { Plus, Search, Delete, Edit } from '@element-plus/icons-vue'
@@ -216,7 +228,7 @@ interface dataItemType {
   [key: string]: string | number | undefined | boolean
 }
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
-import { HighlightSpanKind } from 'typescript'
+import { getDomComputed, getComputedStyle } from '../js/utils'
 const slots = useSlots()
 
 interface tableColumnItem {
@@ -267,6 +279,10 @@ const props = defineProps({
   },
   height: {
     type: [Number, String],
+    default: undefined,
+  },
+  baseClass: {
+    type: [String],
     default: undefined,
   },
   hasAdd: {
@@ -404,7 +420,42 @@ const props = defineProps({
     default: '没有数据',
   },
 })
+
 const tableRef = ref<TableInstance>()
+const heightInner = ref(0)
+const maxHeightInner = ref(0)
+const getHeight = (className: string): number => {
+  let baseClassHeightDom = document.querySelector(className)
+  let baseClassHeight = 0
+  if (baseClassHeightDom) {
+    let baseClassStyle = getComputedStyle(baseClassHeightDom)
+    // console.log(getDomComputed(baseClassStyle, 'height') ,className)
+    baseClassHeight =
+      getDomComputed(baseClassStyle, 'height')
+  }
+  return baseClassHeight
+}
+
+onMounted(() => {
+  // nextTick(()=>{
+  //   if (
+  //   props.baseClass &&
+  //   typeof props.height == 'undefined' &&
+  //   typeof props.maxHeight === 'undefined'
+  // ) {
+  //   let baseClassHeight = getHeight(props.baseClass)
+
+  //   let formPlusMainHeight = getHeight('.form-plus-main')
+
+  //   let tableHeaderHeight = getHeight('.el-card__header')+getHeight('.el-table__header-wrapper')
+  //   let pageHeight = getHeight('.pagination-container')
+
+  //   console.log(baseClassHeight, formPlusMainHeight, tableHeaderHeight, pageHeight)
+  //   heightInner.value = baseClassHeight - formPlusMainHeight - tableHeaderHeight - pageHeight
+  //   maxHeightInner.value = heightInner.value
+  // }
+  // })
+})
 const selectable = (row: tableColumnItem) => row.selectable
 const multipleSelection = ref<tableColumnItem[]>([])
 const toggleSelection = (rows?: tableColumnItem[], ignoreSelectable?: boolean) => {
@@ -466,15 +517,15 @@ const tableColumnFinal = computed({
 
 // const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const loading = ref<boolean>(true)
-const showSearchInner=ref(true)
+const showSearchInner = ref(true)
 const showSearch = computed({
-  get(){
+  get() {
     return showSearchInner.value
   },
-  set(value){
-    showSearchInner.value=value,
-    emits('update:showSearch',showSearchInner.value)
-  }
+  set(value) {
+    showSearchInner.value = value
+    emits('update:showSearch', showSearchInner.value)
+  },
 })
 
 const queryParams = ref<query>({ pageSize: 10, pageNum: 1, ...props.queryParam })

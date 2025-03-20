@@ -9,6 +9,18 @@ lerna-debug.log*
 
 node_modules
 .DS_Store
+src
+.editorconfig
+.gitignore
+.prettierrc.json
+auto-imports.d.ts
+components.d.ts
+env.d.ts
+eslint.config.js
+index.html
+*-lock.json
+tsconfig*
+vite.config.ts*
 dist-ssr
 coverage
 *.local

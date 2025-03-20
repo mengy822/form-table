@@ -43,37 +43,43 @@ onMounted(() => {
     span: 8,
     aliases: 'start,end',
   } as dateInnerType)
- for(let i=0;i<1;i++){
-  searchList.value.push({
-    isRequired: true,
-    prop: 'inputNumber'+i,
-    label: 'number'+i,
-    max: 10,
-    type: 'input',
-    inputType: 'number',
-    span: 5,
-  } as inputInnerType)
-  searchList.value.push({ isRequired: true, prop: 'input'+i, label: 'input'+i, type: 'input', span: 5 })
-  searchList.value.push({
-    prop: 'select'+i,
-    label: 'select'+i,
-    type: 'select',
-    options: 10,
-    multiple: true,
-    span: 5,
-  } as selectInnerType)
+  for (let i = 0; i < 1; i++) {
+    searchList.value.push({
+      // isRequired: true,
+      prop: 'inputNumber' + i,
+      label: 'number' + i,
+      max: 10,
+      type: 'input',
+      inputType: 'number',
+      span: 5,
+    } as inputInnerType)
+    searchList.value.push({
+      // isRequired: true,
+      prop: 'input' + i,
+      label: 'input' + i,
+      type: 'input',
+      span: 5,
+    })
+    searchList.value.push({
+      prop: 'select' + i,
+      label: 'select' + i,
+      type: 'select',
+      options: 10,
+      multiple: true,
+      span: 5,
+    } as selectInnerType)
 
-  searchList.value.push({
-    prop: 'daterange'+i,
-    label: 'daterange'+i,
-    type: 'date',
-    dateType: 'daterange',
-    valueFormat: 'YYYY-MM-DD',
-    format: 'YYYY-MM-DD',
-    span: 8,
-    aliases: 'start'+i+',end'+i,
-  } as dateInnerType)
- }
+    searchList.value.push({
+      prop: 'daterange' + i,
+      label: 'daterange' + i,
+      type: 'date',
+      dateType: 'daterange',
+      valueFormat: 'YYYY-MM-DD',
+      format: 'YYYY-MM-DD',
+      span: 8,
+      aliases: 'start' + i + ',end' + i,
+    } as dateInnerType)
+  }
 })
 const detail = (e: unknown) => {
   console.log(e, '详情')
@@ -148,7 +154,8 @@ const table = ref([
     label: '日期-多时间',
     hidden: true,
     visible: true,
-    fun: (row: { [x: string]: string }, prop: any) => row['startDateTime'] + '/' + row['endDateTime'],
+    fun: (row: { [x: string]: string }, prop: any) =>
+      row['startDateTime'] + '/' + row['endDateTime'],
   },
   {
     prop: 'daterange',
@@ -180,28 +187,28 @@ const editColumn = ref([
     label: '文本输入框',
     type: 'input',
     inputType: 'text',
-    disabled:(data:any)=>data['number']%2===0,
+    disabled: (data: any) => data['number'] % 2 === 0,
     isRequired: true,
   } as inputInnerType,
   {
     prop: 'textarea',
     label: '文本域输入框',
     type: 'input',
-    readonly:(data:any)=>data['number']%2===0,
+    readonly: (data: any) => data['number'] % 2 === 0,
     inputType: 'textarea',
   } as inputInnerType,
   {
     prop: 'password',
     label: '密码输入框',
     type: 'input',
-    disabled:(data:any)=>data['number']%2!=0,
+    disabled: (data: any) => data['number'] % 2 != 0,
     inputType: 'password',
   } as inputInnerType,
   {
     prop: 'number',
     label: '数字输入框',
     type: 'input',
-    readonly:(data:any)=>data['number']%2!==0,
+    readonly: (data: any) => data['number'] % 2 !== 0,
     inputType: 'number',
   } as inputInnerType,
   {
@@ -374,35 +381,18 @@ const editColumn = ref([
     ],
   } as selectInnerType,
 ])
-onMounted(() => {
-  // console.log(
-  //   JSON.stringify(
-  //     editColumn.value.map((item, index) => {
-  //       let data = {
-  //         prop: item.prop,
-  //         label: item.label,
-  //       }
-  //       if (index > 7) {
-  //         data.hidden = true
-  //         data.visible = index % 2 === 1
-  //       }
-  //       return data
-  //     })
-  //   )
-  // )
-})
+
 const submitFun = (e = {}) => {
   console.log(e, '保存')
 }
 
-const showSearch=ref(true)
+const showSearch = ref(true)
 </script>
 
 <template>
-
   <div v-if="true" class="app1">
     <MyForm
-    :show-search="showSearch"
+      :show-search="showSearch"
       :default-search="true"
       :search-value="dataForm"
       :search="searchList"
@@ -413,8 +403,8 @@ const showSearch=ref(true)
       :total="total"
       :table-column="table"
       :data-list="data"
-      :max-height="'75vh'"
-      :has-detail="(data:any)=>data['number']%2===0"
+      base-class=".app1"
+      :has-detail="(data)=>data['number']%2===0"
       :has-remove="true"
       :has-update="true"
       :has-add="true"
@@ -432,4 +422,7 @@ const showSearch=ref(true)
 </template>
 
 <style scoped lang="scss">
+.app1{
+  height:100vh;
+}
 </style>
