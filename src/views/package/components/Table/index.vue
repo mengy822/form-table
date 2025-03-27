@@ -22,8 +22,8 @@
       </template>
       <el-table
         class="table-plus-main"
-        :height="height ?? heightInner"
-        :max-height="maxHeight ?? maxHeightInner"
+        :height="height || heightInner || maxHeight"
+        :max-height="maxHeight || maxHeightInner || height"
         v-loading="loading"
         :data="dataList"
         @selection-change="handleSelectionChange"
@@ -109,7 +109,13 @@
                 placement="top"
                 v-if="typeof hasDetail === 'function' ? hasDetail(scope.row) : hasDetail"
               >
-                <el-button link type="primary" :icon="Search" @click="handleDetail(scope.row)">
+                <el-button
+                  link
+                  type="primary"
+                  :loading="operationLoading"
+                  :icon="Search"
+                  @click="handleDetail(scope.row)"
+                >
                   {{
                     typeof hasDetail === 'boolean'
                       ? undefined
@@ -137,7 +143,13 @@
                 placement="top"
                 v-if="typeof hasUpdate === 'function' ? hasUpdate(scope.row) : hasUpdate"
               >
-                <el-button link type="primary" :icon="Edit" @click="handleUpdate(scope.row)">
+                <el-button
+                  link
+                  type="primary"
+                  :loading="operationLoading"
+                  :icon="Edit"
+                  @click="handleUpdate(scope.row)"
+                >
                   {{
                     typeof hasUpdate === 'boolean'
                       ? undefined
@@ -160,12 +172,18 @@
                     ? hasOperationName
                       ? hasRemove(scope.row)
                       : undefined
-                    : hasRemove) ?? '修改'
+                    : hasRemove) ?? '删除'
                 }`"
                 placement="top"
                 v-if="typeof hasRemove === 'function' ? hasRemove(scope.row) : hasRemove"
               >
-                <el-button link type="primary" :icon="Delete" @click="handleRemove(scope.row)">
+                <el-button
+                  link
+                  type="primary"
+                  :loading="operationLoading"
+                  :icon="Delete"
+                  @click="handleRemove(scope.row)"
+                >
                   {{
                     typeof handleRemove === 'boolean'
                       ? undefined
@@ -214,7 +232,7 @@ import {
 import pagination from '../components/Pagination/index.vue'
 import RightToolbar from '../components/RightToolbar/index.vue'
 import { Plus, Search, Delete, Edit } from '@element-plus/icons-vue'
-import type { TableInstance } from 'element-plus'
+import { ElMessage, ElMessageBox, TableInstance } from 'element-plus'
 interface query extends queryParamType {
   pageSize: number
   pageNum: number
@@ -419,6 +437,18 @@ const props = defineProps({
     type: [String],
     default: '没有数据',
   },
+  duration: {
+    type: Number,
+    default: 1500,
+    validator(value: number) {
+      // The value must match one of these strings
+      return value >= 0
+    },
+  },
+  message: {
+    type: String,
+    default: '操作成功',
+  },
 })
 
 const tableRef = ref<TableInstance>()
@@ -430,8 +460,7 @@ const getHeight = (className: string): number => {
   if (baseClassHeightDom) {
     let baseClassStyle = getComputedStyle(baseClassHeightDom)
     // console.log(getDomComputed(baseClassStyle, 'height') ,className)
-    baseClassHeight =
-      getDomComputed(baseClassStyle, 'height')
+    baseClassHeight = getDomComputed(baseClassStyle, 'height')
   }
   return baseClassHeight
 }
@@ -444,12 +473,9 @@ onMounted(() => {
   //   typeof props.maxHeight === 'undefined'
   // ) {
   //   let baseClassHeight = getHeight(props.baseClass)
-
   //   let formPlusMainHeight = getHeight('.form-plus-main')
-
   //   let tableHeaderHeight = getHeight('.el-card__header')+getHeight('.el-table__header-wrapper')
   //   let pageHeight = getHeight('.pagination-container')
-
   //   console.log(baseClassHeight, formPlusMainHeight, tableHeaderHeight, pageHeight)
   //   heightInner.value = baseClassHeight - formPlusMainHeight - tableHeaderHeight - pageHeight
   //   maxHeightInner.value = heightInner.value
@@ -565,9 +591,35 @@ const handleAdd = () => {
 const handleUpdate = (row: dataItemType) => {
   emits('update', row)
 }
+const operationLoading = ref(false)
 const handleRemove = (row: dataItemType) => {
   // proxy?.$modal.confirm(props.removeMessage).then((res) => {
-  //   emits('remove', row);
+  ElMessageBox.confirm(props.removeMessage, 'warning', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  })
+    .then(() => {
+      emits('remove', row, (flag = true) => {
+        if (flag) {
+          ElMessage({
+            message: props.message,
+            grouping: true,
+            duration: props.duration,
+            type: 'success',
+            showClose: props.duration! > 0,
+            onClose: () => {
+              operationLoading.value = false
+              // cancelFun()
+            },
+          })
+        } else {
+          operationLoading.value = false
+        }
+      })
+    })
+    .catch(() => {})
+  operationLoading.value = true
   // });
 }
 const handleDetail = (row: dataItemType) => {

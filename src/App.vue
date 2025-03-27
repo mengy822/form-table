@@ -187,28 +187,26 @@ const editColumn = ref([
     label: '文本输入框',
     type: 'input',
     inputType: 'text',
-    disabled: (data: any) => data['number'] % 2 === 0,
     isRequired: true,
   } as inputInnerType,
   {
     prop: 'textarea',
     label: '文本域输入框',
     type: 'input',
-    readonly: (data: any) => data['number'] % 2 === 0,
     inputType: 'textarea',
   } as inputInnerType,
   {
     prop: 'password',
     label: '密码输入框',
     type: 'input',
-    disabled: (data: any) => data['number'] % 2 != 0,
+    disabled: (data: any) => data['number'] % 2 == 0,
     inputType: 'password',
   } as inputInnerType,
   {
     prop: 'number',
     label: '数字输入框',
     type: 'input',
-    readonly: (data: any) => data['number'] % 2 !== 0,
+    readonly: (data: any) => data['number'] % 2 == 0,
     inputType: 'number',
   } as inputInnerType,
   {
@@ -382,8 +380,11 @@ const editColumn = ref([
   } as selectInnerType,
 ])
 
-const submitFun = (e = {}) => {
+const submitFun = (e: (typeof editColumn.value)[number]['prop'], callback: Function) => {
   console.log(e, '保存')
+  setTimeout(() => {
+    callback()
+  }, 2 * 1000)
 }
 
 const showSearch = ref(true)
@@ -404,7 +405,8 @@ const showSearch = ref(true)
       :table-column="table"
       :data-list="data"
       base-class=".app1"
-      :has-detail="(data)=>data['number']%2===0"
+      max-height="75vh"
+      :has-detail="(data) => data['number'] % 2 === 0"
       :has-remove="true"
       :has-update="true"
       :has-add="true"
@@ -422,7 +424,7 @@ const showSearch = ref(true)
 </template>
 
 <style scoped lang="scss">
-.app1{
-  height:100vh;
+.app1 {
+  height: 100vh;
 }
 </style>

@@ -100,10 +100,10 @@
       <template #footer>
         <slot name="footer">
           <div class="dialog-footer">
-            <el-button type="primary" @click="submitFun">
+            <el-button type="primary" @click="submitFun" :loading="loading">
               {{ isAdd ? submitButtonTxt.add : submitButtonTxt.edit }}</el-button
             >
-            <el-button @click="cancelFun"> {{ cancelButtonTxt }}</el-button>
+            <el-button @click="cancelFun" :loading="loading"> {{ cancelButtonTxt }}</el-button>
           </div>
         </slot>
       </template>
@@ -112,7 +112,7 @@
 </template>
 <script lang="ts" setup name='MyEdit'>
 import { ref, useSlots, computed, type PropType, nextTick, type Ref } from 'vue'
-import type { FormRules } from 'element-plus'
+import { ElMessage, FormRules } from 'element-plus'
 import Input from '../components/input/index.vue'
 import Select from '../components/select/index.vue'
 import CheckBox from '../components/checkbox/index.vue'
@@ -256,6 +256,18 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  duration: {
+    type: Number,
+    default: 1500,
+    validator(value: number) {
+      // The value must match one of these strings
+      return value >= 0
+    },
+  },
+  message: {
+    type: String,
+    default: '操作成功',
+  },
 })
 const dataFinal = ref<{ [key: string]: any }>({})
 const rules = ref<FormRules>({})
@@ -328,14 +340,22 @@ let dynamicComputedFun: (
     aliases: string
   ) => void,
   dynamicComputedMap: Ref<{ [name: string]: any }>
+
 const dialogVisible = ref<boolean>(false)
 //窗口关闭前事件
 const handleClose = () => {
+  if (loading.value === true) {
+    console.warn('请稍等...')
+    return
+  }
+  loading.value = false
+  formRef.value.resetFields()
   dataFinal.value = {}
   dialogVisible.value = false
 }
 const editDialog = ref(null)
 const isAdd = ref(true)
+const loading = ref(false)
 const init = (data: object = {}) => {
   if (Object.keys(data).length > 0) {
     isAdd.value = false
@@ -384,8 +404,7 @@ const init = (data: object = {}) => {
 const formRef = ref()
 const emits = defineEmits(['submit'])
 const cancelFun = () => {
-  formRef.value.resetFields()
-  dialogVisible.value = false
+  handleClose()
 }
 defineExpose({
   init,
@@ -394,9 +413,25 @@ defineExpose({
 const submitFun = async () => {
   formRef.value?.validate((valid: boolean, fields: any) => {
     if (valid) {
-      emits('submit', dataFinal.value,)
+      loading.value = true
+      emits('submit', dataFinal.value, (flag = true) => {
+        if (flag) {
+          ElMessage({
+            message: props.message,
+            grouping: true,
+            duration: props.duration,
+            type: 'success',
+            showClose: props.duration! > 0,
+            onClose: () => {
+              loading.value = false
+              cancelFun()
+            },
+          })
+        } else {
+          loading.value = false
+        }
+      })
     } else {
-      console.log('error submit!', fields)
     }
   })
 }
