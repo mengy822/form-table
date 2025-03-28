@@ -31,7 +31,7 @@
             :key="JSON.stringify(item)"
             :class="`class_${item.prop}`"
           >
-            <slot :name="`item_${item.prop}`" :prop="item.prop" :data="dynamicComputedMap">
+            <slot :name="`item_${item.prop}`" :prop="item.prop" :data="dynamicComputedMap" :isShow="visible">
               <el-form-item
                 :ref="(el:any) => dynamicCreateRef(el, item.prop)"
                 :label="item.label"

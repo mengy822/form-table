@@ -81,7 +81,7 @@
               <span
                 :class="`span span_${item.prop} span_${item.prop}_${
                   scope.row[item.prop]
-                } span_other_${item.classFun && item.classFun(scope.row, item.prop)}`"
+                } span_other_${item.classFun && item.classFun(scope.row, item.prop)} ${typeof scope.row[item.prop]}`"
                 >{{ item.fun && item.fun(scope.row, item.prop, scope.$index) }}</span
               >
             </slot>
