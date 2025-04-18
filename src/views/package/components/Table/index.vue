@@ -69,6 +69,7 @@
           :min-width="item.width ?? 100"
           :align="item.align ?? 'center'"
           :show-overflow-tooltip="item.showOverflow ?? true"
+          v-if="item.showFun(queryParams)"
         >
           <template #default="scope">
             <slot
@@ -81,7 +82,8 @@
               <span
                 :class="`span span_${item.prop} span_${item.prop}_${
                   scope.row[item.prop]
-                } span_other_${item.classFun && item.classFun(scope.row, item.prop)} ${typeof scope.row[item.prop]}`"
+                } span_other_${item.classFun && item.classFun(scope.row, item.prop)} ${typeof scope
+                  .row[item.prop]}`"
                 >{{ item.fun && item.fun(scope.row, item.prop, scope.$index) }}</span
               >
             </slot>
@@ -91,7 +93,7 @@
         <el-table-column
           fixed="right"
           :label="typeof hasOperation === 'boolean' ? '操作' : hasOperation"
-          width="120"
+          width="150"
           v-if="hasOperation"
         >
           <template #default="scope">
@@ -262,8 +264,10 @@ interface tableColumnItem {
   align?: 'center' | 'left' | 'right'
   fixed?: false | true | 'left' | 'right'
   selectable?: boolean
+  maxWidth?: boolean
   fun?: (row: dataItemType, prop: string, index?: number) => string
   classFun?: (row: dataItemType, prop: string) => string
+  showFun?: (row?: queryParamType|any) => boolean
 }
 const props = defineProps({
   language: {
@@ -302,6 +306,10 @@ const props = defineProps({
   baseClass: {
     type: [String],
     default: undefined,
+  },
+  maxWidth: {
+    type: Boolean,
+    default: true,
   },
   hasAdd: {
     type: [Boolean, String, Function] as PropType<
@@ -450,7 +458,7 @@ const props = defineProps({
     default: '操作成功',
   },
 })
-
+//表格实例
 const tableRef = ref<TableInstance>()
 const heightInner = ref(0)
 const maxHeightInner = ref(0)
@@ -482,8 +490,11 @@ onMounted(() => {
   // }
   // })
 })
+//多选事件
 const selectable = (row: tableColumnItem) => row.selectable
+//多选数据
 const multipleSelection = ref<tableColumnItem[]>([])
+//多选
 const toggleSelection = (rows?: tableColumnItem[], ignoreSelectable?: boolean) => {
   if (rows) {
     rows.forEach((row) => {
@@ -493,9 +504,17 @@ const toggleSelection = (rows?: tableColumnItem[], ignoreSelectable?: boolean) =
     tableRef.value?.clearSelection()
   }
 }
+//多选
 const handleSelectionChange = (val: tableColumnItem[]) => {
   multipleSelection.value = val
 }
+const getTextWidth = (text: string, font: string) => {
+  const canvas = document.createElement('canvas')
+  const context = canvas.getContext('2d')
+  context.font = font
+  return context.measureText(text).width
+}
+//需要隐藏的表格列
 const canHiddenColumns = computed({
   get() {
     let data = tableColumn.value
@@ -507,6 +526,7 @@ const canHiddenColumns = computed({
           visible: item.visible ?? true,
           hidden: item.hidden,
           index: index,
+          maxWidth: item.width ? false : item.maxWidth ?? props.maxWidth,
         }
       })
       .filter((item) => item.hidden)
@@ -527,10 +547,12 @@ const tableColumnFinal = computed({
         .map((item) => {
           item.visible = item.visible ?? true
           item.selectable = item.selectable ?? true
+          item.maxWidth = item.width ? false : item.maxWidth ?? props.maxWidth
           item.fun =
             item.fun ??
             ((row: dataItemType, prop: string, index?: number) =>
               String(row[prop]) + (item.unit ?? ''))
+          item.showFun=item.showFun??(()=>true)
           return item
         })
     }

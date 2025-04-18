@@ -112,25 +112,114 @@ const query = (e: any) => {
 }
 const request = (
   url: string,
-  data = {},
+  data1 = {},
   config: { methods?: 'post' | 'get'; header?: any } = {}
 ) => {
   if (!config.methods) config.methods = 'post'
   if (!config.header) config.header = {}
 
   return new Promise((resolve, reject) => {
-    fetch(`${url}`, {
-      method: config.methods,
-      body: JSON.stringify(data),
-      headers: config.header,
-    }).then((response) => {
-      if (response.status === 200) {
-        response.json().then((res) => {
-          resolve(res)
-        })
-      } else {
-        reject(response)
+    let params = {...data1}
+    let inputNumber = Number(params?.inputNumber||'0')
+    let pageNum = params?.pageNum||1
+    let pageSize = params?.pageSize||10
+    let data = []
+    let max = inputNumber > pageNum * pageSize ? pageSize : inputNumber - (pageNum - 1) * pageSize
+    function randomFrom(min, max, zero = false):number {
+      let num = String(Math.floor(Math.random() * (max - min + 1) + min))
+      if (zero) {
+        num = (Number(num) < 10 ? '0' : '') + num
       }
+      return Number(num)
+    }
+    function padLeftZero(str) {
+      return ('00' + str).substr(str.length)
+    }
+    function formatDate(date, fmt = 'yyyy-MM-dd hh:mm:ss') {
+      if (date instanceof Date == false) date = new Date(date)
+      if (/(y+)/.test(fmt)) {
+        fmt = fmt.replace(RegExp.$1, (date.getFullYear() + '').substr(4 - RegExp.$1.length))
+      }
+      let o = {
+        'M+': date.getMonth() + 1,
+        'd+': date.getDate(),
+        'h+': date.getHours(),
+        'm+': date.getMinutes(),
+        's+': date.getSeconds(),
+      }
+      for (let k in o) {
+        if (new RegExp(`(${k})`).test(fmt)) {
+          let str = o[k] + ''
+          fmt = fmt.replace(RegExp.$1, RegExp.$1.length === 1 ? str : padLeftZero(str))
+        }
+      }
+      return fmt
+    }
+    //1字符串 2数字 3年 4两个年 5月 6天 7两个天 8周 9时间范围 10天范围
+    let key = {
+      text: { type: 1, fun: () => Math.random().toString(16) },
+      textarea: { type: 1, fun: () => Math.random().toString(16) },
+      password: { type: 1, fun: () => Math.random().toString(16) },
+      number: { type: 2, fun: () => randomFrom(0, 100) },
+      year: { type: 3, fun: () => randomFrom(1970, 2025) },
+      years: { type: 3, fun: () => `${randomFrom(1970, 2025)},${randomFrom(1970, 2025)}` },
+      month: { type: 3, fun: () => `${randomFrom(1970, 2025)}-${randomFrom(1, 12, true)}` },
+      date: {
+        type: 3,
+        fun: () =>
+          `${randomFrom(1970, 2025, true)}-${randomFrom(1, 12, true)}-${randomFrom(1, 28, true)}`,
+      },
+      dates: {
+        type: 3,
+        fun: () =>
+          `${randomFrom(1970, 2025)}-${randomFrom(1, 12, true)}-${randomFrom(
+            1,
+            28,
+            true
+          )},${randomFrom(1970, 2025)}-${randomFrom(1, 12, true)}-${randomFrom(1, 28, true)}`,
+      },
+      datetime: { type: 3, fun: () => formatDate(randomFrom(1700000000000, 2000000000000)) },
+      week: { type: 3, fun: () => `${randomFrom(1970, 2025)}-${randomFrom(1, 54, true)}` },
+      startDateTime: { type: 3, fun: () => formatDate(randomFrom(1700000000000, 2000000000000)) },
+      endDateTime: { type: 3, fun: () => formatDate(randomFrom(1700000000000, 2000000000000)) },
+      startDate: {
+        type: 3,
+        fun: () => formatDate(randomFrom(1700000000000, 2000000000000), 'yyyy-MM-dd'),
+      },
+      endDate: {
+        type: 3,
+        fun: () => formatDate(randomFrom(1700000000000, 2000000000000), 'yyyy-MM-dd'),
+      },
+      startMouth: {
+        type: 3,
+        fun: () => formatDate(randomFrom(1700000000000, 2000000000000), 'yyyy-MM'),
+      },
+      endMouth: {
+        type: 3,
+        fun: () => formatDate(randomFrom(1700000000000, 2000000000000), 'yyyy-MM'),
+      },
+      switch: { type: 3, fun: () => randomFrom(0, 100) % 2 === 1 },
+      checkboxNumber: { type: 3, fun: () => randomFrom(0, 9) },
+      radioNumber: { type: 3, fun: () => randomFrom(0, 9) },
+      selectNumber: { type: 3, fun: () => randomFrom(0, 9) },
+      selectNumberMultiple: { type: 3, fun: () => `${randomFrom(0, 4)},${randomFrom(0, 4)}` },
+      checkbox: { type: 3, fun: () => 'a' },
+      radio: { type: 3, fun: () => 'a' },
+      select: { type: 3, fun: () => 'a' },
+    }
+    for (let i = 0; i < max; i++) {
+      let item = {}
+      for (let j of Object.keys(key)) {
+        item[j] = key[j].fun()
+      }
+      data.push(item)
+    }
+
+    return resolve({
+      code: 200,
+      msg: 'succ',
+      total: inputNumber,
+      data: data,
     })
   })
 }
@@ -405,7 +494,7 @@ const showSearch = ref(true)
       :table-column="table"
       :data-list="data"
       base-class=".app1"
-      max-height="75vh"
+      max-height="65vh"
       :has-detail="(data) => data['number'] % 2 === 0"
       :has-remove="true"
       :has-update="true"
@@ -425,6 +514,6 @@ const showSearch = ref(true)
 
 <style scoped lang="scss">
 .app1 {
-  height: 100vh;
+  height: calc(100vh - 8px * 2);
 }
 </style>

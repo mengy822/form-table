@@ -316,14 +316,15 @@ const columnFinal = computed<
       item.labelPosition = item.labelPosition ?? ''
       item.labelWidth = item.labelWidth ?? ''
       item.showFun = item.showFun ?? (() => true)
-      item.disabled =
-        typeof item.disabled === 'boolean'
-          ? item.disabled
-          : item.disabled && item.disabled(dynamicComputedMap.value)
-      item.readonly =
-        typeof item.readonly === 'boolean'
-          ? item.readonly
-          : item.readonly && item.readonly(dynamicComputedMap.value)
+      console.log(item)
+      item.disabled =item.disabled??false
+        // typeof item.disabled === 'boolean'
+        //   ? item.disabled
+        //   : item.disabled && item.disabled(dynamicComputedMap.value)
+      item.readonly =item.readonly??false
+        // typeof item.readonly === 'boolean'
+        //   ? item.readonly
+        //   : item.readonly && item.readonly(dynamicComputedMap.value)
       item.type = item.type ?? 'input'
       return item
     }
@@ -352,6 +353,7 @@ const handleClose = () => {
   formRef.value.resetFields()
   dataFinal.value = {}
   dialogVisible.value = false
+  emits('close')
 }
 const editDialog = ref(null)
 const isAdd = ref(true)
@@ -402,7 +404,7 @@ const init = (data: object = {}) => {
 }
 
 const formRef = ref()
-const emits = defineEmits(['submit'])
+const emits = defineEmits(['submit','close'])
 const cancelFun = () => {
   handleClose()
 }
@@ -414,7 +416,7 @@ const submitFun = async () => {
   formRef.value?.validate((valid: boolean, fields: any) => {
     if (valid) {
       loading.value = true
-      emits('submit', dataFinal.value, (flag = true) => {
+      emits('submit', {...dataFinal.value}, (flag = true) => {
         if (flag) {
           ElMessage({
             message: props.message,
