@@ -78,6 +78,7 @@
               :data="scope.row[item.prop]"
               :row="scope.row"
               :index="scope.$index"
+              :config="{ ...item }"
             >
               <span
                 :class="`span span_${item.prop} span_${item.prop}_${
@@ -267,7 +268,7 @@ interface tableColumnItem {
   maxWidth?: boolean
   fun?: (row: dataItemType, prop: string, index?: number) => string
   classFun?: (row: dataItemType, prop: string) => string
-  showFun?: (row?: queryParamType|any) => boolean
+  showFun?: (row?: queryParamType | any) => boolean
 }
 const props = defineProps({
   language: {
@@ -552,7 +553,7 @@ const tableColumnFinal = computed({
             item.fun ??
             ((row: dataItemType, prop: string, index?: number) =>
               String(row[prop]) + (item.unit ?? ''))
-          item.showFun=item.showFun??(()=>true)
+          item.showFun = item.showFun ?? (() => true)
           return item
         })
     }
@@ -616,6 +617,7 @@ const handleUpdate = (row: dataItemType) => {
 const operationLoading = ref(false)
 const handleRemove = (row: dataItemType) => {
   // proxy?.$modal.confirm(props.removeMessage).then((res) => {
+  operationLoading.value = true
   ElMessageBox.confirm(props.removeMessage, 'warning', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
@@ -640,8 +642,10 @@ const handleRemove = (row: dataItemType) => {
         }
       })
     })
-    .catch(() => {})
-  operationLoading.value = true
+    .catch(() => {
+      operationLoading.value = false
+    })
+
   // });
 }
 const handleDetail = (row: dataItemType) => {

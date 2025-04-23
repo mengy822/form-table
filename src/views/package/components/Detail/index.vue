@@ -119,7 +119,9 @@ const props = defineProps({
     required: true,
   },
 })
-const dataFinal = ref({})
+const columnType=[...props.column.map(item=>item.prop)] as const
+type propsColumnsType=typeof columnType[number]
+const dataFinal = ref<{[key:propsColumnsType]:any}>({})
 const columnFinal = computed(() => {
   return props.column.map((item: columnType) => {
     item.align = item.align ?? 'left'
@@ -137,7 +139,7 @@ const handleClose = () => {
   dialogVisible.value = false
   emit('close')
 }
-const init = (data: any) => {
+const init = (data: {[key:propsColumnsType]:any}) => {
   dataFinal.value = { ...data }
   dialogVisible.value = true
 }
