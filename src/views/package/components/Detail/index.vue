@@ -119,15 +119,15 @@ const props = defineProps({
     required: true,
   },
 })
-const columnType=[...props.column.map(item=>item.prop)] as const
-type propsColumnsType=typeof columnType[number]
-const dataFinal = ref<{[key:propsColumnsType]:any}>({})
+
+const dataFinal = ref({})
 const columnFinal = computed(() => {
-  return props.column.map((item: columnType) => {
+  return props.column.map((item) => {
     item.align = item.align ?? 'left'
     item.span = item.span ?? 1
     item.rowspan = item.rowspan ?? 1
     if (!item.fun) item.fun = (row: any, prop: any) => row[prop]
+    if (!item.showFun) item.showFun = (row: any) => true
     return item
   })
 })
@@ -139,11 +139,11 @@ const handleClose = () => {
   dialogVisible.value = false
   emit('close')
 }
-const init = (data: {[key:propsColumnsType]:any}) => {
+const init = (data) => {
   dataFinal.value = { ...data }
   dialogVisible.value = true
 }
-defineExpose({ init, dialogVisible })
+defineExpose({ init, handleClose })
 </script>
 
 <style scoped lang='scss'>

@@ -69,7 +69,6 @@
           :min-width="item.width ?? 100"
           :align="item.align ?? 'center'"
           :show-overflow-tooltip="item.showOverflow ?? true"
-          v-if="item.showFun(queryParams)"
         >
           <template #default="scope">
             <slot
@@ -81,12 +80,14 @@
               :config="{ ...item }"
             >
               <span
+                v-if="!item.funDom"
                 :class="`span span_${item.prop} span_${item.prop}_${
                   scope.row[item.prop]
                 } span_other_${item.classFun && item.classFun(scope.row, item.prop)} ${typeof scope
                   .row[item.prop]}`"
                 >{{ item.fun && item.fun(scope.row, item.prop, scope.$index) }}</span
               >
+              <component v-bind="item" :is="item.funDom" v-else />
             </slot>
           </template>
         </el-table-column>
@@ -231,6 +232,8 @@ import {
   provide,
   nextTick,
   inject,
+  type VNode,
+  type Component,
 } from 'vue'
 import pagination from '../components/Pagination/index.vue'
 import RightToolbar from '../components/RightToolbar/index.vue'
@@ -266,7 +269,8 @@ interface tableColumnItem {
   fixed?: false | true | 'left' | 'right'
   selectable?: boolean
   maxWidth?: boolean
-  fun?: (row: dataItemType, prop: string, index?: number) => string
+  fun?: ((row: dataItemType, prop: string, index?: number) => string)
+  funDom?: VNode | Component
   classFun?: (row: dataItemType, prop: string) => string
   showFun?: (row?: queryParamType | any) => boolean
 }
@@ -459,6 +463,7 @@ const props = defineProps({
     default: '操作成功',
   },
 })
+
 //表格实例
 const tableRef = ref<TableInstance>()
 const heightInner = ref(0)
@@ -553,7 +558,6 @@ const tableColumnFinal = computed({
             item.fun ??
             ((row: dataItemType, prop: string, index?: number) =>
               String(row[prop]) + (item.unit ?? ''))
-          item.showFun = item.showFun ?? (() => true)
           return item
         })
     }

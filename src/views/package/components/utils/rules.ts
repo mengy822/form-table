@@ -16,7 +16,7 @@ type ruleType='string'|//: Must be of type string. This is the default type.
 'hex'|//: Must be of type hex.
 'email'|//: Must be of type email.
 'any'//: Can be any type.
-type requiredType={ trigger: trigger, type?: ruleType } & ({ required: boolean, message: string } | { pattern: string, message: string } | { validator: ((rule: any, value: any, callback: any) => void)|undefined })
+type requiredType = { trigger?: trigger, type?: ruleType } & ({max?: number, min?: number }|{ required: boolean, message: string } | { pattern: string | RegExp, message: string }|{type:'number'} | { validator: ((rule: any, value: any, callback: any) => void)|undefined })
 
 // 表单验证
 export function formRules(type: string, maxlength: number, min: number, max: number): any {
@@ -25,10 +25,10 @@ export function formRules(type: string, maxlength: number, min: number, max: num
       callback(new Error('请输入正整数或两位小数'))
     } else if (value.indexOf('.') > -1) {
       let reg = new RegExp('/^(?!0+(?:.0+)?$)(?:[1-9]\d*|0)(?:.\d{1,2})?$/')
-      if (!reg.test(parseFloat(value))) {
+      if (!reg.test(value)) {
         callback(new Error('请保留两位小数'))
       } else {
-        callback()
+        callback(undefined)
       }
     }
   }
@@ -63,10 +63,10 @@ export function formRules(type: string, maxlength: number, min: number, max: num
         }
       })
       if (List.indexOf(false) === -1) {
-        callback()
+        callback(undefined)
       }
     } else {
-      callback()
+      callback(undefined)
     }
   }
   let validExtCellEmun = (rule: any, value: string, callback: (arg0: Error | undefined) => void) => {
@@ -85,11 +85,11 @@ export function formRules(type: string, maxlength: number, min: number, max: num
         if ((new Set(arr)).size !== arr.length) {
           callback(new Error('输入的扩展枚举有重复值'))
         } else {
-          callback()
+          callback(undefined)
         }
       }
     } else {
-      callback()
+      callback(undefined)
     }
   }
   let rule:{[key:string]:requiredType[]} = {

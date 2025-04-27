@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="tsx">
 import { MyTabel, MyForm, MyEdit, MyDetail } from './views/package/index'
 
 import type {
@@ -89,8 +89,11 @@ const update = (e: any = {}) => {
   console.log(e, '修改')
   editRef.value.init({ ...e })
 }
-const remove = (e: unknown) => {
+const remove = (e: unknown, cb) => {
   console.log(e, '删除')
+  setTimeout(() => {
+    cb()
+  }, 1000)
 }
 const dataForm = ref({
   inputNumber: '123',
@@ -119,13 +122,13 @@ const request = (
   if (!config.header) config.header = {}
 
   return new Promise((resolve, reject) => {
-    let params = {...data1}
-    let inputNumber = Number(params?.inputNumber||'0')
-    let pageNum = params?.pageNum||1
-    let pageSize = params?.pageSize||10
+    let params = { ...data1 }
+    let inputNumber = Number(params?.inputNumber || '0')
+    let pageNum = params?.pageNum || 1
+    let pageSize = params?.pageSize || 10
     let data = []
     let max = inputNumber > pageNum * pageSize ? pageSize : inputNumber - (pageNum - 1) * pageSize
-    function randomFrom(min, max, zero = false):number {
+    function randomFrom(min, max, zero = false): number {
       let num = String(Math.floor(Math.random() * (max - min + 1) + min))
       if (zero) {
         num = (Number(num) < 10 ? '0' : '') + num
@@ -260,7 +263,7 @@ const table = ref([
     visible: true,
     fun: (row: { [x: string]: string }, prop: any) => row['startMouth'] + '/' + row['endMouth'],
   },
-  { prop: 'switch', label: '开关', hidden: true, visible: false },
+  { prop: 'switch', label: '开关', hidden: true, visible: !false ,fun:(row,prop)=>row[prop]?'开启':'关闭',},
   { prop: 'checkboxNumber', label: '多选框数字', hidden: true, visible: true },
   { prop: 'radioNumber', label: '单选框数字', hidden: true, visible: false },
   { prop: 'selectNumber', label: '选择器数字', hidden: true, visible: true },

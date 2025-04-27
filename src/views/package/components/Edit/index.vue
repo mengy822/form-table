@@ -316,7 +316,6 @@ const columnFinal = computed<
       item.labelPosition = item.labelPosition ?? ''
       item.labelWidth = item.labelWidth ?? ''
       item.showFun = item.showFun ?? (() => true)
-      console.log(item)
       item.disabled =item.disabled??false
         // typeof item.disabled === 'boolean'
         //   ? item.disabled
