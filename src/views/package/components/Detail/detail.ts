@@ -1,4 +1,4 @@
-// // /components/Loading/index.ts
+// // /components/detail/index.ts
 // import type { App, VNode } from 'vue'
 // import { createVNode, render } from "vue";
 // import detail from './index.vue'
@@ -9,7 +9,6 @@
 //     render(Vnode, document.body)
 //     app.config.globalProperties.$detail = {
 //       init: Vnode.component?.exposed?.init,
-//       // hide: Vnode.component?.exposed?.hide,
 //     }
 //   }
 // }

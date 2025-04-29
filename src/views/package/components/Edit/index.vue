@@ -31,7 +31,12 @@
             :key="JSON.stringify(item)"
             :class="`class_${item.prop}`"
           >
-            <slot :name="`item_${item.prop}`" :prop="item.prop" :data="dynamicComputedMap" :isShow="visible">
+            <slot
+              :name="`item_${item.prop}`"
+              :prop="item.prop"
+              :data="dynamicComputedMap"
+              :isShow="visible"
+            >
               <el-form-item
                 :ref="(el:any) => dynamicCreateRef(el, item.prop)"
                 :label="item.label"
@@ -316,14 +321,14 @@ const columnFinal = computed<
       item.labelPosition = item.labelPosition ?? ''
       item.labelWidth = item.labelWidth ?? ''
       item.showFun = item.showFun ?? (() => true)
-      item.disabled =item.disabled??false
-        // typeof item.disabled === 'boolean'
-        //   ? item.disabled
-        //   : item.disabled && item.disabled(dynamicComputedMap.value)
-      item.readonly =item.readonly??false
-        // typeof item.readonly === 'boolean'
-        //   ? item.readonly
-        //   : item.readonly && item.readonly(dynamicComputedMap.value)
+      item.disabled = item.disabled ?? false
+      // typeof item.disabled === 'boolean'
+      //   ? item.disabled
+      //   : item.disabled && item.disabled(dynamicComputedMap.value)
+      item.readonly = item.readonly ?? false
+      // typeof item.readonly === 'boolean'
+      //   ? item.readonly
+      //   : item.readonly && item.readonly(dynamicComputedMap.value)
       item.type = item.type ?? 'input'
       return item
     }
@@ -357,15 +362,28 @@ const handleClose = () => {
 const editDialog = ref(null)
 const isAdd = ref(true)
 const loading = ref(false)
-const init = (data: object = {}) => {
-  if (Object.keys(data).length > 0) {
-    isAdd.value = false
+const init = (data: object = {}, add: boolean | undefined = undefined) => {
+  console.time('初始化标题')
+  if (typeof add === 'undefined') {
+    if (Object.keys(data).length > 0) {
+      isAdd.value = false
+    }
+  } else {
+    isAdd.value = add as boolean
   }
+  console.timeEnd('初始化标题')
+  console.time('初始化数据')
   dataFinal.value = { ...data }
-  let { dynamicComputedFun: dynamicComputedFun1, dynamicComputedMap: dynamicComputedMap1 } =
-    MyComputedData(data, dataFinal)
-  dynamicComputedFun = dynamicComputedFun1
-  dynamicComputedMap = dynamicComputedMap1
+  console.timeEnd('初始化数据')
+  console.time('注册数据事件')
+  if (!dynamicComputedFun && !dynamicComputedMap) {
+    let { dynamicComputedFun: dynamicComputedFun1, dynamicComputedMap: dynamicComputedMap1 } =
+      MyComputedData(data, dataFinal)
+    dynamicComputedFun = dynamicComputedFun1
+    dynamicComputedMap = dynamicComputedMap1
+  }
+  console.timeEnd('注册数据事件')
+  console.time('绑定数据')
   props.column.forEach((item) => {
     let f = false
     switch (item.type) {
@@ -399,11 +417,13 @@ const init = (data: object = {}) => {
       dynamicComputedFun(item.prop, '', '')
     }
   })
+  console.timeEnd('绑定数据')
+  console.time('打开窗口')
   dialogVisible.value = true
+  console.timeEnd('打开窗口')
 }
-
 const formRef = ref()
-const emits = defineEmits(['submit','close'])
+const emits = defineEmits(['submit', 'close'])
 const cancelFun = () => {
   handleClose()
 }
@@ -415,7 +435,7 @@ const submitFun = async () => {
   formRef.value?.validate((valid: boolean, fields: any) => {
     if (valid) {
       loading.value = true
-      emits('submit', {...dataFinal.value}, (flag = true) => {
+      emits('submit', { ...dataFinal.value }, (flag = true) => {
         if (flag) {
           ElMessage({
             message: props.message,

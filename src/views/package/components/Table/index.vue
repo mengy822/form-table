@@ -25,7 +25,7 @@
         :height="height || heightInner || maxHeight"
         :max-height="maxHeight || maxHeightInner || height"
         v-loading="loading"
-        :data="dataList"
+        :data="dataListComputed"
         @selection-change="handleSelectionChange"
         ref="tableRef"
         :highlight-current-row="highlightCurrentRow"
@@ -210,8 +210,8 @@
       </el-table>
       <pagination
         class="table-plus-pagination"
-        v-show="total > 0"
-        :total="total"
+        v-show="totalComputed > 0"
+        :total="totalComputed"
         v-model:page="queryParams.pageNum"
         v-model:limit="queryParams.pageSize"
         @pagination="handleQuery"
@@ -269,7 +269,7 @@ interface tableColumnItem {
   fixed?: false | true | 'left' | 'right'
   selectable?: boolean
   maxWidth?: boolean
-  fun?: ((row: dataItemType, prop: string, index?: number) => string)
+  fun?: (row: dataItemType, prop: string, index?: number) => string
   funDom?: VNode | Component
   classFun?: (row: dataItemType, prop: string) => string
   showFun?: (row?: queryParamType | any) => boolean
@@ -352,12 +352,20 @@ const props = defineProps({
     type: String,
     default: '您确定删除该数据吗? 警告:该操作不可逆,请慎重操作',
   },
+
+  removeMessageTitle: {
+    type: String,
+    default: '警告',
+  },
+
   dataList: {
     type: Array<dataItemType>,
-    required: true,
     default: () => {
-      return []
+      return undefined
     },
+  },
+  dataListFun: {
+    type: Function,
   },
   total: {
     type: Number,
@@ -478,7 +486,24 @@ const getHeight = (className: string): number => {
   }
   return baseClassHeight
 }
-
+const totalInner = ref<Number>(0)
+const dataListInner = ref([])
+const totalComputed = computed({
+  get: () => {
+    return props.total || totalInner.value
+  },
+  set: (val: number) => {
+    totalInner.value = val
+  },
+})
+const dataListComputed=computed({
+   get: () => {
+    return props.dataList || dataListInner.value
+  },
+  set: (val) => {
+    dataListInner.value = val
+  },
+})
 onMounted(() => {
   // nextTick(()=>{
   //   if (
@@ -604,13 +629,24 @@ watch(
     immediate: true,
   }
 )
-
+const startQuery = () => {
+  loading.value = true
+}
 const handleQuery = (isFirst: boolean = false) => {
   loading.value = true
   if (typeof isFirst === 'boolean' && isFirst) {
     queryParams.value.pageNum = 1
   }
-  emits('query', queryParams.value)
+
+  if (!props.dataListFun) {
+    emits('query', queryParams.value)
+  } else {
+    props.dataListFun(queryParams.value, (datas, total) => {
+      dataListComputed.value = datas
+      totalComputed.value = total
+      loading.value = false
+    })
+  }
 }
 const handleAdd = () => {
   emits('add')
@@ -625,6 +661,7 @@ const handleRemove = (row: dataItemType) => {
   ElMessageBox.confirm(props.removeMessage, 'warning', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
+    title: props.removeMessageTitle,
     type: 'warning',
   })
     .then(() => {
@@ -658,5 +695,6 @@ const handleDetail = (row: dataItemType) => {
 defineExpose({
   multipleSelection: multipleSelection.value,
   toggleSelection,
+  startQuery,query:handleQuery
 })
 </script>
