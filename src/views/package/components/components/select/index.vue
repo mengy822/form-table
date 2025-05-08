@@ -59,7 +59,11 @@
     </el-select-v2>
   </el-config-provider>
 </template>
-
+<script lang="ts">
+export default {
+    name: 'Select'
+}
+</script>
 <script setup lang="ts" name="select">
 import { type PropType, ref, computed, watch, useSlots } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'

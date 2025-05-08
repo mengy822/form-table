@@ -407,14 +407,16 @@ const formItemWidthComputed = (search: typeof searchComputed.value, callback = (
     for (let key in dynamicRefMap.value) {
       let computedStyle = getComputedStyle(dynamicRefMap.value[key].$el)
       inputWidths[key] =
-        getDomComputed(computedStyle, 'width')
+        getDomComputed(computedStyle, 'width')+6*2
     }
-    let sum: number = formPlusMainWidth - buttonsWidth * 1.5
     // console.log(inputWidths)
+    let sum: number = formPlusMainWidth - buttonsWidth * 1.5
+    // console.log(inputWidths,sum,buttonsWidth)
     let inputWidthKeys = Object.keys(inputWidths)
     for (let i = 0; i < inputWidthKeys.length; i++) {
       let inputWidthKey = inputWidthKeys[i]
       let inputWidth = inputWidths[inputWidthKey]
+      // console.log(sum-inputWidth,inputWidth,inputWidthKey)
       if (sum - inputWidth < 0) {
         searchArr.push([...oneRow])
         oneRow = []

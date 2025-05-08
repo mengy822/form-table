@@ -207,8 +207,11 @@ const editColumn = [
 ]
 
 const table = [
-  { prop: 'no', label: 'no' },
-  { prop: 'text', label: '文本输入框' },
+  { prop: 'no', label: 'no' ,hidden: true, visible: false },
+  { prop: 'text',label: '文本输入框',list:[
+    // { prop: 'text', label: '文本输入框1' },
+    // { prop: 'text', label: '文本输入框2' }
+  ] },
   { prop: 'textarea', label: '文本域输入框' },
   { prop: 'password', label: '密码输入框' },
   { prop: 'number', label: '数字输入框' },
@@ -365,7 +368,7 @@ const request = (
         total: inputNumber,
         data: data,
       })
-    }, 1000)
+    }, 10)
   })
 }
 const search: (inputInnerType | selectInnerType | dateInnerType)[] = [{

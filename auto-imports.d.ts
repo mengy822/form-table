@@ -6,5 +6,5 @@
 // biome-ignore lint: disable
 export {}
 declare global {
-
+  const ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
 }

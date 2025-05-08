@@ -57,7 +57,11 @@
     </el-checkbox-group>
   </el-config-provider>
 </template>
-
+<script lang="ts">
+export default {
+    name: 'checkbox'
+}
+</script>
 <script setup name="checkbox" lang="ts">
 import { ElCheckbox, ElCheckboxGroup, ElCheckboxButton } from 'element-plus'
 import { type PropType, ref, computed } from 'vue'

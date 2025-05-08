@@ -57,7 +57,11 @@
   </el-radio-group>
 </el-config-provider>
 </template>
-
+<script lang="ts">
+export default {
+    name: 'Radio'
+}
+</script>
 <script setup name="radio" lang="ts">
 import { computed, type PropType, ref } from 'vue';
 import { type radioInnerType } from '../form/types'

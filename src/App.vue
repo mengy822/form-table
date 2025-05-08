@@ -69,24 +69,27 @@ const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
       :search="searchList"
       @search="query"
     ></MyForm>
+    <!-- <MyTabelV2 ref="tableRef" :columns="table"> </MyTabelV2> -->
     <MyTabel
       ref="tableRef"
       :query-param="dataForm"
       :table-column="table"
       :data-list-fun="tableQuery"
-      base-class=".app1"
       max-height="65vh"
       :has-detail="(data) => data['number'] % 2 === 0"
-      :has-remove="true"
-      :has-update="true"
-      :has-add="true"
-      v-model:showSearch="showSearch"
       @detail="detail"
       @update="update"
       @remove="remove"
       @add="update"
       @query="query"
     >
+      <template #switch="{ row, prop, fun }">
+        <el-switch
+          :model-value="fun(row, prop)"
+          :active-value="'开启'"
+          :inactive-value="'关闭'"
+        ></el-switch>
+      </template>
     </MyTabel>
     <MyEdit ref="editRef" :column="editColumn" @submit="submitFun"></MyEdit>
     <MyDetail des-column="3" ref="detailRef" :column="table"></MyDetail>

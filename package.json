@@ -1,6 +1,6 @@
 {
   "name": "form-table-vue3",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "private": false,
   "main": "./dist/form-table-vue3.umd.js",
   "type": "module",
@@ -15,10 +15,11 @@
     "format": "prettier --write src/",
     "push": "npm config set registry=https://registry.npmjs.org & npm publish --access public & npm config set registry https://registry.npmmirror.com/"
   },
-  "dependencies": {
+  "peerDependencies": {
     "element-plus": "2.9.1",
-    
-    "vue": "^3.4.31",
+    "vue": "^3.4.31"
+  },
+  "dependencies": {
     "vue-types": "^5.0.3"
   },
   "devDependencies": {

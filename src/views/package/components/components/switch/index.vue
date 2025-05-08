@@ -29,7 +29,11 @@
     </el-switch>
   </el-config-provider>
 </template>
-
+<script lang="ts">
+export default {
+    name: 'Switch'
+}
+</script>
 <script setup lang='ts' name='switch'>
 import { type PropType, computed, ref, useSlots } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'

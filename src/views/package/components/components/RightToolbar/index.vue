@@ -23,7 +23,11 @@
     </el-row>
   </div>
 </template>
-
+<script lang="ts">
+export default {
+    name: 'RightToolbar'
+}
+</script>
 <script setup lang="ts">
 import { computed, onMounted, ref,nextTick } from 'vue';
 import { Refresh, Menu, Search } from '@element-plus/icons-vue'

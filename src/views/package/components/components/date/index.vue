@@ -31,7 +31,11 @@
     </el-date-picker>
   </el-config-provider>
 </template>
-
+<script lang="ts">
+export default {
+    name: 'MyDate'
+}
+</script>
 <script setup name="date" lang="ts">
 import { type PropType, computed, ref, useSlots } from 'vue'
 import { ElDatePicker } from 'element-plus'

@@ -1,4 +1,5 @@
 import MyTabel from './components/Table'
+// import MyTabelV2 from './components/TableV2'
 import MyForm from './components/Form'
 import MyEdit from './components/Edit'
 import MyDetail from './components/Detail/index'

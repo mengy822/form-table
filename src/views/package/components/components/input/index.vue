@@ -40,7 +40,11 @@
   </el-input>
 </el-config-provider>
 </template>
-
+<script lang="ts">
+export default {
+    name: 'Input'
+}
+</script>
 <script setup name="Input" lang="ts">
 import {getName} from '../../js/utils'
 import { type PropType, computed, ref, useSlots } from 'vue'
