@@ -5,6 +5,7 @@ import type { radioGroupType } from "../radio/types";
 import type { selectType } from "../select/types";
 import type { switchType } from "../switch/types";
 import type { button } from "../../js/sizeType";
+import type {ruleKeys} from "../../utils/rules"
 interface columnType {
   prop: string; //model 的键名。 它可以是一个属性的值(如 a.b.0 或 ['a', 'b', '0'])。 在使用了 validate、resetFields 的方法时，该属性是必填的。
   label: string;
@@ -21,7 +22,7 @@ interface columnType {
   readonly?: boolean|((data:any)=>boolean);//只读
   validateStatus?: '' | 'error' | 'validating' | 'success'; //formitem 校验的状态
   isDefault?: boolean;//是否有默认选中
-  isRequired?: boolean | ((rule: any, value: any, callback: any) => void)|string;//是否必填
+  isRequired?: boolean|typeKeys|string | ((rule: any, value: any, callback: any) => void)|string;//是否必填
   dynamicRequired?: (data:any) => boolean;//是否必填
   size?: button;//	多选框组尺寸	 enum —
   disabled?: boolean|((data:any)=>boolean);//	是否禁用	 boolean false

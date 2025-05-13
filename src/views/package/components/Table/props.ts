@@ -68,7 +68,7 @@ export const propsConfig={
     type: [Boolean, String, Function] as PropType<
       boolean | string | ((data: dataItemType) => boolean | string)
     >,
-    default: false,
+    default: true,
   },
   hasDetail: {
     type: [Boolean, String, Function] as PropType<
@@ -100,7 +100,10 @@ export const propsConfig={
     type: String,
     default: '您确定删除该数据吗? 警告:该操作不可逆,请慎重操作',
   },
-
+  removeType:{
+    type:String as PropType<'warning'|'info'|'error'|'success'>,
+    default:'warning'
+  },
   removeMessageTitle: {
     type: String,
     default: '警告',

@@ -192,6 +192,12 @@ const props = defineProps({
       return zhCn
     },
   },
+  notNeedChangeCheck: {
+    type: Array<String>,
+    default: () => {
+      return ['input','inputNumber']
+    },
+  },
   showSearch: {
     type: Boolean,
     default: true,
@@ -316,11 +322,14 @@ const initSearchValue = () => {
     let f = false
     switch (item.type) {
       case 'date':
-        if (((item as dateInnerType).dateType || '').indexOf('range') === -1) {
-          f = true
-        } else {
+        if (((item as dateInnerType).dateType || '').indexOf('range') !== -1) {
           //时间范围根据aliases转成对应字段
           dynamicComputedFun(item.prop, 'variable', (item as dateInnerType).aliases)
+        } else if (((item as dateInnerType).dateType || '').slice(-1) === 's') {
+          //时间范围根据aliases转成对应字段
+          dynamicComputedFun(item.prop, 'string', ',')
+        }else {
+          f = true
         }
         break
       case 'select':
@@ -446,7 +455,7 @@ watch(
     )
       return
     initSearchValue()
-    rules.value = createRules(search)
+    rules.value = createRules(search,props.notNeedChangeCheck)
     searchFinal.value = [search]
     let searchItemProp = search.map((item) => `${item.prop}Ref`)
     await nextTick()

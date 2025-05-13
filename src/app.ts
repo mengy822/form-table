@@ -81,13 +81,13 @@ const editColumn = [
     valueFormat: 'YYYY-MM-DD hh:mm:ss',
     format: 'YYYY-MM-DD hh:mm:ss',
   } as dateInnerType,
-  {
-    prop: 'week',
-    label: '日期-周',
-    type: 'date',
-    dateType: 'week',
-    valueFormat: 'YYYY-ww',
-  } as dateInnerType,
+  // {
+  //   prop: 'week',
+  //   label: '日期-周',
+  //   type: 'date',
+  //   dateType: 'week',
+  //   valueFormat: 'YYYY-ww',
+  // } as dateInnerType,
   {
     prop: 'datetimerange',
     label: '日期-多时间',
@@ -275,13 +275,19 @@ const request = (
       if (zero) {
         num = (Number(num) < 10 ? '0' : '') + num
       }
-      return Number(num)
+      return num
     }
     function padLeftZero(str:string) {
       return ('00' + str).substr(str.length)
     }
     function formatDate(date:Date|string|number, fmt = 'yyyy-MM-dd hh:mm:ss') {
-      if (date instanceof Date == false) date = new Date(date)
+      if (date instanceof Date == false) {
+        const date1=date
+        date = new Date(date)
+        if(date=='Invalid Date'){
+          date=new Date(Number(date1))
+        }
+      }
       if (/(y+)/.test(fmt)) {
         fmt = fmt.replace(RegExp.$1, (date.getFullYear() + '').substr(4 - RegExp.$1.length))
       }
@@ -309,23 +315,19 @@ const request = (
       no: { fun: (index:number) => pageSize *pageNum+index-pageSize+1},
       year: { type: 3, fun: () => randomFrom(1970, 2025) },
       years: { type: 3, fun: () => `${randomFrom(1970, 2025)},${randomFrom(1970, 2025)}` },
-      month: { type: 3, fun: () => `${randomFrom(1970, 2025)}-${randomFrom(1, 12, true)}` },
+      month: { type: 3, fun: () => `${formatDate(randomFrom(1700000000000, 2000000000000),'yyyy-MM')}` },
       date: {
         type: 3,
         fun: () =>
-          `${randomFrom(1970, 2025, true)}-${randomFrom(1, 12, true)}-${randomFrom(1, 28, true)}`,
+          `${formatDate(randomFrom(1700000000000, 2000000000000))}`,
       },
       dates: {
         type: 3,
         fun: () =>
-          `${randomFrom(1970, 2025)}-${randomFrom(1, 12, true)}-${randomFrom(
-            1,
-            28,
-            true
-          )},${randomFrom(1970, 2025)}-${randomFrom(1, 12, true)}-${randomFrom(1, 28, true)}`,
+          `${formatDate(randomFrom(1700000000000, 2000000000000))},${formatDate(randomFrom(1700000000000, 2000000000000))}`,
       },
       datetime: { type: 3, fun: () => formatDate(randomFrom(1700000000000, 2000000000000)) },
-      week: { type: 3, fun: () => `${randomFrom(1970, 2025)}-${randomFrom(1, 54, true)}` },
+      week: { type: 3, fun: () => `${formatDate(randomFrom(1700000000000, 2000000000000),'yyyy-ww')}` },
       startDateTime: { type: 3, fun: () => formatDate(randomFrom(1700000000000, 2000000000000)) },
       endDateTime: { type: 3, fun: () => formatDate(randomFrom(1700000000000, 2000000000000)) },
       startDate: {
@@ -345,11 +347,11 @@ const request = (
         fun: () => formatDate(randomFrom(1700000000000, 2000000000000), 'yyyy-MM'),
       },
       switch: { type: 3, fun: () => randomFrom(0, 100) % 2 === 1 },
-      checkboxNumber: { type: 3, fun: () => randomFrom(0, 9) },
+      checkboxNumber: { type: 3, fun: () => `${randomFrom(0, 9)},${randomFrom(0, 9)}` },
       radioNumber: { type: 3, fun: () => randomFrom(0, 9) },
       selectNumber: { type: 3, fun: () => randomFrom(0, 9) },
       selectNumberMultiple: { type: 3, fun: () => `${randomFrom(0, 4)},${randomFrom(0, 4)}` },
-      checkbox: { type: 3, fun: () => 'a' },
+      checkbox: { type: 3, fun: () => 'a,b' },
       radio: { type: 3, fun: () => 'a' },
       select: { type: 3, fun: () => 'a' },
     }
@@ -372,6 +374,21 @@ const request = (
   })
 }
 const search: (inputInnerType | selectInnerType | dateInnerType)[] = [{
+    prop: 'date',
+    label: '日期-日',
+    type: 'date',
+    dateType: 'date',
+    valueFormat: 'YYYY-MM-DD',
+    format: 'YYYY-MM-DD',
+  } as dateInnerType,
+  {
+    prop: 'dates',
+    label: '日期-多日',
+    type: 'date',
+    dateType: 'dates',
+    valueFormat: 'YYYY-MM-DD',
+    format: 'YYYY-MM-DD',
+  } as dateInnerType,{
   isRequired: true,
   prop: 'inputNumber',
   label: 'number',

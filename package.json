@@ -1,6 +1,6 @@
 {
   "name": "form-table-vue3",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "private": false,
   "main": "./dist/form-table-vue3.umd.js",
   "type": "module",

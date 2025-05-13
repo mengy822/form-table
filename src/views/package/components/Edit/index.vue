@@ -11,6 +11,7 @@
       <div class="editDialog">
         <el-form
           ref="formRef"
+          class="editForm"
           :model="dynamicComputedMap"
           :inline="inline"
           :label-position="labelPosition"
@@ -135,6 +136,7 @@ import type {
 import MyComputedData from '../utils/hooks/MyComputedData'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { createRules } from '../utils/rules'
+import { scrollTo } from '../utils/scroll-to'
 const top = ref('15vh')
 const slots = useSlots()
 const props = defineProps({
@@ -147,7 +149,7 @@ const props = defineProps({
   notNeedChangeCheck: {
     type: Array<String>,
     default: () => {
-      return ['input']
+      return ['input','inputNumber']
     },
   },
   submitButtonTxt: {
@@ -363,41 +365,38 @@ const editDialog = ref(null)
 const isAdd = ref(true)
 const loading = ref(false)
 const init = (data: object = {}, add: boolean | undefined = undefined) => {
-  console.time('初始化标题')
+  // console.time('初始化标题')
   if (typeof add === 'undefined') {
-    if (Object.keys(data).length > 0) {
-      isAdd.value = false
-    }
+      isAdd.value = Object.keys(data).length === 0
+
   } else {
     isAdd.value = add as boolean
   }
-  console.timeEnd('初始化标题')
-  console.time('初始化数据')
+  // console.timeEnd('初始化标题')
+  // console.time('初始化数据')
   dataFinal.value = { ...data }
-  console.timeEnd('初始化数据')
-  console.time('注册数据事件')
-  if (!dynamicComputedFun && !dynamicComputedMap) {
+  // console.timeEnd('初始化数据')
+  // console.time('注册数据事件')
+  // if (!dynamicComputedFun && !dynamicComputedMap) {
     let { dynamicComputedFun: dynamicComputedFun1, dynamicComputedMap: dynamicComputedMap1 } =
       MyComputedData(data, dataFinal)
     dynamicComputedFun = dynamicComputedFun1
     dynamicComputedMap = dynamicComputedMap1
-  }
-  console.timeEnd('注册数据事件')
-  console.time('绑定数据')
+  // }
+  // console.timeEnd('注册数据事件')
+  // console.time('绑定数据')
   props.column.forEach((item) => {
     let f = false
     switch (item.type) {
       case 'date':
-        if (['years', 'dates'].indexOf((item as dateInnerType).dateType) > -1) {
-          dynamicComputedFun((item as dateInnerType).prop, 'string', ',')
-        } else if (((item as dateInnerType).dateType || '').indexOf('range') === -1) {
+        if (((item as dateInnerType).dateType || '').indexOf('range') !== -1) {
+          //时间范围根据aliases转成对应字段
+          dynamicComputedFun(item.prop, 'variable', (item as dateInnerType).aliases)
+        } else if (((item as dateInnerType).dateType || '').slice(-1) === 's') {
+          //时间范围根据aliases转成对应字段
+          dynamicComputedFun(item.prop, 'string', ',')
+        }else {
           f = true
-        } else {
-          dynamicComputedFun(
-            (item as dateInnerType).prop,
-            'variable',
-            (item as dateInnerType).aliases || ''
-          )
         }
         break
       case 'select':
@@ -417,10 +416,13 @@ const init = (data: object = {}, add: boolean | undefined = undefined) => {
       dynamicComputedFun(item.prop, '', '')
     }
   })
-  console.timeEnd('绑定数据')
-  console.time('打开窗口')
+  // console.timeEnd('绑定数据')
+  // console.time('打开窗口')
   dialogVisible.value = true
-  console.timeEnd('打开窗口')
+  nextTick(()=>{
+    scrollTo(0,100,document.querySelector('.editDialog'))
+  })
+  // console.timeEnd('打开窗口')
 }
 const formRef = ref()
 const emits = defineEmits(['submit', 'close'])

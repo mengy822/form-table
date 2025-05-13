@@ -23,14 +23,18 @@ const requestAnimFrame = (function () {
  * Because it's so fucking difficult to detect the scrolling element, just move them all
  * @param {number} amount
  */
-const move = (amount: number) => {
+const move = (dom?:HTMLElement,amount: number) => {
+  if(dom){
+    dom.scrollTop = amount;
+    return
+  }
   document.documentElement.scrollTop = amount;
   (document.body.parentNode as HTMLElement).scrollTop = amount;
   document.body.scrollTop = amount;
 };
 
-const position = () => {
-  return document.documentElement.scrollTop || (document.body.parentNode as HTMLElement).scrollTop || document.body.scrollTop;
+const position = (dom?:HTMLElement) => {
+  return dom?.scrollTop||document.documentElement.scrollTop || (document.body.parentNode as HTMLElement).scrollTop || document.body.scrollTop;
 };
 
 /**
@@ -38,8 +42,8 @@ const position = () => {
  * @param {number} duration
  * @param {Function} callback
  */
-export const scrollTo = (to: number, duration: number, callback?: any) => {
-  const start = position();
+export const scrollTo = (to: number, duration: number,dom:HTMLElement, callback?: any) => {
+  const start = position(dom);
   const change = to - start;
   const increment = 20;
   let currentTime = 0;
@@ -50,7 +54,7 @@ export const scrollTo = (to: number, duration: number, callback?: any) => {
     // find the value with the quadratic in-out easing function
     const val = easeInOutQuad(currentTime, start, change, duration);
     // move the document.body
-    move(val);
+    move(dom,val);
     // do the animation unless its over
     if (currentTime < duration) {
       requestAnimFrame(animateScroll);

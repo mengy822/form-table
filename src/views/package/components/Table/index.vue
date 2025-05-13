@@ -4,7 +4,7 @@
       <template #header>
         <slot name="header">
           <el-row :gutter="10">
-            <el-col :span="1.5" v-if="hasAdd || proxyProps[`onAdd`]">
+            <el-col :span="1.5" v-if="hasAdd && proxyProps[`onAdd`]">
               <el-button type="primary" plain :icon="Plus" @click="handleAdd()"
                 >{{ typeof hasAdd !== 'boolean' ? hasAdd : '新增' }}
               </el-button>
@@ -84,7 +84,7 @@
                 v-if="
                   typeof hasDetail === 'function'
                     ? hasDetail(scope.row)
-                    : hasDetail || proxyProps[`onDetail`]
+                    : (hasDetail && proxyProps[`onDetail`])
                 "
               >
                 <el-button
@@ -122,7 +122,7 @@
                 v-if="
                   typeof hasUpdate === 'function'
                     ? hasUpdate(scope.row)
-                    : hasUpdate || proxyProps[`onUpdate`]
+                    : (hasUpdate && proxyProps[`onUpdate`])
                 "
               >
                 <el-button
@@ -160,7 +160,7 @@
                 v-if="
                   typeof hasRemove === 'function'
                     ? hasRemove(scope.row)
-                    : hasRemove || proxyProps[`onRemove`]
+                    : (hasRemove && proxyProps[`onRemove`])
                 "
               >
                 <el-button
@@ -171,19 +171,15 @@
                   @click="handleRemove(scope.row)"
                 >
                   {{
-                    typeof handleRemove === 'boolean'
-                      ? undefined
-                      : typeof handleRemove === 'function'
-                      ? hasOperationName
-                        ? handleRemove(scope.row)
+                    typeof hasRemove === 'boolean' ? undefined
+                      : typeof hasRemove === 'function' ? hasOperationName ? hasRemove(scope.row)
                         : undefined
-                      : handleRemove
+                      : hasRemove
                   }}
                 </el-button>
               </el-tooltip>
             </slot>
-
-            <slot :name="`operation`" :data="scope.row"> </slot>
+            <slot :name="`operation`" :data="scope.row" :index="scope.index"> </slot>
           </template>
         </el-table-column>
         <template #empty v-if="slots['empty']">
@@ -448,13 +444,12 @@ const handleUpdate = (row: dataItemType) => {
 }
 const operationLoading = ref(false)
 const handleRemove = (row: dataItemType) => {
-  // proxy?.$modal.confirm(props.removeMessage).then((res) => {
   operationLoading.value = true
-  ElMessageBox.confirm(props.removeMessage, 'warning', {
+  ElMessageBox.confirm(props.removeMessage, props.removeType, {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     title: props.removeMessageTitle,
-    type: 'warning',
+    type: props.removeType,
   })
     .then(() => {
       emits('remove', row, (flag = true) => {
@@ -467,7 +462,6 @@ const handleRemove = (row: dataItemType) => {
             showClose: props.duration! > 0,
             onClose: () => {
               operationLoading.value = false
-              // cancelFun()
             },
           })
         } else {
@@ -478,8 +472,6 @@ const handleRemove = (row: dataItemType) => {
     .catch(() => {
       operationLoading.value = false
     })
-
-  // });
 }
 const handleDetail = (row: dataItemType) => {
   emits('detail', row)
