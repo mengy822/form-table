@@ -2,7 +2,7 @@
   <el-config-provider :locale="language">
     <el-select-v2
       :class="`_class${dataFinal.prop}`"
-      v-model='bindValue'
+      v-model="bindValue"
       ref="_ref"
       :multiple="dataFinal.multiple"
       :clearable="dataFinal.clearable"
@@ -53,7 +53,7 @@
       @focus="dataFinal.focus"
       :options="dataFinal.options"
     >
-      <template v-for="(_,name) in slots" #[getName(name)]="scopeData">
+      <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
         <slot :name="name" v-bind="scopeData"></slot>
       </template>
     </el-select-v2>
@@ -61,7 +61,7 @@
 </template>
 <script lang="ts">
 export default {
-    name: 'Select'
+  name: 'Select',
 }
 </script>
 <script setup lang="ts" name="select">
@@ -69,27 +69,27 @@ import { type PropType, ref, computed, watch, useSlots } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import type { selectInnerType } from '../form/types'
 import type { selectOptionsGroupType, selectOptionsType } from './types'
-import {getName} from '../../js/utils'
+import { getName } from '../../js/utils'
 const slots = useSlots()
 const props = defineProps({
   language: {
     type: Object,
     default: () => {
       return zhCn
-    }
+    },
   },
   type: {
     type: String as PropType<'' | 'group'>,
-    default: ''
+    default: '',
   },
   data: {
     type: Object as PropType<selectInnerType>,
-    required: true
+    required: true,
   },
   modelValue: {
     type: [String, Number, Boolean, Object, Array<String | Number | Boolean | Object>],
-    default: () => []
-  }
+    default: () => [],
+  },
 })
 
 const emits = defineEmits(['update:modelValue'])
@@ -99,9 +99,9 @@ const bindValue = computed({
   },
   set(val) {
     // if (props.modelValue != val) {
-      change(val)
+    change(val)
     // }
-  }
+  },
 })
 const change = (e: typeof props.modelValue) => {
   dataFinal.value && dataFinal.value.change && dataFinal.value.change(e)
@@ -118,53 +118,57 @@ const blur = (e: any) => {
   // }
 }
 const dataFinal = computed(() => {
-    let data: selectInnerType = { ...props.data }
-    if (typeof data.options === 'number') {
-      let option: { label: string; value: string | number }[] = []
-      for (let i = 0; i < data.options; i++) {
-        option.push({
-          label: String(i),
-          value: String(i)
-        })
-      }
-      data.options = option
+  let data: selectInnerType = { ...props.data }
+  if (typeof data.options === 'number' || typeof data.options === 'string') {
+    let option: { label: string; value: string | number }[] = []
+    if (isNaN(Number(data.options))||Number(data.options)<0) {
+      throw new Error(`${data.label}:options数据格式错误,应该为{ label,value}[]或数字,实际为${data.options}`)
     }
-    //设置默认值
-    if (data.isDefault && data.options.length > 0) {
-      if (props.type === '') {
-        const isDefault: selectOptionsType | undefined = (data.options as selectOptionsType[]).find((item: selectOptionsType) => !item.disabled)
-        // bindValue.value = (isDefault && isDefault.value) ?? ''
-        bindValue.value=((isDefault && isDefault.value)??'')
-      } else {
-        const isDefaultGroup: selectOptionsGroupType | undefined = (data.options as selectOptionsGroupType[]).find((item: selectOptionsGroupType) => !item.disabled)
-        const isDefault: selectOptionsType | undefined = isDefaultGroup && (isDefaultGroup.options as selectOptionsType[]).find((item: selectOptionsType) => !item.disabled)
-        // bindValue.value = (isDefault && isDefault.value) ?? ''
-        bindValue.value=((isDefault && isDefault.value)??'')
-      }
-      data.clearable = false
+    for (let i = 0; i < Number(data.options); i++) {
+      option.push({
+        label: String(i),
+        value: String(i),
+      })
     }
-    data.change = data.change || function() {
-    }
-    data.visibleChange = data.visibleChange || function() {
-    }
-    data.removeTag = data.removeTag || function() {
-    }
-    data.clear = data.clear || function() {
-    }
-    data.blur = data.blur || function() {
-    }
-    data.focus = data.focus || function() {
-    }
-    return data
+    data.options = option
   }
-)
+  //设置默认值
+  if (data.isDefault && data.options.length > 0) {
+    if (props.type === '') {
+      const isDefault: selectOptionsType | undefined = (data.options as selectOptionsType[]).find(
+        (item: selectOptionsType) => !item.disabled
+      )
+      // bindValue.value = (isDefault && isDefault.value) ?? ''
+      bindValue.value = (isDefault && isDefault.value) ?? ''
+    } else {
+      const isDefaultGroup: selectOptionsGroupType | undefined = (
+        data.options as selectOptionsGroupType[]
+      ).find((item: selectOptionsGroupType) => !item.disabled)
+      const isDefault: selectOptionsType | undefined =
+        isDefaultGroup &&
+        (isDefaultGroup.options as selectOptionsType[]).find(
+          (item: selectOptionsType) => !item.disabled
+        )
+      // bindValue.value = (isDefault && isDefault.value) ?? ''
+      bindValue.value = (isDefault && isDefault.value) ?? ''
+    }
+    data.clearable = false
+  }
+  data.change = data.change || function () {}
+  data.visibleChange = data.visibleChange || function () {}
+  data.removeTag = data.removeTag || function () {}
+  data.clear = data.clear || function () {}
+  data.blur = data.blur || function () {}
+  data.focus = data.focus || function () {}
+  return data
+})
 const _ref = ref()
 defineExpose({
-  _ref
+  _ref,
 })
 </script>
 <style scoped lang="scss">
-:deep(.el-select__selection){
-  min-width:100px;
+:deep(.el-select__selection) {
+  min-width: 100px;
 }
 </style>

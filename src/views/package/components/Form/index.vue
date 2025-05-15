@@ -181,9 +181,9 @@ import type {
   switchInnerType,
 } from '../components/form/types'
 import MyComputedData from '../utils/hooks/MyComputedData'
-import {useDebounceThrottle} from '../utils/hooks/index'
+import { useDebounceThrottle } from '../utils/hooks/index'
 import { createRules } from '../utils/rules'
-import { getDomComputed,getComputedStyle } from '../js/utils'
+import { getDomComputed, getComputedStyle } from '../js/utils'
 //父传子参数
 const props = defineProps({
   language: {
@@ -195,7 +195,7 @@ const props = defineProps({
   notNeedChangeCheck: {
     type: Array<String>,
     default: () => {
-      return ['input','inputNumber']
+      return ['input', 'inputNumber']
     },
   },
   showSearch: {
@@ -266,7 +266,6 @@ const formPlusMain = ref(null)
 const buttons = ref(null)
 type searchTypes = typeof props.search
 
-
 /**
  * 动态创建表单ref
  * @param el 表单项组件对象
@@ -328,7 +327,7 @@ const initSearchValue = () => {
         } else if (((item as dateInnerType).dateType || '').slice(-1) === 's') {
           //时间范围根据aliases转成对应字段
           dynamicComputedFun(item.prop, 'string', ',')
-        }else {
+        } else {
           f = true
         }
         break
@@ -387,9 +386,8 @@ const searchComputed = computed(() => {
     })
 })
 
-
 onMounted(() => {
-  window.addEventListener('resize',formItemWidthComputedListenerHandler)
+  window.addEventListener('resize', formItemWidthComputedListenerHandler)
 })
 onUnmounted(() => {
   window.removeEventListener('resize', formItemWidthComputedListenerHandler)
@@ -399,7 +397,7 @@ onUnmounted(() => {
 const formItemWidthComputedListener = () => {
   formItemWidthComputed(searchComputed.value)
 }
-const formItemWidthComputedListenerHandler=useDebounceThrottle(formItemWidthComputedListener,500)
+const formItemWidthComputedListenerHandler = useDebounceThrottle(formItemWidthComputedListener, 500)
 /**
  * 计算表单项宽度
  * @param search 搜索条件
@@ -415,8 +413,7 @@ const formItemWidthComputed = (search: typeof searchComputed.value, callback = (
     let buttonsWidth = buttons.value[0]?.clientWidth ?? 0
     for (let key in dynamicRefMap.value) {
       let computedStyle = getComputedStyle(dynamicRefMap.value[key].$el)
-      inputWidths[key] =
-        getDomComputed(computedStyle, 'width')+6*2
+      inputWidths[key] = getDomComputed(computedStyle, 'width') + 6 * 2
     }
     // console.log(inputWidths)
     let sum: number = formPlusMainWidth - buttonsWidth * 1.5
@@ -452,10 +449,12 @@ watch(
     if (
       search.length === 0 ||
       (!computedSearchSign(search, true) && searchFinal.value.length !== 0)
-    )
+    ) {
+      searchFinal.value = [search]
       return
+    }
     initSearchValue()
-    rules.value = createRules(search,props.notNeedChangeCheck)
+    rules.value = createRules(search, props.notNeedChangeCheck)
     searchFinal.value = [search]
     let searchItemProp = search.map((item) => `${item.prop}Ref`)
     await nextTick()
@@ -505,17 +504,17 @@ const openList = () => {
   fold.value = !fold.value
 }
 //暴露的数据
-defineExpose([fold,dynamicRefMap,formPlusMain,buttons])
+defineExpose([fold, dynamicRefMap, formPlusMain, buttons])
 </script>
 
 <style scoped lang="scss">
 .searchList.hide {
-    height: 0;
-    opacity: 0;
-    transition: all 0.1s;
-    padding: 0px;
-  }
-.searchList{
+  height: 0;
+  opacity: 0;
+  transition: all 0.1s;
+  padding: 0px;
+}
+.searchList {
   padding: 10px;
   .hide {
     height: 0;
@@ -527,11 +526,10 @@ defineExpose([fold,dynamicRefMap,formPlusMain,buttons])
     opacity: 1;
     height: 100%;
     transition: all 0.5s;
-
   }
   .search_form_menu {
     margin-bottom: 4px;
-    &:last-child{
+    &:last-child {
       margin-bottom: 0;
     }
     .el-form {

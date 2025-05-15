@@ -1,6 +1,6 @@
 <template>
   <el-config-provider :locale="language">
-    <el-dialog
+    <el-dialog v-bind="attr"
       v-model="dialogVisible"
       :title="isAdd ? title.add : title.edit"
       :width="width"
@@ -117,7 +117,7 @@
   </el-config-provider>
 </template>
 <script lang="ts" setup name='MyEdit'>
-import { ref, useSlots, computed, type PropType, nextTick, type Ref } from 'vue'
+import { ref, useSlots, computed, type PropType, nextTick, type Ref, useAttrs } from 'vue'
 import { ElMessage, FormRules } from 'element-plus'
 import Input from '../components/input/index.vue'
 import Select from '../components/select/index.vue'
@@ -361,6 +361,16 @@ const handleClose = () => {
   dialogVisible.value = false
   emits('close')
 }
+const attrs = useAttrs()
+const attr = computed(() => {
+  let attrLs = {}
+  let injectAttr = {}
+  // for (const element of Object.keys(attrs)) {
+  //   // inject()
+  // }
+  attrLs = { ...injectAttr, ...attrs }
+  return attrLs
+})
 const editDialog = ref(null)
 const isAdd = ref(true)
 const loading = ref(false)
@@ -385,7 +395,7 @@ const init = (data: object = {}, add: boolean | undefined = undefined) => {
   // }
   // console.timeEnd('注册数据事件')
   // console.time('绑定数据')
-  props.column.forEach((item) => {
+  columnFinal.value.forEach((item) => {
     let f = false
     switch (item.type) {
       case 'date':

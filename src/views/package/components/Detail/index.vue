@@ -1,6 +1,12 @@
 <template>
   <el-config-provider :locale="language">
-    <el-dialog v-model="dialogVisible" :title="title" :width="width" :before-close="handleClose">
+    <el-dialog
+      v-model="dialogVisible"
+      :title="title"
+      :width="width"
+      :before-close="handleClose"
+      v-bind="attr"
+    >
       <el-descriptions
         :border="desBorder"
         :column="desColumn"
@@ -51,7 +57,7 @@
   </el-config-provider>
 </template>
 <script lang="ts" setup name='MyDetail'>
-import { ref, watch, computed, type PropType } from 'vue'
+import { ref, watch, computed, type PropType, useAttrs, inject } from 'vue'
 
 interface columnType {
   prop: string
@@ -119,7 +125,16 @@ const props = defineProps({
     required: true,
   },
 })
-
+const attrs = useAttrs()
+const attr = computed(() => {
+  let attrLs = {}
+  let injectAttr = {}
+  // for (const element of Object.keys(attrs)) {
+  //   // inject()
+  // }
+  attrLs = { ...injectAttr, ...attrs }
+  return attrLs
+})
 const dataFinal = ref({})
 const columnFinal = computed(() => {
   return props.column.map((item) => {

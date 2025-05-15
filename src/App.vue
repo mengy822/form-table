@@ -1,13 +1,18 @@
 <script setup lang="tsx">
 import { MyTabel, MyForm, MyEdit, MyDetail } from './views/package/index'
-import {table,editColumn,request,search} from './app'
+import useAppConfig from './app'
 import type {inputInnerType , selectInnerType , dateInnerType} from './app'
 
 import { ref, onMounted, computed } from 'vue'
 const tableRef=ref(null)
 const data = ref([])
-const searchList = ref<(inputInnerType | selectInnerType | dateInnerType)[]>(search)
-
+const {search:searchList,editColumn,table,request}=useAppConfig()
+// const searchList = ref<(inputInnerType | selectInnerType | dateInnerType)[]>(search)
+onMounted(()=>{
+  // setTimeout(()=>{
+(searchList.value[2] as selectInnerType).options=Number(dataForm.value.inputNumber)
+  // },2000)
+})
 const detail = (e: unknown) => {
   console.log(e, '详情')
   detailRef.value.init(e)
@@ -37,7 +42,7 @@ const detailRef = ref()
 const editRef = ref()
 
 
-const submitFun = (e: (typeof editColumn)[number]['prop'], callback: Function) => {
+const submitFun = (e: (typeof editColumn.value)[number]['prop'], callback: Function) => {
   console.log(e, '保存')
   setTimeout(() => {
     callback()
