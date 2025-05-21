@@ -42,7 +42,7 @@ const position = (dom?:HTMLElement) => {
  * @param {number} duration
  * @param {Function} callback
  */
-export const scrollTo = (to: number, duration: number,dom:HTMLElement, callback?: any) => {
+export const scrollTo = (to: number, duration: number,dom?:HTMLElement, callback?: any) => {
   const start = position(dom);
   const change = to - start;
   const increment = 20;
