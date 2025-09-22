@@ -1,4 +1,6 @@
 import zhCn from 'element-plus/es/locale/lang/zh-cn';
+import type { Component, CSSProperties, PropType, VNode } from 'vue';
+import type { dataItemType, queryParamType } from '../js/types';
 export interface tableColumnItem {
   prop: string
   label: string
@@ -13,16 +15,16 @@ export interface tableColumnItem {
   fixed?: false | true | 'left' | 'right'
   selectable?: boolean
   maxWidth?: boolean
-  fun?: (row: dataItemType, prop: string, index?: number) => string
+  fun?: (row: dataItemType, prop: string, index?: number) => string | number | boolean
   funDom?: VNode | Component
   classFun?: (row: dataItemType, prop: string) => string
   showFun?: (row?: queryParamType | any) => boolean
-  slot?:String
+  slot?:string
+  list?: tableColumnItem[]
+  header?: string
   render?:Function
 }
-
-
-export const propsConfig={
+export const propsConfig = {
   language: {
     type: Object,
     default: () => {
@@ -100,9 +102,9 @@ export const propsConfig={
     type: String,
     default: '您确定删除该数据吗? 警告:该操作不可逆,请慎重操作',
   },
-  removeType:{
-    type:String as PropType<'warning'|'info'|'error'|'success'>,
-    default:'warning'
+  removeType: {
+    type: String as PropType<'warning' | 'info' | 'error' | 'success'>,
+    default: 'warning'
   },
   removeMessageTitle: {
     type: String,
@@ -222,3 +224,6 @@ export const propsConfig={
     default: '操作成功',
   },
 }
+
+
+

@@ -5,8 +5,49 @@
         <slot name="header">
           <el-row :gutter="10">
             <el-col :span="1.5" v-if="hasAdd && proxyProps[`onAdd`]">
-              <el-button type="primary" plain :icon="Plus" @click="handleAdd()"
+              <el-button
+                :loading="operationLoading"
+                type="primary"
+                plain
+                :icon="hasAddIcon"
+                @click="handleAdd()"
                 >{{ typeof hasAdd !== 'boolean' ? hasAdd : '新增' }}
+              </el-button>
+            </el-col>
+            <el-col
+              :span="1.5"
+              v-if="hasSelection && hasBatchRemove && proxyProps[`onBatchRemove`]"
+            >
+              <el-button
+                type="danger"
+                plain
+                :loading="operationLoading"
+                :icon="hasBatchRemoveIcon"
+                @click="handleBatchRemove()"
+              >
+                {{ typeof hasBatchRemove !== 'boolean' ? hasBatchRemove : '删除' }}
+              </el-button>
+            </el-col>
+            <el-col :span="1.5" v-if="hasExport && proxyProps[`onExport`]">
+              <el-button
+                :loading="operationLoading"
+                type="warning"
+                plain
+                :icon="hasExportIcon"
+                @click="handleExport()"
+              >
+                {{ typeof hasExport !== 'boolean' ? hasExport : '导出' }}
+              </el-button>
+            </el-col>
+            <el-col :span="1.5" v-if="hasImport && proxyProps[`onImport`]">
+              <el-button
+                :loading="operationLoading"
+                type="info"
+                plain
+                :icon="hasImportIcon"
+                @click="handleImport()"
+              >
+                {{ typeof hasImport !== 'boolean' ? hasImport : '导入' }}
               </el-button>
             </el-col>
             <el-col :span="1.5" v-if="slots['tableOperation']">
@@ -16,7 +57,7 @@
               :search="proxyProps['onUpdate:showSearch']"
               v-model:showSearch="showSearch"
               v-model:columns="canHiddenColumns"
-              @queryTable="handleQuery(true)"
+              @queryTable="handleQuery(undefined, true)"
             ></right-toolbar>
           </el-row>
         </slot>
@@ -45,14 +86,14 @@
         <el-table-column
           v-if="hasSelection"
           type="selection"
-          fixed="left"
+          :fixed="$slots['selectionFixed'] ?? 'left'"
           :selectable="typeof hasSelection === 'boolean' ? () => true : hasSelection"
-          width="55"
+          :width="$slots['selectionWidth'] ?? 55"
         />
         <el-table-column
-          fixed="left"
+          :fixed="$slots['indexFixed'] ?? 'left'"
           v-if="hasIndex"
-          :min-width="60"
+          :min-width="$slots['indexMinWidth'] ?? 60"
           prop="index"
           :label="typeof hasIndex === 'boolean' ? '序号' : hasIndex"
         >
@@ -62,7 +103,11 @@
         </el-table-column>
         <MyTableColumn :tableColumnFinal="tableColumnFinal"></MyTableColumn>
 
-        <el-table-column fixed="right" width="200" v-if="hasOperation">
+        <el-table-column
+          :fixed="$slots['operationFixed'] ?? 'left'"
+          :width="$slots['operationWidth'] ?? 200"
+          v-if="hasOperation"
+        >
           <template #header>
             <slot name="operationHeader">
               {{ typeof hasOperation === 'boolean' ? '操作' : hasOperation }}
@@ -84,7 +129,7 @@
                 v-if="
                   typeof hasDetail === 'function'
                     ? hasDetail(scope.row)
-                    : (hasDetail && proxyProps[`onDetail`])
+                    : hasDetail && proxyProps[`onDetail`]
                 "
               >
                 <el-button
@@ -122,7 +167,7 @@
                 v-if="
                   typeof hasUpdate === 'function'
                     ? hasUpdate(scope.row)
-                    : (hasUpdate && proxyProps[`onUpdate`])
+                    : hasUpdate && proxyProps[`onUpdate`]
                 "
               >
                 <el-button
@@ -160,7 +205,7 @@
                 v-if="
                   typeof hasRemove === 'function'
                     ? hasRemove(scope.row)
-                    : (hasRemove && proxyProps[`onRemove`])
+                    : hasRemove && proxyProps[`onRemove`]
                 "
               >
                 <el-button
@@ -171,8 +216,11 @@
                   @click="handleRemove(scope.row)"
                 >
                   {{
-                    typeof hasRemove === 'boolean' ? undefined
-                      : typeof hasRemove === 'function' ? hasOperationName ? hasRemove(scope.row)
+                    typeof hasRemove === 'boolean'
+                      ? undefined
+                      : typeof hasRemove === 'function'
+                      ? hasOperationName
+                        ? hasRemove(scope.row)
                         : undefined
                       : hasRemove
                   }}
@@ -221,26 +269,283 @@ import {
 import pagination from '../components/Pagination/index.vue'
 import RightToolbar from '../components/RightToolbar/index.vue'
 import MyTableColumn from '../components/tableColumn'
-import { Plus, Search, Delete, Edit } from '@element-plus/icons-vue'
+import { Plus, Search, Delete, Edit, Upload, Download } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, TableInstance } from 'element-plus'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import { type tableColumnItem } from './props'
+import { dataItemType, queryParamType } from '../js/types'
+import { getDomComputed, getComputedStyle } from '../js/utils'
+const slots = useSlots()
+
 interface query extends queryParamType {
   pageSize: number
   pageNum: number
 }
+const props = defineProps({
+  language: {
+    type: Object,
+    default: () => {
+      return zhCn
+    },
+  },
+  hasIndex: {
+    type: [Boolean, String],
+    default: true,
+  },
 
-interface queryParamType {
-  [key: string]: string | number | undefined | boolean
-}
+  hasSelection: {
+    type: [Boolean, Function] as PropType<boolean | ((row: any, index: number) => boolean)>,
+    default: false,
+  },
 
-interface dataItemType {
-  [key: string]: string | number | undefined | boolean
-}
+  hasOperation: {
+    type: [Boolean, String],
+    default: true,
+  },
+  hasOperationName: {
+    type: [Boolean],
+    default: false,
+  },
 
-import { getDomComputed, getComputedStyle } from '../js/utils'
-const slots = useSlots()
-import { propsConfig, type tableColumnItem } from './props'
+  maxHeight: {
+    type: [Number, String],
+    default: undefined,
+  },
+  height: {
+    type: [Number, String],
+    default: undefined,
+  },
+  baseClass: {
+    type: [String],
+    default: undefined,
+  },
+  maxWidth: {
+    type: Boolean,
+    default: true,
+  },
+  hasAdd: {
+    type: [Boolean, String, Function] as PropType<
+      boolean | string | ((data: dataItemType) => boolean | string)
+    >,
+    default: true,
+  },
+  hasAddIcon: {
+    type: Object,
+    default: () => {
+      return Plus
+    },
+  },
+  hasBatchRemove: {
+    type: [Boolean, String, Function] as PropType<
+      boolean | string | ((data: dataItemType) => boolean | string)
+    >,
+    default: true,
+  },
+  hasBatchRemoveIcon: {
+    type: Object,
+    default: () => {
+      return Delete
+    },
+  },
+  hasImport: {
+    type: [Boolean, String, Function] as PropType<
+      boolean | string | ((data: dataItemType) => boolean | string)
+    >,
+    default: true,
+  },
+  hasImportIcon: {
+    type: Object,
+    default: () => {
+      return Upload
+    },
+  },
+  hasExport: {
+    type: [Boolean, String, Function] as PropType<
+      boolean | string | ((data: dataItemType) => boolean | string)
+    >,
+    default: true,
+  },
+  hasExportIcon: {
+    type: Object,
+    default: () => {
+      return Download
+    },
+  },
+  hasDetail: {
+    type: [Boolean, String, Function] as PropType<
+      boolean | string | ((data: dataItemType) => boolean | string)
+    >,
+    default: true,
+  },
+  hasUpdate: {
+    type: [Boolean, String, Function] as PropType<
+      boolean | string | ((data: dataItemType) => boolean | string)
+    >,
+    default: true,
+  },
+  hasRemove: {
+    type: [Boolean, String, Function] as PropType<
+      boolean | string | ((data: dataItemType) => boolean | string)
+    >,
+    default: true,
+  },
+  tableColumn: {
+    type: Array<tableColumnItem>,
+    required: true,
+  },
+  queryParam: {
+    type: Object as () => queryParamType,
+    required: true,
+  },
+  removeMessage: {
+    type: String,
+    default: '您确定删除该数据吗? 警告:该操作不可逆,请慎重操作',
+  },
+  removeType: {
+    type: String as PropType<'warning' | 'info' | 'error' | 'success'>,
+    default: 'warning',
+  },
+  removeMessageTitle: {
+    type: String,
+    default: '警告',
+  },
+  exportMessage: {
+    type: [String, Boolean],
+    default: '是否确认导出数据?',
+  },
+  exportType: {
+    type: String as PropType<'warning' | 'info' | 'error' | 'success'>,
+    default: 'warning',
+  },
+  exportMessageTitle: {
+    type: String,
+    default: '提示',
+  },
+  dataList: {
+    type: Array<dataItemType>,
+    default: () => {
+      return undefined
+    },
+  },
+  dataListFun: {
+    type: Function,
+  },
+  dataConfig: {
+    type: Object as PropType<{
+      rows: string
+      total: string
+    }>,
+    default: () => {
+      return {
+        rows: 'rows',
+        total: 'total',
+      }
+    },
+  },
+  total: {
+    type: Number,
+    default: 0,
+  },
 
-const props = defineProps(propsConfig)
+  highlightCurrentRow: {
+    //是否要高亮当前行
+    type: Boolean,
+    default: false,
+  },
+  currentRowKey: {
+    //当前行的 key，只写属性
+    type: [String, Number],
+    default: '',
+  },
+  rowClassName: {
+    //行的 className 的回调方法，也可以使用字符串为所有行设置一个固定的 className。
+    type: [String, Function] as PropType<
+      string | ((data: { row: any; rowIndex: number }) => string)
+    >,
+    default: '',
+  },
+  rowStyle: {
+    //行的 style 的回调方法，也可以使用一个固定的 Object 为所有行设置一样的 Style。
+    type: [Object, Function] as PropType<
+      CSSProperties | ((data: { row: any; rowIndex: number }) => CSSProperties)
+    >,
+    default: () => {
+      return {}
+    },
+  },
+  cellClassName: {
+    //单元格的 className 的回调方法，也可以使用字符串为所有单元格设置一个固定的 className。
+    type: [String, Function] as PropType<
+      string | ((data: { row: any; column: any; rowIndex: number; columnIndex: number }) => string)
+    >,
+    default: '',
+  },
+  cellStyle: {
+    //单元格的 style 的回调方法，也可以使用一个固定的 Object 为所有单元格设置一样的 Style。
+    type: [Object, Function] as PropType<
+      | CSSProperties
+      | ((data: { row: any; column: any; rowIndex: number; columnIndex: number }) => CSSProperties)
+    >,
+    default: () => {
+      return {}
+    },
+  },
+  headerRowClassName: {
+    //表头行的 className 的回调方法，也可以使用字符串为所有表头行设置一个固定的 className。
+    type: [String, Function] as PropType<
+      string | ((data: { row: any; rowIndex: number }) => string)
+    >,
+    default: '',
+  },
+  headerRowStyle: {
+    //表头行的 style 的回调方法，也可以使用一个固定的 Object 为所有表头行设置一样的 Style。
+    type: [Object, Function] as PropType<
+      CSSProperties | ((data: { row: any; rowIndex: number }) => CSSProperties)
+    >,
+    default: () => {
+      return {}
+    },
+  },
+  headerCellClassName: {
+    //表头单元格的 className 的回调方法，也可以使用字符串为所有表头单元格设置一个固定的 className。
+    type: [String, Function] as PropType<
+      string | ((data: { row: any; column: any; rowIndex: number; columnIndex: number }) => string)
+    >,
+    default: '',
+  },
+  headerCellStyle: {
+    //表头单元格的 style 的回调方法，也可以使用一个固定的 Object 为所有表头单元格设置一样的 Style。
+    type: [Object, Function] as PropType<
+      | CSSProperties
+      | ((data: { row: any; column: any; rowIndex: number; columnIndex: number }) => CSSProperties)
+    >,
+    default: () => {
+      return {}
+    },
+  },
+  rowKey: {
+    //行数据的 Key，用来优化 Table 的渲染； 在使用reserve-selection功能与显示树形数据时，该属性是必填的。 类型为 String 时，支持多层访问：user.info.id，但不支持 user.info[0].id，此种情况请使用 Function。
+    type: [String, Function] as PropType<string | ((row: any) => string)>,
+    default: '',
+  },
+  emptyText: {
+    //空数据时显示的文本内容， 也可以通过 #empty 设置
+    type: [String],
+    default: '没有数据',
+  },
+  duration: {
+    type: Number,
+    default: 1500,
+    validator(value: number) {
+      // The value must match one of these strings
+      return value >= 0
+    },
+  },
+  message: {
+    type: String,
+    default: '操作成功',
+  },
+})
 
 //表格实例
 const tableRef = ref<TableInstance>()
@@ -275,17 +580,18 @@ const dataListComputed = computed({
   },
 })
 const proxyProps = ref({
-  onAdd:false,
-  onUpdate:false,
-  onDetail:false,
-  onRemove:false,
-  'onUpdate:showSearch':false,
+  onAdd: false,
+  onUpdate: false,
+  onDetail: false,
+  onRemove: false,
+  onDataLoadCompleted: false,
+  'onUpdate:showSearch': false,
 })
 onMounted(() => {
   const internal = getCurrentInstance()
-  const onEmit=(internal?.vnode.props || {}) as Record<string, any>
-  for(const emit in onEmit){
-    proxyProps.value[emit]=typeof onEmit[emit]=== 'function'
+  const onEmit = (internal?.vnode.props || {}) as Record<string, any>
+  for (const emit in onEmit) {
+    proxyProps.value[emit] = typeof onEmit[emit] === 'function'
   }
   // 事件处理器会被归一化为 onXxx
   // hasUpdateListener.value = typeof props.onUpdate === 'function'
@@ -357,7 +663,7 @@ const tableColumn = ref<typeof props.tableColumn>([])
 const tableColumnFinal = computed({
   get() {
     if (tableColumn.value.length === 0) {
-      tableColumn.value = props.tableColumn
+      tableColumn.value = JSON.parse(JSON.stringify(props.tableColumn))
         .filter((item) => item.isTable || typeof item.isTable === 'undefined')
         .map((item) => {
           item.visible = item.visible ?? true
@@ -377,7 +683,6 @@ const tableColumnFinal = computed({
   },
   set(data) {
     tableColumn.value = [...data]
-
   },
 })
 
@@ -405,7 +710,18 @@ watch(
     immediate: true,
   }
 )
-const emits = defineEmits(['query', 'add', 'update', 'detail', 'remove', 'update:showSearch'])
+const emits = defineEmits([
+  'query',
+  'add',
+  'update',
+  'detail',
+  'remove',
+  'update:showSearch',
+  'batch-remove',
+  'import',
+  'export',
+  'dataLoadCompleted',
+])
 
 watch(
   () => props.dataList,
@@ -420,24 +736,75 @@ watch(
 const startQuery = () => {
   loading.value = true
 }
-const handleQuery = (isFirst: boolean = false) => {
+const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = false) => {
   loading.value = true
-  if (typeof isFirst === 'boolean' && isFirst) {
-    queryParams.value.pageNum = 1
+  if (typeof queryParam == 'undefined') {
+    queryParam = { ...queryParams.value }
   }
-
+  if (typeof isFirst === 'boolean' && isFirst) {
+    queryParam.pageNum = 1
+  }
+  queryParams.value = { ...(queryParam || { ...queryParams.value }) }
   if (!props.dataListFun) {
     emits('query', queryParams.value)
   } else {
-    props.dataListFun(queryParams.value, (datas, total) => {
-      dataListComputed.value = datas
-      totalComputed.value = total
-      loading.value = false
+    props.dataListFun(queryParam, async (res, ...obj) => {
+      try {
+        if (res instanceof Promise) {
+          res = await (res as Promise)
+        } else {
+          res = {
+            [props.dataConfig.rows]: res,
+            [props.dataConfig.total]: obj[0],
+          }
+        }
+        const datas = res[props.dataConfig.rows]
+        const total = res[props.dataConfig.total]
+        if (proxyProps.value['onDataLoadCompleted']) emits('dataLoadCompleted', datas, total)
+        dataListComputed.value = datas
+        totalComputed.value = total
+      } catch (e) {
+      } finally {
+        loading.value = false
+      }
     })
   }
 }
 const handleAdd = () => {
   emits('add')
+}
+const handleImport = () => {
+  emits('import')
+}
+const handleExport = () => {
+  const data = {
+    ...queryParams.value,
+    multipleSelection: multipleSelection.value,
+  }
+  const cb = () => {
+    operationLoading.value = false
+  }
+  operationLoading.value = true
+  if (typeof props.exportMessage === 'boolean' && !props.exportMessage) {
+    emits('export', data, cb)
+  } else {
+    ElMessageBox.confirm(props.exportMessage as string, props.exportType, {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      title: props.exportMessageTitle,
+      type: props.exportType,
+    })
+      .then(() => {
+        emits('export', data, cb)
+      })
+      .catch(() => {
+        operationLoading.value = false
+      })
+  }
+}
+
+const handleBatchRemove = () => {
+  emits('batch-remove')
 }
 const handleUpdate = (row: dataItemType) => {
   emits('update', row)
@@ -462,6 +829,7 @@ const handleRemove = (row: dataItemType) => {
             showClose: props.duration! > 0,
             onClose: () => {
               operationLoading.value = false
+              handleQuery()
             },
           })
         } else {

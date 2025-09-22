@@ -33,6 +33,7 @@
     @change="change"
     @input="dataFinal.input"
     @clear="dataFinal.clear"
+    v-bind="$attrs"
   >
     <template v-for="(_,name) in slots" #[getName(name)]="scopeData">
       <slot :name="name" v-bind="scopeData"></slot>

@@ -13,6 +13,7 @@
     ref="_ref"
     :validate-event="dataFinal.validateEvent??true"
     @change="change"
+    v-bind="$attrs"
   >
     <template #default>
       <slot :name="`radio_${dataFinal.prop}`">

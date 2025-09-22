@@ -13,6 +13,7 @@
       :fill="dataFinal.fill ?? '#409eff'"
       :tag="dataFinal.tag ?? 'div'"
       :validate-event="dataFinal.validateEvent ?? true"
+      v-bind="$attrs"
     >
       <template #default>
         <slot :name="`checkbox_${dataFinal.prop}`">
@@ -33,6 +34,7 @@
               :validate-event="dataFinal.config?.validateEvent ?? true"
               :tabindex="index"
               @change="dataFinal.config?.change"
+              v-bind="$attrs"
             >
               {{ item.label }}
             </el-checkbox>
@@ -49,6 +51,7 @@
               :disabled="dataFinal.config?.disabled ?? false"
               :name="dataFinal.config?.name ?? ''"
               :checked="dataFinal.config?.checked ?? false"
+              v-bind="$attrs"
               >{{ item.label }}</el-checkbox-button
             >
           </div>

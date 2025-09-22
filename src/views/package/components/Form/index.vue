@@ -163,7 +163,7 @@
 
 <script setup lang="ts" name="MyForm">
 import { ref, watch, computed, nextTick, onMounted, onUnmounted, provide } from 'vue'
-import { RefreshLeft, ArrowUp, ArrowDown, Search } from '@element-plus/icons-vue'
+// import { RefreshLeft, ArrowUp, ArrowDown, Search } from '@element-plus/icons-vue'
 import type { button, queryInnerType, refresh, search, searchRefresh } from '../js/types'
 import Input from '../components/input/index.vue'
 import Select from '../components/select/index.vue'
@@ -233,7 +233,7 @@ const props = defineProps({
   },
   clearable: {
     type: Boolean,
-    default: false,
+    default: true,
   },
   searchValue: {
     type: Object,
@@ -243,7 +243,7 @@ const props = defineProps({
   },
   isRefreshSearch: {
     type: Boolean,
-    default: false,
+    default: true,
   },
 })
 //父组件写的插槽
@@ -377,6 +377,7 @@ const searchComputed = computed(() => {
       if (item.isRequired && item.isDefault) {
         item.clearable = false
       }
+      if (!item.type) item.type = 'input';
       item.showMessage = item.showMessage ?? true
       item.inlineMessage = item.inlineMessage ?? ''
       item.labelPosition = item.labelPosition ?? ''
@@ -505,6 +506,10 @@ const openList = () => {
 }
 //暴露的数据
 defineExpose([fold, dynamicRefMap, formPlusMain, buttons])
+
+function defineSlots() {
+  throw new Error('Function not implemented.')
+}
 </script>
 
 <style scoped lang="scss">

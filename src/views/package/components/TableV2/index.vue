@@ -210,7 +210,7 @@ export default {
 <script  lang="ts" setup>
 import { propsConfig } from './props'
 import { ref,getCurrentInstance ,useSlots, onMounted,computed,watch } from 'vue'
-import { Plus, Search, Delete, Edit } from '@element-plus/icons-vue'
+// import { Plus, Search, Delete, Edit } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 interface query extends queryParamType {
   pageSize: number

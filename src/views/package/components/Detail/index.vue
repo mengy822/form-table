@@ -8,6 +8,7 @@
       v-bind="attr"
     >
       <el-descriptions
+        class="detail"
         :border="desBorder"
         :column="desColumn"
         :direction="desDirection"
@@ -20,27 +21,35 @@
             :label="item.label"
             :span="item.span"
             :rowspan="item.rowspan"
-            :width="item.width"
-            :min-width="item.minWidth"
+            :width="item.width ?? labelWidth"
             :align="item.align"
             :label-align="item.labelAlign"
             :class-name="item.className"
             :label-class-name="item.labelClassName"
-            v-if="item.showFun && item.showFun(dynamicComputedMap)"
+            v-if="item.showFun && item.showFun(dataFinal)"
           >
             <template #label>
               <slot
                 :name="'label_' + item.prop"
                 :prop="item.prop"
-                :data="dataFinal"
-                :isShow="visible"
+                :nowData="dataFinal[item.prop]"
+                :row="dataFinal"
               >
                 {{ item.label }}
+                <!--                <div :class="`detail-label detail-label-${item.prop}`">-->
+                <!--                </div>-->
               </slot>
             </template>
             <template #default>
-              <slot :name="item.prop" :prop="item.prop" :data="dataFinal" :isShow="visible">
+              <slot
+                :name="item.prop"
+                :prop="item.prop"
+                :nowData="dataFinal[item.prop]"
+                :row="dataFinal"
+              >
                 {{ item.fun(dataFinal, item.prop) }}
+                <!--                <div :class="`detail-value detail-value-${item.prop}`">-->
+                <!--                </div>-->
               </slot>
             </template>
           </el-descriptions-item>
@@ -56,7 +65,7 @@
     </el-dialog>
   </el-config-provider>
 </template>
-<script lang="ts" setup name='MyDetail'>
+<script lang="ts" setup name="MyDetail">
 import { ref, watch, computed, type PropType, useAttrs, inject } from 'vue'
 
 interface columnType {
@@ -73,7 +82,6 @@ interface columnType {
   fun?: (row: any, prop: string) => string | number
   showFun?: (row: any, prop: string) => boolean
 }
-
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 const props = defineProps({
@@ -88,6 +96,11 @@ const props = defineProps({
     type: String,
     default: '50%',
   },
+  labelWidth: {
+    type: String,
+    default: '72px',
+  },
+
   //弹框标题
   title: {
     type: String,
@@ -96,7 +109,7 @@ const props = defineProps({
   //是否带有边框
   desBorder: {
     type: Boolean,
-    default: true,
+    default: false,
   },
   //列数
   desColumn: {
@@ -128,7 +141,7 @@ const props = defineProps({
 const attrs = useAttrs()
 const attr = computed(() => {
   let attrLs = {}
-  let injectAttr = {}
+  const injectAttr = {}
   // for (const element of Object.keys(attrs)) {
   //   // inject()
   // }
@@ -137,14 +150,22 @@ const attr = computed(() => {
 })
 const dataFinal = ref({})
 const columnFinal = computed(() => {
-  return props.column.map((item) => {
-    item.align = item.align ?? 'left'
-    item.span = item.span ?? 1
-    item.rowspan = item.rowspan ?? 1
-    if (!item.fun) item.fun = (row: any, prop: any) => row[prop]
-    if (!item.showFun) item.showFun = (row: any) => true
-    return item
-  })
+  return JSON.parse(JSON.stringify(props.column))
+    .filter((item) => typeof item.isForm == 'undefined' || item.isForm)
+    .map((item) => {
+      item.align = item.align ?? 'left'
+      item.span = item.span ?? 1
+      item.rowspan = item.rowspan ?? 1
+      if (!item.fun) item.fun = (row: any, prop: any) => row[prop]
+      if (!item.showFun) item.showFun = (row: any) => true
+      if (!item.width) {
+        // item.width = '500px'; // (100 / props.desColumn) * item.rowspan + '%';
+        // item.minWidth = (100 / props.desColumn) * item.rowspan + '%';
+      }
+      // console.log(item.width);
+      return item
+    })
+    .sort((a, b) => (a.no || 0) - (b.no || 0))
 })
 const emit = defineEmits(['close'])
 const dialogVisible = ref<boolean>(false)
@@ -161,5 +182,43 @@ const init = (data) => {
 defineExpose({ init, handleClose })
 </script>
 
-<style scoped lang='scss'>
+<style scoped lang="scss">
+.detail {
+  :deep(.el-descriptions__body) {
+    .el-descriptions__table {
+      tbody {
+        tr {
+          //display: flex;
+          //border: 1px solid red;
+
+          .el-descriptions__cell {
+            width: calc(100% / v-bind(desColumn));
+
+            /**
+            label宽度固定
+              */
+            .el-descriptions__label {
+              //min-width: 100px;
+              display: table-cell;
+            }
+
+            /**
+            文字超过 换行显示
+            */
+            .el-descriptions__content {
+              //max-width: 300px;
+              word-break: break-all;
+              word-wrap: break-word;
+              display: table-cell;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  :deep(.el-descriptions__footer) {
+    border-top: 1px solid var(--brder-color);
+  }
+}
 </style>

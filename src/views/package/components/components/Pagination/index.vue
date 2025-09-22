@@ -13,6 +13,7 @@
       class='_class'
       @size-change="handleSizeChange"
       @current-change="handleCurrentChange"
+      v-bind="$attrs"
     />
   </div>
 </el-config-provider>

@@ -39,7 +39,9 @@ export interface queryInnerType extends queryParamType {
   pageSize: number;
   pageNum: number;
 }
-
+export interface dataItemType {
+  [key: string]: string | number | undefined | boolean
+}
 export interface queryParamType {
   [key: string]: string | number | undefined | boolean | string[] | number[] | boolean[]; //string | number | undefined | boolean | string[] | number[] | boolean[]
 }

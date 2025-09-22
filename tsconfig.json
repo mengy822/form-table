@@ -7,5 +7,15 @@
     {
       "path": "./tsconfig.app.json"
     }
-  ]
+  ],
+  "include": [
+    "src/views/package/**/*.ts",
+    "src/views/package/**/*.d.ts",
+    "src/views/package/**/*.tsx",
+    "src/views/package/**/*.vue"
+  ],
+ // 指定不需要被编译的目录
+  "exclude": [
+    "node_modules"
+  ],
 }

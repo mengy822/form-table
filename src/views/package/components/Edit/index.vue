@@ -67,32 +67,38 @@
                     <Input
                       :data="(item as inputInnerType)"
                       v-if="item.type === 'input'"
+                      :disabled="typeof item.disabled === 'function' ? item.disabled(dynamicComputedMap) : item.disabled"
                       v-model="dynamicComputedMap[item.prop]"
                     ></Input>
                     <MyDate
                       :data="(item as dateInnerType)"
                       v-if="item.type === 'date'"
+                      :disabled="typeof item.disabled === 'function' ? item.disabled(dynamicComputedMap) : item.disabled"
                       v-model="dynamicComputedMap[item.prop]"
                     ></MyDate>
 
                     <Select
                       :data="(item as selectInnerType)"
                       v-if="item.type === 'select'"
+                      :disabled="typeof item.disabled === 'function' ? item.disabled(dynamicComputedMap) : item.disabled"
                       v-model="dynamicComputedMap[item.prop]"
                     ></Select>
                     <Switch
                       :data="(item as switchInnerType)"
                       v-if="item.type === 'switch'"
+                      :disabled="typeof item.disabled === 'function' ? item.disabled(dynamicComputedMap) : item.disabled"
                       v-model="dynamicComputedMap[item.prop]"
                     ></Switch>
                     <CheckBox
                       :data="(item as checkboxInnerType)"
                       v-if="item.type === 'checkbox'"
+                      :disabled="typeof item.disabled === 'function' ? item.disabled(dynamicComputedMap) : item.disabled"
                       v-model="dynamicComputedMap[item.prop]"
                     ></CheckBox>
                     <Radio
                       :data="(item as radioInnerType)"
                       v-if="item.type === 'radio'"
+                      :disabled="typeof item.disabled === 'function' ? item.disabled(dynamicComputedMap) : item.disabled"
                       v-model="dynamicComputedMap[item.prop]"
                     ></Radio>
                   </slot>
@@ -275,6 +281,12 @@ const props = defineProps({
     type: String,
     default: '操作成功',
   },
+  autoUpdate: {
+    type: [Function],
+    default: () => {
+      return undefined;
+    }
+  }
 })
 const dataFinal = ref<{ [key: string]: any }>({})
 const rules = ref<FormRules>({})
@@ -430,7 +442,7 @@ const init = (data: object = {}, add: boolean | undefined = undefined) => {
   // console.time('打开窗口')
   dialogVisible.value = true
   nextTick(()=>{
-    scrollTo(0,100,document.querySelector('.editDialog'))
+    scrollTo(0,100,document.querySelector('.editDialog') as HTMLElement)
   })
   // console.timeEnd('打开窗口')
 }
@@ -458,6 +470,9 @@ const submitFun = async () => {
             onClose: () => {
               loading.value = false
               cancelFun()
+              if (typeof props.autoUpdate != 'undefined') {
+                props.autoUpdate();
+              }
             },
           })
         } else {
