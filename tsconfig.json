@@ -1,21 +1,31 @@
 {
-  "files": [],
-  "references": [
-    {
-      "path": "./tsconfig.node.json"
+  "compilerOptions": {
+    "target": "ESNext",
+    "jsx": "preserve",
+    "lib": ["ESNext", "DOM"],
+    "baseUrl": ".",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "paths": {
+      "@/*": ["packages/*"],
+      "@docs/*": ["docs/*"],
+      "@my-component": ["packages/index.ts"] // 模块名到基于 baseUrl 的路径映射的列表
     },
-    {
-      "path": "./tsconfig.app.json"
-    }
-  ],
+    "types": ["vite/client", "element-plus/global"],
+    "strict": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
   "include": [
-    "src/views/package/**/*.ts",
-    "src/views/package/**/*.d.ts",
-    "src/views/package/**/*.tsx",
-    "src/views/package/**/*.vue"
+    "packages/**/*.ts",
+    "packages/**/*.d.ts",
+    "packages/**/*.tsx",
+    "packages/**/*.vue",
+    "docs/**/*.ts",
+    "docs/**/*.tsx",
+    "docs/**/*.vue"
   ],
- // 指定不需要被编译的目录
-  "exclude": [
-    "node_modules"
-  ],
+  "exclude": ["node_modules"]
 }
