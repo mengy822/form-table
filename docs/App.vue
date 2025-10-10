@@ -1,10 +1,10 @@
 <script setup lang="tsx">
-import { MyTabel, MyForm, MyEdit, MyDetail } from './packages/index'
+import { MyTable, MyForm, MyEdit, MyDetail,type MyTableInstance } from 'ftv3'
 import useAppConfig from './app'
 import type {inputInnerType , selectInnerType , dateInnerType} from './app'
-
+import { ElTable } from 'element-plus'
 import { ref, onMounted, computed } from 'vue'
-const tableRef=ref(null)
+const tableRef=ref<MyTableInstance>()
 const data = ref([])
 const {search:searchList,editColumn,table,request}=useAppConfig()
 // const searchList = ref<(inputInnerType | selectInnerType | dateInnerType)[]>(search)
@@ -54,7 +54,7 @@ const total = ref(0)
 const query = (e: any) => {
   dataForm.value = { ...e }
   console.log(e, '查询')
-  tableRef.value.query(true)
+  tableRef.value?.query(e)
 }
 const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
   // dataForm.value = { ...e }
@@ -77,9 +77,9 @@ const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
       @search="query"
     ></MyForm>
     <!-- <MyTabelV2 ref="tableRef" :columns="table"> </MyTabelV2> -->
-    <MyTabel
+    <MyTable
+      
       ref="tableRef"
-      :query-param="dataForm"
       :table-column="table"
       :data-list-fun="tableQuery"
       max-height="65vh"
@@ -97,7 +97,7 @@ const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
           :inactive-value="'关闭'"
         ></el-switch>
       </template>
-    </MyTabel>
+    </MyTable>
     <MyEdit ref="editRef" :column="editColumn" @submit="submitFun"></MyEdit>
     <MyDetail des-column="3" ref="detailRef" :column="table"></MyDetail>
   </div>

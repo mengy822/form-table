@@ -2086,7 +2086,7 @@ declare interface checkboxGroupType {
     change?: (value: (string | number)[]) => void;
 }
 
-declare interface checkboxInnerType extends columnType, checkboxGroupType {
+export declare interface checkboxInnerType extends columnType, checkboxGroupType {
 }
 
 declare interface checkBoxType {
@@ -2262,7 +2262,7 @@ declare interface radioGroupType {
     change?: (value: string | number | boolean) => void;
 }
 
-declare interface radioInnerType extends columnType, radioGroupType {
+export declare interface radioInnerType extends columnType, radioGroupType {
 }
 
 declare interface radioType {
@@ -2402,7 +2402,7 @@ declare interface selectType {
     change?: (value: any) => void;
 }
 
-declare interface switchInnerType extends columnType, switchType {
+export declare interface switchInnerType extends columnType, switchType {
 }
 
 declare interface switchType {

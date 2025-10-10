@@ -5,7 +5,7 @@ import type {
   radioInnerType,
   selectInnerType,
   switchInnerType,
-} from './packages/index'
+} from 'ftv3'
 import {ref,onMounted} from 'vue'
 export default function useAppConfig(){
   const changeFun = (e) => {

@@ -91,9 +91,11 @@ export default defineConfig(({ mode }) => {
       // 配置dts插件生成类型声明文件
       dts({
         include: ['packages/**/*.ts', 'packages/**/*.vue'],
-        outDir: 'dist',
+        outDir: 'dist/types',
         entryRoot: 'packages',
-        rollupTypes: true,
+        tsconfigPath: './tsconfig.json',
+        rollupTypes: true,  // 合并类型声明到单一文件  
+        insertTypesEntry: true,  // 在package.json添加types字段  
         // 排除不需要生成类型的文件
         exclude: ['**/node_modules/**', '**/__tests__/**', '**/dist/**']
       })

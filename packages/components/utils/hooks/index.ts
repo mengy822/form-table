@@ -1,4 +1,28 @@
 import { ref, watchEffect, onUnmounted, onMounted } from 'vue';
+export function useListenDomChange(callback: Function, delay: number = 100) {
+  const debounceThrottle = useDebounceThrottle(callback, delay);
+  const observer = new MutationObserver((mutationList) => {
+    debounceThrottle();
+    // console.log(mutationList);
+  });
+  const listen = (contentRef: Element | string) => {
+    if (typeof contentRef === 'string') {
+      contentRef = document.querySelector(contentRef) as Element;
+    }
+    observer.observe(contentRef as Element, {
+      childList: true, // 子节点的变动（新增、删除或者更改）
+      attributes: true, // 属性的变动
+      characterData: true, // 节点内容或节点文本的变动
+      subtree: true // 是否将观察器应用于该节点的所有后代节点
+    });
+  };
+  onUnmounted(() => {
+    observer.disconnect();
+  });
+  return {
+    listen
+  };
+}
 
 /**
  * 防抖和节流的 Hook 函数

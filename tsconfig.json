@@ -26,6 +26,6 @@
     "docs/**/*.ts",
     "docs/**/*.tsx",
     "docs/**/*.vue"
-  ],
+, "types/components.d.ts"  ],
   "exclude": ["node_modules"]
 }

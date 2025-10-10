@@ -57,7 +57,7 @@
               :search="proxyProps['onUpdate:showSearch']"
               v-model:showSearch="showSearch"
               v-model:columns="canHiddenColumns"
-              @queryTable="handleQuery(undefined, true)"
+              @queryTable="handleQuery(undefined, false)"
             ></right-toolbar>
           </el-row>
         </slot>
@@ -86,14 +86,14 @@
         <el-table-column
           v-if="hasSelection"
           type="selection"
-          :fixed="$slots['selectionFixed'] ?? 'left'"
+          :fixed="$attrs['selectionFixed'] ?? 'left'"
           :selectable="typeof hasSelection === 'boolean' ? () => true : hasSelection"
-          :width="$slots['selectionWidth'] ?? 55"
+          :width="$attrs['selectionWidth'] ?? 55"
         />
         <el-table-column
-          :fixed="$slots['indexFixed'] ?? 'left'"
+          :fixed="$attrs['indexFixed'] ?? 'left'"
           v-if="hasIndex"
-          :min-width="$slots['indexMinWidth'] ?? 60"
+          :min-width="$attrs['indexMinWidth'] ?? 60"
           prop="index"
           :label="typeof hasIndex === 'boolean' ? '序号' : hasIndex"
         >
@@ -104,8 +104,8 @@
         <MyTableColumn :tableColumnFinal="tableColumnFinal"></MyTableColumn>
 
         <el-table-column
-          :fixed="$slots['operationFixed'] ?? 'left'"
-          :width="$slots['operationWidth'] ?? 200"
+          :fixed="$attrs['operationFixed'] ?? 'left'"
+          :width="$attrs['operationWidth'] ?? 200"
           v-if="hasOperation"
         >
           <template #header>
@@ -124,6 +124,15 @@
             ></slot>
             <slot name="detail" :data="scope.row">
               <el-tooltip
+                :disabled="
+                  typeof hasDetail === 'boolean'
+                    ? false
+                    : typeof hasDetail === 'function'
+                    ? hasOperationName
+                      ? String(hasDetail(scope.row)).length === 0
+                      : true
+                    : hasDetail.length !== 0
+                "
                 :content="`${
                   (typeof hasDetail === 'boolean'
                     ? undefined
@@ -160,9 +169,25 @@
                 </el-button>
               </el-tooltip>
             </slot>
-            <slot :name="`operationAfterDetail`" :data="scope.row" :index="scope.index" :text="hasOperationText" :link="hasOperationLink" :loading="operationLoading"></slot>
+            <slot
+              :name="`operationAfterDetail`"
+              :data="scope.row"
+              :index="scope.index"
+              :text="hasOperationText"
+              :link="hasOperationLink"
+              :loading="operationLoading"
+            ></slot>
             <slot name="update" :data="scope.row">
               <el-tooltip
+                :disabled="
+                  typeof hasUpdate === 'boolean'
+                    ? false
+                    : typeof hasUpdate === 'function'
+                    ? hasOperationName
+                      ? String(hasUpdate(scope.row)).length === 0
+                      : true
+                    : hasUpdate.length !== 0
+                "
                 :content="`${
                   (typeof hasUpdate === 'boolean'
                     ? undefined
@@ -199,9 +224,25 @@
                 </el-button>
               </el-tooltip>
             </slot>
-            <slot :name="`operationAfterUpdate`" :data="scope.row" :index="scope.index" :text="hasOperationText" :link="hasOperationLink" :loading="operationLoading"></slot>
+            <slot
+              :name="`operationAfterUpdate`"
+              :data="scope.row"
+              :index="scope.index"
+              :text="hasOperationText"
+              :link="hasOperationLink"
+              :loading="operationLoading"
+            ></slot>
             <slot name="remove" :data="scope.row">
               <el-tooltip
+                :disabled="
+                  typeof hasRemove === 'boolean'
+                    ? false
+                    : typeof hasRemove === 'function'
+                    ? hasOperationName
+                      ? String(hasRemove(scope.row)).length === 0
+                      : true
+                    : hasRemove.length !== 0
+                "
                 :content="`${
                   (typeof hasRemove === 'boolean'
                     ? undefined
@@ -238,7 +279,15 @@
                 </el-button>
               </el-tooltip>
             </slot>
-            <slot :name="`operationAfter`" :data="scope.row" :index="scope.index" :text="hasOperationText" :link="hasOperationLink" :loading="operationLoading"> </slot>
+            <slot
+              :name="`operationAfter`"
+              :data="scope.row"
+              :index="scope.index"
+              :text="hasOperationText"
+              :link="hasOperationLink"
+              :loading="operationLoading"
+            >
+            </slot>
           </template>
         </el-table-column>
         <template #empty v-if="slots['empty']">
@@ -248,7 +297,7 @@
       <pagination
         class="table-plus-pagination"
         v-show="totalComputed as number > 0"
-        :total="totalComputed"
+        :total="totalComputed as number"
         v-model:page="queryParams.pageNum"
         v-model:limit="queryParams.pageSize"
         @pagination="handleQuery"
@@ -281,7 +330,7 @@ import { ElMessage, ElMessageBox, TableInstance } from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { ButtonType, type tableColumnItem } from './props'
 import { dataItemType, queryParamType } from '../js/types'
-import { getDomComputed, getComputedStyle, deepClone } from '../js/utils'
+import { getDomComputed, getComputedStyle, deepClone, getRemainingHeight } from '../js/utils'
 const slots = useSlots()
 
 interface query extends queryParamType {
@@ -592,7 +641,7 @@ const getHeight = (className: string): number => {
   return baseClassHeight
 }
 const totalInner = ref<Number>(0)
-const dataListInner = ref([])
+const dataListInner = ref<dataItemType[]>([])
 const totalComputed = computed({
   get: () => {
     return props.total || totalInner.value
@@ -609,14 +658,14 @@ const dataListComputed = computed({
     dataListInner.value = val
   },
 })
-const proxyProps = ref({
+const proxyProps = ref<{ [key: string]: boolean }>({
   onAdd: false,
   onUpdate: false,
   onDetail: false,
   onRemove: false,
   onDataLoadCompleted: false,
   'onUpdate:showSearch': false,
-  onBatchRemove:false
+  onBatchRemove: false,
 })
 onMounted(() => {
   const internal = getCurrentInstance()
@@ -626,22 +675,48 @@ onMounted(() => {
   }
   // 事件处理器会被归一化为 onXxx
   // hasUpdateListener.value = typeof props.onUpdate === 'function'
-  // nextTick(()=>{
-  //   if (
-  //   props.baseClass &&
-  //   typeof props.height == 'undefined' &&
-  //   typeof props.maxHeight === 'undefined'
-  // ) {
-  //   let baseClassHeight = getHeight(props.baseClass)
-  //   let formPlusMainHeight = getHeight('.form-plus-main')
-  //   let tableHeaderHeight = getHeight('.el-card__header')+getHeight('.el-table__header-wrapper')
-  //   let pageHeight = getHeight('.pagination-container')
-  //   console.log(baseClassHeight, formPlusMainHeight, tableHeaderHeight, pageHeight)
-  //   heightInner.value = baseClassHeight - formPlusMainHeight - tableHeaderHeight - pageHeight
-  //   maxHeightInner.value = heightInner.value
-  // }
-  // })
+  autoHeight()
 })
+const autoHeight = () => {
+  console.log('重建dom', new Date().getTime())
+  nextTick(() => {
+    if (
+      props.baseClass &&
+      typeof props.height == 'undefined' &&
+      typeof props.maxHeight === 'undefined'
+    ) {
+      // const baseClassHeight = getHeight(props.baseClass);
+      // const formPlusMainHeight = getHeight('.form-plus-main .el-card');
+      const tableHeaderHeight =
+        getHeight('.el-card__header') + getHeight('.el-table__header-wrapper')
+      const pageHeight = getHeight('.pagination-container')
+      const { paddingTop: bodyPaddingTop, paddingBottom: bodyPaddingBottom } = getComputedStyle(
+        '.table-plus .el-card__body'
+      )
+      const { borderTopWidth, borderBottomWidth } = getComputedStyle('.table-plus .el-card__header')
+      const { height } = getRemainingHeight(props.baseClass, ['.table-plus'])
+
+      heightInner.value =
+        height -
+        tableHeaderHeight -
+        pageHeight -
+        parseFloat(bodyPaddingBottom) -
+        parseFloat(bodyPaddingTop) -
+        parseFloat(borderTopWidth) -
+        parseFloat(borderBottomWidth)
+      console.log(`
+        height=${height} -
+        tableHeaderHeight=${tableHeaderHeight} -
+        pageHeight= ${pageHeight}-
+        parseFloat(bodyPaddingBottom)=${parseFloat(bodyPaddingBottom)} -
+        parseFloat(bodyPaddingTop)=${parseFloat(bodyPaddingTop)} -
+        parseFloat(borderTopWidth)= ${parseFloat(borderTopWidth)}-
+        parseFloat(borderBottomWidth)=${parseFloat(borderBottomWidth)}`)
+      // baseClassHeight - formPlusMainHeight - tableHeaderHeight - pageHeight - parseFloat(bodyPaddingBottom) - parseFloat(bodyPaddingTop);
+      maxHeightInner.value = heightInner.value
+    }
+  })
+}
 //多选事件
 const selectable = (row: tableColumnItem) => row.selectable
 //多选数据
@@ -661,10 +736,10 @@ const handleSelectionChange = (val: tableColumnItem[]) => {
   multipleSelection.value = val
 }
 const getTextWidth = (text: string, font: string) => {
-  const canvas = document.createElement('canvas')
-  const context = canvas.getContext('2d')
-  context.font = font
-  return context.measureText(text).width
+  // const canvas = document.createElement('canvas')
+  // const context = canvas.getContext('2d')
+  // context.font = font
+  // return context.measureText(text).width
 }
 //需要隐藏的表格列
 const canHiddenColumns = computed({
@@ -695,8 +770,8 @@ const tableColumnFinal = computed({
   get() {
     if (tableColumn.value.length === 0) {
       tableColumn.value = deepClone(props.tableColumn)
-        .filter((item) => item.isTable || typeof item.isTable === 'undefined')
-        .map((item) => {
+        .filter((item: { isTable: any }) => item.isTable || typeof item.isTable === 'undefined')
+        .map((item: { visible: boolean; prop: string|number; slot: any; selectable: boolean; maxWidth: any; width: any; fun: (row: dataItemType, prop: string, index?: number|undefined) => string; unit: any }) => {
           item.visible = item.visible ?? true
           if (slots[item.prop]) {
             item.slot = item.prop
@@ -726,6 +801,7 @@ const showSearch = computed({
   },
   set(value) {
     showSearchInner.value = value
+    autoHeight()
     if (proxyProps.value[`onUpdate:showSearch`]) emits('update:showSearch', showSearchInner.value)
   },
 })
@@ -767,6 +843,9 @@ watch(
 const startQuery = () => {
   loading.value = true
 }
+type DynamicObject = {
+  [K in keyof typeof props.dataConfig]: any;
+};
 const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = false) => {
   loading.value = true
   if (typeof queryParam == 'undefined') {
@@ -779,18 +858,18 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
   if (!props.dataListFun) {
     emits('query', queryParams.value)
   } else {
-    props.dataListFun(queryParam, async (res, ...obj) => {
+    props.dataListFun(queryParam, async (res: Promise<any>|{[key:string]:any}, ...obj: any[]) => {
       try {
         if (res instanceof Promise) {
-          res = await (res as Promise)
+          res = await (res as Promise<any>)
         } else {
           res = {
             [props.dataConfig.rows]: res,
             [props.dataConfig.total]: obj[0],
           }
         }
-        const datas = res[props.dataConfig.rows]
-        const total = res[props.dataConfig.total]
+        const datas = (res as {[key:string]:any})[props.dataConfig.rows]
+        const total = (res as {[key:string]:any})[props.dataConfig.total]
         if (proxyProps.value['onDataLoadCompleted']) emits('dataLoadCompleted', datas, total)
         dataListComputed.value = datas
         totalComputed.value = total
@@ -896,5 +975,8 @@ defineExpose({
   clip: rect(0, 0, 0, 0) !important;
   border: 0 !important;
   //display: none;
+}
+:deep(.el-table) {
+  transition: height 0.1s;
 }
 </style>

@@ -129,30 +129,128 @@ export const getComputedStyle = (dom: Element | string): CSSStyleDeclaration => 
  * @param dom CSSStyleDeclaration
  * @param key 可以获取的值
  */
-export const getDomComputed = (
-  dom: CSSStyleDeclaration | string,
-  key:
-    'width'
-    | 'height'
-) => {
-  let size: { height: number, width: number } = {
+export const getDomComputed = (dom: CSSStyleDeclaration | string, key: 'width' | 'height') => {
+  const size: { height: number; width: number } = {
     height: 0,
     width: 0
-  }
+  };
   if (typeof dom === 'string') {
-    dom = getComputedStyle(dom)
+    dom = getComputedStyle(dom);
   }
   // let { marginLeft, marginRight, paddingLeft, paddingRight, width, borderLeftWidth, borderRightWidth }={}
   if (dom['boxSizing'] === 'content-box') {
-    let { marginLeft, marginRight, paddingLeft, paddingRight, width, borderLeftWidth, borderRightWidth } = dom;
-    let { marginTop, marginBottom, paddingTop, paddingBottom, height, borderTopWidth, borderBottomWidth } = dom;
-    size.width = [marginLeft, marginRight, paddingLeft, paddingRight, width, borderLeftWidth, borderRightWidth].map(item => parseFloat(item ?? 0)).reduce((a, b) => a + b)
-    size.height = [marginTop, marginBottom, paddingTop, paddingBottom, height, borderTopWidth, borderBottomWidth].map(item => parseFloat(item ?? 0)).reduce((a, b) => a + b)
+    const { marginLeft, marginRight, paddingLeft, paddingRight, width, borderLeftWidth, borderRightWidth } = dom;
+    const { marginTop, marginBottom, paddingTop, paddingBottom, height, borderTopWidth, borderBottomWidth } = dom;
+    size.width = [marginLeft, marginRight, paddingLeft, paddingRight, width, borderLeftWidth, borderRightWidth]
+      .map((item) => parseFloat(item ?? 0))
+      .reduce((a, b) => a + b);
+    size.height = [marginTop, marginBottom, paddingTop, paddingBottom, height, borderTopWidth, borderBottomWidth]
+      .map((item) => parseFloat(item ?? 0))
+      .reduce((a, b) => a + b);
   } else if (dom['boxSizing'] === 'border-box') {
-    let { marginLeft, marginRight, width, } = dom;
-    let { marginTop, marginBottom, height, } = dom;
-    size.width = [marginLeft, marginRight, width,].map(item => parseFloat(item ?? 0)).reduce((a, b) => a + b)
-    size.height = [marginTop, marginBottom, height,].map(item => parseFloat(item ?? 0)).reduce((a, b) => a + b)
+    const { marginLeft, marginRight, width, borderLeftWidth, borderRightWidth } = dom;
+    const { marginTop, marginBottom, height, borderTopWidth, borderBottomWidth } = dom;
+    // console.log(borderTopWidth);
+    size.width = [marginLeft, marginRight, width, borderLeftWidth, borderRightWidth].map((item) => parseFloat(item ?? 0)).reduce((a, b) => a + b);
+    size.height = [marginTop, marginBottom, height, borderTopWidth, borderBottomWidth].map((item) => parseFloat(item ?? 0)).reduce((a, b) => a + b);
   }
-  return size[key];//parseFloat(dom[key] ?? 0)
-}
+  return size[key]; //parseFloat(dom[key] ?? 0)
+};
+const intersectionHash = (arr1: any[]=[], arr2: any[]=[]) => {
+  const hash:{[key:string]:boolean} = {};
+  const result = [];
+
+  // 将第一个数组的元素存入哈希表
+  for (let i = 0; i < arr1.length; i++) {
+    hash[arr1[i]] = true;
+  }
+
+  // 检查第二个数组的元素是否在哈希表中
+  for (let i = 0; i < arr2.length; i++) {
+    if (hash[arr2[i]]) {
+      result.push(arr2[i]);
+      hash[arr2[i]] = false; // 避免重复
+    }
+  }
+
+  return result;
+};
+/**
+ * 获取容器剩余高度（优化版）
+ * @param {string} className - 容器选择器
+ * @param {string} excludeClassName - 要排除的子元素选择器
+ * @returns {number} 剩余高度
+ */
+export const getRemainingHeight = (
+  className: string,
+  excludeClassName: string[] = []
+): {
+  height: number;
+  dom: HTMLElement[];
+} => {
+  // 获取容器元素
+  const dom: HTMLElement|null = document.querySelector(className);
+  if (!dom) {
+    console.error(`元素 ${className} 未找到`);
+    return { height: 0, dom: [] };
+  }
+
+  // 获取容器总高度
+  const totalHeight = (dom as HTMLElement).offsetHeight;
+
+  // 获取所有子元素
+  const children: HTMLCollection = dom.children;
+  let usedHeight = 0;
+  const doms = [];
+  excludeClassName.push('.el-overlay');
+  // 计算所有子元素的总高度
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+
+    // 跳过排除的元素
+    if (
+      intersectionHash(
+        child?.classList,
+        excludeClassName.map((item) => item.replace('.', ''))
+      ).length > 0
+    ) {
+      continue;
+    }
+    doms.push(child);
+    // 获取计算样式
+    const style = getComputedStyle(child);
+
+    // 获取box-sizing属性
+    const boxSizing = style.boxSizing;
+
+    // 获取边距
+    const marginTop = parseFloat(style.marginTop) || 0;
+    const marginBottom = parseFloat(style.marginBottom) || 0;
+
+    let childHeight = 0;
+
+    if (boxSizing === 'content-box') {
+      // content-box: height = content高度 + padding + border
+      const paddingTop = parseFloat(style.paddingTop) || 0;
+      const paddingBottom = parseFloat(style.paddingBottom) || 0;
+      const borderTopWidth = parseFloat(style.borderTopWidth) || 0;
+      const borderBottomWidth = parseFloat(style.borderBottomWidth) || 0;
+
+      childHeight = child.offsetHeight + marginTop + marginBottom;
+    } else {
+      // border-box: height = 总高度（包含padding和border）
+      const borderTopWidth = parseFloat(style.borderTopWidth) || 0;
+      const borderBottomWidth = parseFloat(style.borderBottomWidth) || 0;
+
+      childHeight = child.offsetHeight + marginTop + marginBottom;
+    }
+
+    usedHeight += childHeight;
+  }
+
+  // 计算剩余高度
+  const remainingHeight = totalHeight - usedHeight;
+
+  // 返回结果（确保不会返回负数）
+  return { height: Math.max(0, remainingHeight), dom: doms };
+};

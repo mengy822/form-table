@@ -93,7 +93,7 @@ const getComputedStyle = (dom) => {
   return window.getComputedStyle(dom);
 };
 const getDomComputed = (dom, key) => {
-  let size = {
+  const size = {
     height: 0,
     width: 0
   };
@@ -101,17 +101,72 @@ const getDomComputed = (dom, key) => {
     dom = getComputedStyle(dom);
   }
   if (dom["boxSizing"] === "content-box") {
-    let { marginLeft, marginRight, paddingLeft, paddingRight, width, borderLeftWidth, borderRightWidth } = dom;
-    let { marginTop, marginBottom, paddingTop, paddingBottom, height, borderTopWidth, borderBottomWidth } = dom;
+    const { marginLeft, marginRight, paddingLeft, paddingRight, width, borderLeftWidth, borderRightWidth } = dom;
+    const { marginTop, marginBottom, paddingTop, paddingBottom, height, borderTopWidth, borderBottomWidth } = dom;
     size.width = [marginLeft, marginRight, paddingLeft, paddingRight, width, borderLeftWidth, borderRightWidth].map((item) => parseFloat(item ?? 0)).reduce((a, b) => a + b);
     size.height = [marginTop, marginBottom, paddingTop, paddingBottom, height, borderTopWidth, borderBottomWidth].map((item) => parseFloat(item ?? 0)).reduce((a, b) => a + b);
   } else if (dom["boxSizing"] === "border-box") {
-    let { marginLeft, marginRight, width } = dom;
-    let { marginTop, marginBottom, height } = dom;
-    size.width = [marginLeft, marginRight, width].map((item) => parseFloat(item ?? 0)).reduce((a, b) => a + b);
-    size.height = [marginTop, marginBottom, height].map((item) => parseFloat(item ?? 0)).reduce((a, b) => a + b);
+    const { marginLeft, marginRight, width, borderLeftWidth, borderRightWidth } = dom;
+    const { marginTop, marginBottom, height, borderTopWidth, borderBottomWidth } = dom;
+    size.width = [marginLeft, marginRight, width, borderLeftWidth, borderRightWidth].map((item) => parseFloat(item ?? 0)).reduce((a, b) => a + b);
+    size.height = [marginTop, marginBottom, height, borderTopWidth, borderBottomWidth].map((item) => parseFloat(item ?? 0)).reduce((a, b) => a + b);
   }
   return size[key];
+};
+const intersectionHash = (arr1 = [], arr2 = []) => {
+  const hash = {};
+  const result = [];
+  for (let i = 0; i < arr1.length; i++) {
+    hash[arr1[i]] = true;
+  }
+  for (let i = 0; i < arr2.length; i++) {
+    if (hash[arr2[i]]) {
+      result.push(arr2[i]);
+      hash[arr2[i]] = false;
+    }
+  }
+  return result;
+};
+const getRemainingHeight = (className, excludeClassName = []) => {
+  const dom = document.querySelector(className);
+  if (!dom) {
+    console.error(`元素 ${className} 未找到`);
+    return { height: 0, dom: [] };
+  }
+  const totalHeight = dom.offsetHeight;
+  const children = dom.children;
+  let usedHeight = 0;
+  const doms = [];
+  excludeClassName.push(".el-overlay");
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    if (intersectionHash(
+      child == null ? void 0 : child.classList,
+      excludeClassName.map((item) => item.replace(".", ""))
+    ).length > 0) {
+      continue;
+    }
+    doms.push(child);
+    const style = getComputedStyle(child);
+    const boxSizing = style.boxSizing;
+    const marginTop = parseFloat(style.marginTop) || 0;
+    const marginBottom = parseFloat(style.marginBottom) || 0;
+    let childHeight = 0;
+    if (boxSizing === "content-box") {
+      parseFloat(style.paddingTop) || 0;
+      parseFloat(style.paddingBottom) || 0;
+      parseFloat(style.borderTopWidth) || 0;
+      parseFloat(style.borderBottomWidth) || 0;
+      childHeight = child.offsetHeight + marginTop + marginBottom;
+    } else {
+      parseFloat(style.borderTopWidth) || 0;
+      parseFloat(style.borderBottomWidth) || 0;
+      childHeight = child.offsetHeight + marginTop + marginBottom;
+    }
+    usedHeight += childHeight;
+  }
+  const remainingHeight = totalHeight - usedHeight;
+  return { height: Math.max(0, remainingHeight), dom: doms };
 };
 var zhCn = {
   name: "zh-cn",
@@ -1885,7 +1940,7 @@ const _sfc_main$6 = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const Form = /* @__PURE__ */ _export_sfc(_sfc_main$6, [["__scopeId", "data-v-36f6981a"]]);
+const MyForm = /* @__PURE__ */ _export_sfc(_sfc_main$6, [["__scopeId", "data-v-36f6981a"]]);
 const easeInOutQuad = (t, b, c, d) => {
   t /= d / 2;
   if (t < 1) {
@@ -2630,6 +2685,15 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
     const tableRef = ref();
     const heightInner = ref(0);
     const maxHeightInner = ref(0);
+    const getHeight = (className) => {
+      let baseClassHeightDom = document.querySelector(className);
+      let baseClassHeight = 0;
+      if (baseClassHeightDom) {
+        let baseClassStyle = getComputedStyle(baseClassHeightDom);
+        baseClassHeight = getDomComputed(baseClassStyle, "height");
+      }
+      return baseClassHeight;
+    };
     const totalInner = ref(0);
     const dataListInner = ref([]);
     const totalComputed = computed({
@@ -2663,7 +2727,32 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
       for (const emit in onEmit) {
         proxyProps.value[emit] = typeof onEmit[emit] === "function";
       }
+      autoHeight();
     });
+    const autoHeight = () => {
+      console.log("重建dom", (/* @__PURE__ */ new Date()).getTime());
+      nextTick(() => {
+        if (props.baseClass && typeof props.height == "undefined" && typeof props.maxHeight === "undefined") {
+          const tableHeaderHeight = getHeight(".el-card__header") + getHeight(".el-table__header-wrapper");
+          const pageHeight = getHeight(".pagination-container");
+          const { paddingTop: bodyPaddingTop, paddingBottom: bodyPaddingBottom } = getComputedStyle(
+            ".table-plus .el-card__body"
+          );
+          const { borderTopWidth, borderBottomWidth } = getComputedStyle(".table-plus .el-card__header");
+          const { height } = getRemainingHeight(props.baseClass, [".table-plus"]);
+          heightInner.value = height - tableHeaderHeight - pageHeight - parseFloat(bodyPaddingBottom) - parseFloat(bodyPaddingTop) - parseFloat(borderTopWidth) - parseFloat(borderBottomWidth);
+          console.log(`
+        height=${height} -
+        tableHeaderHeight=${tableHeaderHeight} -
+        pageHeight= ${pageHeight}-
+        parseFloat(bodyPaddingBottom)=${parseFloat(bodyPaddingBottom)} -
+        parseFloat(bodyPaddingTop)=${parseFloat(bodyPaddingTop)} -
+        parseFloat(borderTopWidth)= ${parseFloat(borderTopWidth)}-
+        parseFloat(borderBottomWidth)=${parseFloat(borderBottomWidth)}`);
+          maxHeightInner.value = heightInner.value;
+        }
+      });
+    };
     const multipleSelection = ref([]);
     const toggleSelection = (rows, ignoreSelectable) => {
       var _a;
@@ -2728,6 +2817,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
       },
       set(value) {
         showSearchInner.value = value;
+        autoHeight();
         if (proxyProps.value[`onUpdate:showSearch`]) emits("update:showSearch", showSearchInner.value);
       }
     });
@@ -2981,7 +3071,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
                       "onUpdate:showSearch": _cache[4] || (_cache[4] = ($event) => showSearch.value = $event),
                       columns: canHiddenColumns.value,
                       "onUpdate:columns": _cache[5] || (_cache[5] = ($event) => canHiddenColumns.value = $event),
-                      onQueryTable: _cache[6] || (_cache[6] = ($event) => handleQuery(void 0, true))
+                      onQueryTable: _cache[6] || (_cache[6] = ($event) => handleQuery(void 0, false))
                     }, null, 8, ["search", "showSearch", "columns"])
                   ]),
                   _: 3
@@ -3014,27 +3104,27 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
                   __props.hasSelection ? (openBlock(), createBlock(_component_el_table_column, {
                     key: 0,
                     type: "selection",
-                    fixed: _ctx.$slots["selectionFixed"] ?? "left",
+                    fixed: _ctx.$attrs["selectionFixed"] ?? "left",
                     selectable: typeof __props.hasSelection === "boolean" ? () => true : __props.hasSelection,
-                    width: _ctx.$slots["selectionWidth"] ?? 55
+                    width: _ctx.$attrs["selectionWidth"] ?? 55
                   }, null, 8, ["fixed", "selectable", "width"])) : createCommentVNode("", true),
                   __props.hasIndex ? (openBlock(), createBlock(_component_el_table_column, {
                     key: 1,
-                    fixed: _ctx.$slots["indexFixed"] ?? "left",
-                    "min-width": _ctx.$slots["indexMinWidth"] ?? 60,
+                    fixed: _ctx.$attrs["indexFixed"] ?? "left",
+                    "min-width": _ctx.$attrs["indexMinWidth"] ?? 60,
                     prop: "index",
                     label: typeof __props.hasIndex === "boolean" ? "序号" : __props.hasIndex
                   }, {
                     default: withCtx((scope) => [
-                      createTextVNode(toDisplayString(queryParams.value.pageSize * (queryParams.value.pageNum - 1) + scope.index + 1), 1)
+                      createTextVNode(toDisplayString(queryParams.value.pageSize * (queryParams.value.pageNum - 1) + scope.$index + 1), 1)
                     ]),
                     _: 1
                   }, 8, ["fixed", "min-width", "label"])) : createCommentVNode("", true),
                   createVNode(unref(MyTableColumn), { tableColumnFinal: tableColumnFinal.value }, null, 8, ["tableColumnFinal"]),
                   __props.hasOperation ? (openBlock(), createBlock(_component_el_table_column, {
                     key: 2,
-                    fixed: _ctx.$slots["operationFixed"] ?? "left",
-                    width: _ctx.$slots["operationWidth"] ?? 200
+                    fixed: _ctx.$attrs["operationFixed"] ?? "left",
+                    width: _ctx.$attrs["operationWidth"] ?? 200
                   }, {
                     header: withCtx(() => [
                       renderSlot(_ctx.$slots, "operationHeader", {}, () => [
@@ -3054,6 +3144,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
                       }, () => [
                         (typeof __props.hasDetail === "function" ? __props.hasDetail(scope.row) : __props.hasDetail && proxyProps.value[`onDetail`]) ? (openBlock(), createBlock(_component_el_tooltip, {
                           key: 0,
+                          disabled: typeof __props.hasDetail === "boolean" ? false : typeof __props.hasDetail === "function" ? __props.hasOperationName ? String(__props.hasDetail(scope.row)).length === 0 : true : __props.hasDetail.length !== 0,
                           content: `${(typeof __props.hasDetail === "boolean" ? void 0 : typeof __props.hasDetail === "function" ? __props.hasOperationName ? __props.hasDetail(scope.row) : void 0 : __props.hasDetail) ?? "详情"}`,
                           placement: "top"
                         }, {
@@ -3073,7 +3164,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
                             }, 1032, ["text", "link", "type", "loading", "icon", "onClick"])
                           ]),
                           _: 2
-                        }, 1032, ["content"])) : createCommentVNode("", true)
+                        }, 1032, ["disabled", "content"])) : createCommentVNode("", true)
                       ], true),
                       renderSlot(_ctx.$slots, `operationAfterDetail`, {
                         data: scope.row,
@@ -3087,6 +3178,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
                       }, () => [
                         (typeof __props.hasUpdate === "function" ? __props.hasUpdate(scope.row) : __props.hasUpdate && proxyProps.value[`onUpdate`]) ? (openBlock(), createBlock(_component_el_tooltip, {
                           key: 0,
+                          disabled: typeof __props.hasUpdate === "boolean" ? false : typeof __props.hasUpdate === "function" ? __props.hasOperationName ? String(__props.hasUpdate(scope.row)).length === 0 : true : __props.hasUpdate.length !== 0,
                           content: `${(typeof __props.hasUpdate === "boolean" ? void 0 : typeof __props.hasUpdate === "function" ? __props.hasOperationName ? __props.hasUpdate(scope.row) : void 0 : __props.hasUpdate) ?? "修改"}`,
                           placement: "top"
                         }, {
@@ -3106,7 +3198,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
                             }, 1032, ["text", "link", "type", "loading", "icon", "onClick"])
                           ]),
                           _: 2
-                        }, 1032, ["content"])) : createCommentVNode("", true)
+                        }, 1032, ["disabled", "content"])) : createCommentVNode("", true)
                       ], true),
                       renderSlot(_ctx.$slots, `operationAfterUpdate`, {
                         data: scope.row,
@@ -3120,6 +3212,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
                       }, () => [
                         (typeof __props.hasRemove === "function" ? __props.hasRemove(scope.row) : __props.hasRemove && proxyProps.value[`onRemove`]) ? (openBlock(), createBlock(_component_el_tooltip, {
                           key: 0,
+                          disabled: typeof __props.hasRemove === "boolean" ? false : typeof __props.hasRemove === "function" ? __props.hasOperationName ? String(__props.hasRemove(scope.row)).length === 0 : true : __props.hasRemove.length !== 0,
                           content: `${(typeof __props.hasRemove === "boolean" ? void 0 : typeof __props.hasRemove === "function" ? __props.hasOperationName ? __props.hasRemove(scope.row) : void 0 : __props.hasRemove) ?? "删除"}`,
                           placement: "top"
                         }, {
@@ -3139,7 +3232,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
                             }, 1032, ["text", "link", "type", "loading", "icon", "onClick"])
                           ]),
                           _: 2
-                        }, 1032, ["content"])) : createCommentVNode("", true)
+                        }, 1032, ["disabled", "content"])) : createCommentVNode("", true)
                       ], true),
                       renderSlot(_ctx.$slots, `operationAfter`, {
                         data: scope.row,
@@ -3184,7 +3277,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const Table = /* @__PURE__ */ _export_sfc(_sfc_main$3, [["__scopeId", "data-v-f9ee8283"]]);
+const MyTable = /* @__PURE__ */ _export_sfc(_sfc_main$3, [["__scopeId", "data-v-29abdc73"]]);
 const _hoisted_1$1 = { class: "dialog-footer" };
 const _sfc_main$2 = /* @__PURE__ */ defineComponent({
   __name: "index",
@@ -3372,7 +3465,7 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const Detail = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["__scopeId", "data-v-eeee6b22"]]);
+const MyDetail = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["__scopeId", "data-v-eeee6b22"]]);
 const _sfc_main$1 = /* @__PURE__ */ defineComponent({
   __name: "index",
   props: {
@@ -3424,7 +3517,7 @@ const _sfc_main$1 = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const Dialog = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-7d5884c4"]]);
+const MyDialog = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-7d5884c4"]]);
 const _hoisted_1 = { class: "editDialog" };
 const _hoisted_2 = { class: "dialog-footer" };
 const _sfc_main = /* @__PURE__ */ defineComponent({
@@ -3714,7 +3807,7 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
       const _component_el_config_provider = resolveComponent("el-config-provider");
       return openBlock(), createBlock(_component_el_config_provider, { locale: __props.language }, {
         default: withCtx(() => [
-          createVNode(Dialog, {
+          createVNode(MyDialog, {
             ref_key: "myDialog",
             ref: myDialog,
             top: top.value,
@@ -3874,8 +3967,8 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const Edit = /* @__PURE__ */ _export_sfc(_sfc_main, [["__scopeId", "data-v-ce173753"]]);
-const coms = [Table, Form, Edit, Detail, Dialog];
+const MyEdit = /* @__PURE__ */ _export_sfc(_sfc_main, [["__scopeId", "data-v-ce173753"]]);
+const coms = [MyTable, MyForm, MyEdit, MyDetail, MyDialog];
 function capitalizeWord(word) {
   if (typeof word !== "string" || word.length === 0) {
     return word;
@@ -3889,11 +3982,6 @@ const index = {
     });
   }
 };
-const MyForm = Form;
-const MyTable = Table;
-const MyDetail = Detail;
-const MyEdit = Edit;
-const MyDialog = Dialog;
 export {
   MyDetail,
   MyDialog,
