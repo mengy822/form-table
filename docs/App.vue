@@ -78,7 +78,6 @@ const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
     ></MyForm>
     <!-- <MyTabelV2 ref="tableRef" :columns="table"> </MyTabelV2> -->
     <MyTable
-      
       ref="tableRef"
       :table-column="table"
       :data-list-fun="tableQuery"
@@ -99,7 +98,7 @@ const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
       </template>
     </MyTable>
     <MyEdit ref="editRef" :column="editColumn" @submit="submitFun"></MyEdit>
-    <MyDetail des-column="3" ref="detailRef" :column="table"></MyDetail>
+    <MyDetail :des-column="3" ref="detailRef" :column="table"></MyDetail>
   </div>
 </template>
 

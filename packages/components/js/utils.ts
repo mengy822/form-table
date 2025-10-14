@@ -5,38 +5,37 @@ export const isMobile = () => {
   return (flag && flag.length > 0) ?? false;
 };
 export const getName = (name: string | number) => {
-  name = String(name)
-  return name.indexOf('_') > -1 ? name.split('_')[0] ?? name : name
-}
-export function deepClone(target: any) {
+  name = String(name);
+  return name.indexOf('_') > -1 ? (name.split('_')[0] ?? name) : name;
+};
+export const deepClone = (target) => {
   // WeakMap作为记录对象Hash表（用于防止循环引用）
-  const map = new WeakMap()
+  const map = new WeakMap();
 
   // 判断是否为object类型的辅助函数，减少重复代码
-  function isObject(target: any) {
-    return (typeof target === 'object' && target) || typeof target === 'function'
+  function isObject(target) {
+    return (typeof target === 'object' && target) || typeof target === 'function';
   }
 
-  function clone(data: any) {
-
+  function clone(data) {
     // 基础类型直接返回值
     if (!isObject(data)) {
-      return data
+      return data;
     }
 
     // 日期或者正则对象则直接构造一个新的对象返回
     if ([Date, RegExp].includes(data.constructor)) {
-      return new data.constructor(data)
+      return new data.constructor(data);
     }
 
     // 处理函数对象
     if (typeof data === 'function') {
-      return new Function('return ' + data.toString())()
+      return new Function('return ' + data.toString())();
     }
 
     // 处理数组
     if (Array.isArray(data)) {
-      const result: any[] = [];
+      const result = [];
       map.set(data, result);
       data.forEach((val, index) => {
         if (isObject(val)) {
@@ -49,9 +48,9 @@ export function deepClone(target: any) {
     }
 
     // 如果该对象已存在，则直接返回该对象
-    const exist = map.get(data)
+    const exist = map.get(data);
     if (exist) {
-      return exist
+      return exist;
     }
 
     // 处理Map对象
@@ -68,6 +67,7 @@ export function deepClone(target: any) {
       });
       return result;
     }
+
     // 处理Set对象
     if (data instanceof Set) {
       const result = new Set();
@@ -82,6 +82,7 @@ export function deepClone(target: any) {
       });
       return result;
     }
+
     // 收集键名（考虑了以Symbol作为key以及不可枚举的属性）
     const keys = Reflect.ownKeys(data);
     // 利用 Object 的 getOwnPropertyDescriptors 方法可以获得对象的所有属性以及对应的属性描述
@@ -114,16 +115,14 @@ export function deepClone(target: any) {
  */
 export const getComputedStyle = (dom: Element | string): CSSStyleDeclaration => {
   if (typeof dom === 'string') {
-    let lsDom = document.querySelector(dom)
-    if (lsDom)
-      dom = lsDom
+    const lsDom = document.querySelector(dom);
+    if (lsDom) dom = lsDom;
     else {
-      throw new Error("dom不存在");
-
+      throw new Error('dom不存在');
     }
   }
-  return window.getComputedStyle(dom)
-}
+  return window.getComputedStyle(dom);
+};
 /**
  * 获取dom计算样式的具体值,并转为数值
  * @param dom CSSStyleDeclaration
@@ -150,14 +149,16 @@ export const getDomComputed = (dom: CSSStyleDeclaration | string, key: 'width' |
   } else if (dom['boxSizing'] === 'border-box') {
     const { marginLeft, marginRight, width, borderLeftWidth, borderRightWidth } = dom;
     const { marginTop, marginBottom, height, borderTopWidth, borderBottomWidth } = dom;
-    // console.log(borderTopWidth);
+    // console.log(marginTop, marginBottom, height, borderTopWidth, borderBottomWidth);
+    // if (height === '56px') debugger;
     size.width = [marginLeft, marginRight, width, borderLeftWidth, borderRightWidth].map((item) => parseFloat(item ?? 0)).reduce((a, b) => a + b);
     size.height = [marginTop, marginBottom, height, borderTopWidth, borderBottomWidth].map((item) => parseFloat(item ?? 0)).reduce((a, b) => a + b);
   }
   return size[key]; //parseFloat(dom[key] ?? 0)
 };
-const intersectionHash = (arr1: any[]=[], arr2: any[]=[]) => {
-  const hash:{[key:string]:boolean} = {};
+// 方法4: 使用哈希表（性能最优）
+const intersectionHash = (arr1, arr2) => {
+  const hash = {};
   const result = [];
 
   // 将第一个数组的元素存入哈希表
@@ -189,7 +190,7 @@ export const getRemainingHeight = (
   dom: HTMLElement[];
 } => {
   // 获取容器元素
-  const dom: HTMLElement|null = document.querySelector(className);
+  const dom: HTMLElement = document.querySelector(className);
   if (!dom) {
     console.error(`元素 ${className} 未找到`);
     return { height: 0, dom: [] };
@@ -199,7 +200,7 @@ export const getRemainingHeight = (
   const totalHeight = (dom as HTMLElement).offsetHeight;
 
   // 获取所有子元素
-  const children: HTMLCollection = dom.children;
+  const children = dom.children;
   let usedHeight = 0;
   const doms = [];
   excludeClassName.push('.el-overlay');
@@ -210,7 +211,7 @@ export const getRemainingHeight = (
     // 跳过排除的元素
     if (
       intersectionHash(
-        child?.classList,
+        child.classList,
         excludeClassName.map((item) => item.replace('.', ''))
       ).length > 0
     ) {
@@ -244,8 +245,8 @@ export const getRemainingHeight = (
 
       childHeight = child.offsetHeight + marginTop + marginBottom;
     }
-
     usedHeight += childHeight;
+    // console.log(usedHeight, 'usedHeight');
   }
 
   // 计算剩余高度

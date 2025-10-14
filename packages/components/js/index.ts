@@ -1,37 +1,42 @@
 import { isReactive, reactive } from 'vue';
 import { FormItem } from './types';
 
-export function createFormItem(
-    formItemType: FormItem['type'],
-    payload: FormItem['payload'],
-    next?: FormItem['next'],
-    parent?: FormItem['parent']
-): FormItem {
-    if (!next) {
-        next = () => null;
-    }
-    if (!parent) {
-        parent = null;
-    }
-
-    const nextFunc: FormItem['next'] = (current, acients) => {
-        let nextItem = next!(current, acients);
-        if (!nextItem) {
-            return null;
-        }
-        nextItem.parent = current;
-        if (!isReactive(nextItem)) {
-            nextItem = reactive(nextItem);
-        }
-        return nextItem;
+/**
+ * 构造树型结构数据
+ * @param {*} data 数据源
+ * @param {*} id id字段 默认 'id'
+ * @param {*} parentId 父节点字段 默认 'parentId'
+ * @param {*} children 孩子节点字段 默认 'children'
+ */
+export const handleTree = <T>(data: any[], id?: string, parentId?: string, children?: string): T[] => {
+    const config: {
+        id: string;
+        parentId: string;
+        childrenList: string;
+    } = {
+        id: id || 'id',
+        parentId: parentId || 'parentId',
+        childrenList: children || 'children'
     };
 
-    const formItem: FormItem = reactive({
-        type: formItemType,
-        payload,
-        next: nextFunc,
-        parent,
-    });
+    const childrenListMap: any = {};
+    const tree: T[] = [];
+    for (const d of data) {
+        const id = d[config.id];
+        childrenListMap[id] = d;
+        if (!d[config.childrenList]) {
+            d[config.childrenList] = [];
+        }
+    }
 
-    return formItem;
-}
+    for (const d of data) {
+        const parentId = d[config.parentId];
+        const parentObj = childrenListMap[parentId];
+        if (!parentObj) {
+            tree.push(d);
+        } else {
+            parentObj[config.childrenList].push(d);
+        }
+    }
+    return tree;
+};

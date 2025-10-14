@@ -3134,7 +3134,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
                     default: withCtx((scope) => [
                       renderSlot(_ctx.$slots, `operationBefore`, {
                         data: scope.row,
-                        index: scope.index,
+                        index: scope.$index,
                         text: __props.hasOperationText,
                         link: __props.hasOperationLink,
                         loading: operationLoading.value
@@ -3168,7 +3168,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
                       ], true),
                       renderSlot(_ctx.$slots, `operationAfterDetail`, {
                         data: scope.row,
-                        index: scope.index,
+                        index: scope.$index,
                         text: __props.hasOperationText,
                         link: __props.hasOperationLink,
                         loading: operationLoading.value
@@ -3202,7 +3202,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
                       ], true),
                       renderSlot(_ctx.$slots, `operationAfterUpdate`, {
                         data: scope.row,
-                        index: scope.index,
+                        index: scope.$index,
                         text: __props.hasOperationText,
                         link: __props.hasOperationLink,
                         loading: operationLoading.value
@@ -3236,7 +3236,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
                       ], true),
                       renderSlot(_ctx.$slots, `operationAfter`, {
                         data: scope.row,
-                        index: scope.index,
+                        index: scope.$index,
                         text: __props.hasOperationText,
                         link: __props.hasOperationLink,
                         loading: operationLoading.value
@@ -3277,7 +3277,7 @@ const _sfc_main$3 = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const MyTable = /* @__PURE__ */ _export_sfc(_sfc_main$3, [["__scopeId", "data-v-29abdc73"]]);
+const MyTable = /* @__PURE__ */ _export_sfc(_sfc_main$3, [["__scopeId", "data-v-3e5fb67e"]]);
 const _hoisted_1$1 = { class: "dialog-footer" };
 const _sfc_main$2 = /* @__PURE__ */ defineComponent({
   __name: "index",
