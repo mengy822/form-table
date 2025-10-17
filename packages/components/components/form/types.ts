@@ -6,6 +6,7 @@ import type { selectType } from "../select/types";
 import type { switchType } from "../switch/types";
 import type { button } from "../../js/sizeType";
 import type {ruleKeys} from "../../utils/rules"
+import { fileType } from "../File/types";
 interface columnType {
   prop: string; //model 的键名。 它可以是一个属性的值(如 a.b.0 或 ['a', 'b', '0'])。 在使用了 validate、resetFields 的方法时，该属性是必填的。
   label: string;
@@ -37,3 +38,4 @@ export interface dateInnerType extends columnType, dateType { }
 export interface checkboxInnerType extends columnType, checkboxGroupType { }
 export interface radioInnerType extends columnType, radioGroupType { }
 export interface switchInnerType extends columnType, switchType { }
+export interface fileInnerType extends columnType, fileType { }

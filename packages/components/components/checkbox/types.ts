@@ -12,6 +12,7 @@ export interface checkboxGroupType {
   }>|number;
   config?: checkBoxButtonType | checkBoxType
   change?: (value: (string | number)[]) => void;//当绑定值变化时触发的事件
+  valueType?:'string'|'array'
 }
 
 export interface checkBoxButtonType {

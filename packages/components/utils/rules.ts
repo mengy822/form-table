@@ -601,6 +601,20 @@ export function createRules(
       if (notNeedChangeCheck.indexOf(item.type) === -1) {
         if (rules[item.prop] && Array.isArray(rules[item.prop])) rules[item.prop]?.push(required);
       }
+      if (item.multiple) {
+        rules[item.prop].push({
+          required: true,
+          message: item.label + '不能为空',
+          trigger: 'blur',
+          validator: (rule, value, callback) => {
+            if (Array.isArray(value) && value.filter((item) => item).length === 0) {
+              callback(new Error(item.label + '不能为空'));
+              return;
+            }
+            callback();
+          }
+        });
+      }
       rules[item.prop].push({ required: true, message: item.label + '不能为空', trigger: 'blur' });
     });
   return rules;

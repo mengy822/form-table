@@ -27,7 +27,7 @@ export default function create(propsSearchValue:any={},searchValue:any) {
       let arr = aliases.split(',')
       let getkey = []
       for (let arrItem of arr) {
-        searchValue.value[arrItem] = propsSearchValue[arrItem] ?? ''
+        searchValue.value[arrItem] = propsSearchValue[arrItem] ?? undefined
         getkey.push(arrItem)
       }
       dynamicComputedMap.value[prop] = computed({
@@ -73,7 +73,7 @@ export default function create(propsSearchValue:any={},searchValue:any) {
 
   const dynamicStringComputedFun = (prop: string, type: '' | 'array' = '') => {
     nextTick(() => {
-      searchValue.value[prop] = propsSearchValue[prop] ?? (type == 'array' ? [] : '')
+      searchValue.value[prop] = propsSearchValue[prop] ?? (type == 'array' ? [] : undefined)
       dynamicComputedMap.value[prop] = computed({
         get() {
           return searchValue.value[prop]

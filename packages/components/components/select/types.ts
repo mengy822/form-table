@@ -36,6 +36,7 @@ export interface selectType {
   popperOptions?: object;//	popper.js 参数	{}
   emptyValues?: any[]//	组件的空值配置 参考config-providervalueOnClear?: string | number | boolean | Function;//	清空选项的值 参考 config-provider
   options: selectOptionsGroupType[] | selectOptionsType[] | number;
+  valueType?: 'string' | 'array'
   focus?: (event: FocusEvent) => void;//当 input 获得焦点时触发
   blur?: (event: FocusEvent) => void;//当 input 失去焦点时触发
   clear?: () => void;//可清空的单选模式下用户点击清空按钮时触发

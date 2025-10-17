@@ -1,7 +1,7 @@
 import { generateColumnSlot } from '../../utils/findSlots';
 import { h } from 'vue';
 import { ElTableColumn } from 'element-plus';
-import { tableColumnItem } from '@/components/FormTable/Table/index.vue';
+import { tableColumnItem } from '../../Table/index.vue';
 
 export default {
   name: 'MyTableColumn',
@@ -12,8 +12,10 @@ export default {
     // 渲染列的信息, renderColumnList不可为箭头函数,因为call不能改变其this指向
     function renderColumnList(
       columns: tableColumnItem[] = [],
+      align:string,
       other: {
         tableColumnFinal?: tableColumnItem[];
+        defaultBlock?: string;
         [key: string]: any;
       } = {}
     ) {
@@ -45,7 +47,7 @@ export default {
             } else if (column.prop) {
               delete other.tableColumnFinal;
               other.index = $index;
-              const data: string | undefined = column.fun && column.fun(row, column.prop, other);
+              const data: string | undefined = (column.fun && column.fun(row, column.prop, other)) ?? other.defaultBlock;
               const classs = column.classFun && column.classFun(row, column.prop, other);
               return h(
                 'span',
@@ -67,7 +69,7 @@ export default {
               label: column.label,
               fixed: column.fixed ?? false,
               minWidth: column.width ?? 100,
-              align: column.align ?? 'center',
+              align: column.align ?? align,
               showOverflowTooltip: column.showOverflow ?? true,
               className: column.hidden && !column.visible ? 'table-column-hidden' : ''
             },
@@ -82,9 +84,9 @@ export default {
     };
   },
   render(): any {
-    const { tableColumnFinal } = this.$attrs;
+    const { tableColumnFinal, align } = this.$attrs;
     const { renderColumnList } = this;
     const $self = this;
-    return renderColumnList.call($self, tableColumnFinal, { ...this.$attrs }); // renderColumnList内部需借助当前this查找父组件
+    return renderColumnList.call($self, tableColumnFinal, align, { ...this.$attrs }); // renderColumnList内部需借助当前this查找父组件
   }
 };

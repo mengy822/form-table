@@ -71,8 +71,12 @@ const blur = (e: FocusEvent) => {
 const dataFinal = computed(() => {
   let data = { ...props.data }
 
-  data.valueFormat = data.valueFormat ?? 'YYYY-MM-DD'
-  data.format = data.format ?? data.valueFormat ?? 'YYYY-MM-DD'
+  let format = 'YYYY-MM-DD';
+  if ((data.dateType||'').indexOf('time') > -1) {
+    format += ` HH:mm:ss`;
+  }
+  data.valueFormat = data.valueFormat ?? format;
+  data.format = data.format ?? data.valueFormat ?? format;
   data.change = data.change || function () {}
   data.blur = data.blur || function () {}
   data.focus = data.focus || function () {}
@@ -94,6 +98,11 @@ const bindValue = computed({
   },
 })
 const change = (e: typeof props.modelValue) => {
+  if (Array.isArray(e)) {
+    if (e[0] === e[1]) {
+      e[1] = e[1].split(' ')[0] + ' 23:59:59';
+    }
+  }
   dataFinal.value && dataFinal.value.change && dataFinal.value.change(e)
   emits('update:modelValue', e)
 }

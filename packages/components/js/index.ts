@@ -40,3 +40,36 @@ export const handleTree = <T>(data: any[], id?: string, parentId?: string, child
     }
     return tree;
 };
+// 处理文件下载
+export const handleFileDownload = async (response: Response) => {
+    const blob = await response.blob();
+    const filename = response.headers.get('content-disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'download';
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+};
+// 核心请求函数
+export const request = async (method: string, url: string | URL, data = null, isFileDownload = false) => {
+    const config: RequestInit = {
+        method,
+        // headers: getAuthHeaders(),
+        credentials: 'include'
+    };
+
+    if (data) {
+        if (method === 'GET') {
+            url += url + '?' + new URLSearchParams(data).toString();
+        } else config.body = JSON.stringify(data);
+    }
+
+    const response = await fetch(url, config);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+    return isFileDownload ? handleFileDownload(response) : response.json();
+};

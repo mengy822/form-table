@@ -24,14 +24,30 @@
             v-if="item.showFun && item.showFun(dataFinal, item.prop)"
           >
             <template #label>
-              <slot :name="'label_' + item.prop" :prop="item.prop" :nowData="dataFinal[item.prop]" :row="dataFinal"> {{ item.label }}： </slot>
+              <slot
+                :name="'label_' + item.prop"
+                :prop="item.prop"
+                :nowData="dataFinal[item.prop]"
+                :row="dataFinal"
+              >
+                {{ item.label }}：
+              </slot>
             </template>
             <template #default>
-              <slot :name="item.prop" :prop="item.prop" :nowData="dataFinal[item.prop]" :row="dataFinal">
+              <slot
+                :name="item.prop"
+                :prop="item.prop"
+                :nowData="dataFinal[item.prop]"
+                :row="dataFinal"
+              >
                 <span
-                  :class="`span span_${item.prop} span_${item.prop}_${dataFinal[item.prop]} span_other_${item.classFun && item.classFun(dataFinal, item.prop, attr)} ${item.classFun && item.classFun(row, item.prop, attr)} ${typeof item.fun && item.fun(dataFinal, item.prop, attr)}`"
+                  :class="`span span_${item.prop} span_${item.prop}_${
+                    dataFinal[item.prop]
+                  } span_other_${item.classFun && item.classFun(dataFinal, item.prop, attr)} ${
+                    item.classFun && item.classFun(dataFinal, item.prop, attr)
+                  } ${(item.fun && item.fun(dataFinal, item.prop, attr))??defaultBlock}`"
                 >
-                  {{ item.fun && item.fun(dataFinal, item.prop, attr) }}
+                  {{ (item.fun && item.fun(dataFinal, item.prop, attr)) ?? defaultBlock }}
                 </span>
               </slot>
             </template>
@@ -50,73 +66,76 @@
   </el-config-provider>
 </template>
 <script lang="ts" setup name="MyDetail">
-import { computed, nextTick, ref, useAttrs } from 'vue';
-import MyDialog from '../Dialog/index.vue';
-import zhCn from 'element-plus/es/locale/lang/zh-cn';
-import { deepClone } from '@/components/FormTable/js/utils';
-import { MyDialogInstance } from '@/components/FormTable';
+import { computed, nextTick, ref, useAttrs, useTemplateRef } from 'vue'
 
-const attr = useAttrs();
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import { deepClone } from '../js/utils'
+import { MyDialogInstance, MyDialog } from '../..'
+
+const attr = useAttrs()
 
 interface columnType {
-  prop: string;
-  label: string; //标签文本
-  span?: number; //	列的数量
-  rowspan?: number; //	单元格应该跨越的行数
-  width?: string | number; //列的宽度，不同行相同列的宽度按最大值设定（如无 border ，宽度包含标签与内容）
-  minWidth?: string | number; //列的最小宽度，与 width 的区别是 width 是固定的，min-width 会把剩余宽度按比例分配给设置了 min-width 的列（如无 border，宽度包含标签与内容）
-  align?: 'left' | 'center' | 'right'; //	列的内容对齐方式（如无 border，对标签和内容均生效）
-  labelAlign?: 'left' | 'center' | 'right'; //列的标签对齐方式，若不设置该项，则使用内容的对齐方式（如无 border，请使用 align 参数）
-  className?: string; //列的内容自定义类名
-  labelClassName?: string; //column label custom class name
+  prop: string
+  label: string //标签文本
+  span?: number //	列的数量
+  rowspan?: number //	单元格应该跨越的行数
+  width?: string | number //列的宽度，不同行相同列的宽度按最大值设定（如无 border ，宽度包含标签与内容）
+  minWidth?: string | number //列的最小宽度，与 width 的区别是 width 是固定的，min-width 会把剩余宽度按比例分配给设置了 min-width 的列（如无 border，宽度包含标签与内容）
+  align?: 'left' | 'center' | 'right' //	列的内容对齐方式（如无 border，对标签和内容均生效）
+  labelAlign?: 'left' | 'center' | 'right' //列的标签对齐方式，若不设置该项，则使用内容的对齐方式（如无 border，请使用 align 参数）
+  className?: string //列的内容自定义类名
+  labelClassName?: string //column label custom class name
   fun?: (
     row: any,
     prop: string,
     other?: {
-      index?: number;
-      [key: string]: any;
+      index?: number
+      [key: string]: any
     }
-  ) => string;
+  ) => string
   classFun?: (
     row: any,
     prop: string,
     other?: {
-      index?: number;
-      [key: string]: any;
+      index?: number
+      [key: string]: any
     }
-  ) => string;
-  showFun?: (row: any, prop: string) => boolean;
+  ) => string
+  showFun?: (row: any, prop: string) => boolean
 }
 
 // 定义 Props 类型接口，清晰划分配置维度
 interface DesDialogProps {
   /** 语言配置（多语言支持） */
-  language: object;
+  language: object
   /** 弹框宽度 */
-  width: string;
+  width: string
   /** 表单/描述项标签宽度 */
-  labelWidth: string;
+  labelWidth: string
   /** 弹框标题 */
-  title: string;
+  title: string
   /** 描述项是否带有边框 */
-  desBorder: boolean;
+  desBorder: boolean
   /** 描述项列数（控制布局） */
-  desColumn: number;
+  desColumn: number
   /** 描述项排列方向（垂直/水平） */
-  desDirection: 'vertical' | 'horizontal';
+  desDirection: 'vertical' | 'horizontal'
   /** 描述项列表尺寸（匹配 UI 库尺寸规范） */
-  desSize: '' | 'large' | 'default' | 'small';
+  desSize: '' | 'large' | 'default' | 'small'
   /** 描述区域左上方标题文本 */
-  desTitle: string;
+  desTitle: string
   /** 描述区域右上方操作区文本 */
-  desExtra: string;
+  desExtra: string
   /** 描述项配置列表（必填，核心配置） */
-  column: columnType[];
-  defaultBlock: string;
+  column: columnType[]
+  defaultBlock: string
+  /** 数据源格式配置（数据、成功状态码、状态码字段） */
+  dataConfig: { data: string; status: string | number | boolean; code: string }
 }
 
 // 使用 withDefaults 配置 Props 与默认值
 const props = withDefaults(defineProps<DesDialogProps>(), {
+  dataConfig: () => ({ data: 'data', status: 200, code: 'code' }),
   // 语言配置：引用类型用工厂函数返回，避免实例共享
   language: () => zhCn,
   // 弹框基础样式
@@ -133,52 +152,74 @@ const props = withDefaults(defineProps<DesDialogProps>(), {
   desExtra: '',
   defaultBlock: '-',
   // 核心配置 column 为必填项，不设置默认值（TS 自动校验必填性）
-  column: undefined
-});
-const myDialog = useTemplateRef<MyDialogInstance>('myDialog');
-const dataFinal = ref({});
+  column: undefined,
+})
+const myDialog = useTemplateRef<MyDialogInstance>('myDialog')
+const dataFinal = ref<{ [key: string]: any }>({})
 const columnFinal = computed<columnType[]>(() => {
   return deepClone(props.column)
-    .filter((item) => typeof item.isForm == 'undefined' || item.isForm)
-    .map((item) => {
-      item.align = item.align ?? 'left';
-      item.span = item.span ?? 1;
-      item.rowspan = item.rowspan ?? 1;
-      item.fun = item.fun ?? ((row: any, prop: string) => String(row[prop] ?? props.defaultBlock) + (item.unit ?? ''));
+    .filter((item: { isForm: any }) => typeof item.isForm == 'undefined' || item.isForm)
+    .map(
+      (item: {
+        align: string
+        span: number
+        rowspan: number
+        fun: (row: any, prop: string) => string
+        unit: any
+        showFun: (row: any) => boolean
+      }) => {
+        item.align = item.align ?? 'left'
+        item.span = item.span ?? 1
+        item.rowspan = item.rowspan ?? 1
+        item.fun =
+          item.fun ??
+          ((row: any, prop: string) => String(row[prop] ?? props.defaultBlock) + (item.unit ?? ''))
 
-      if (!item.showFun) item.showFun = (row: any) => true;
-      // console.log(item.width);
-      return item;
-    })
-    .sort((a: { no: any }, b: { no: any }) => (a.no || 0) - (b.no || 0));
-});
+        if (!item.showFun) item.showFun = (row: any) => true
+        // console.log(item.width);
+        return item
+      }
+    )
+    .sort((a: { no: any }, b: { no: any }) => (a.no || 0) - (b.no || 0))
+})
 const emit = defineEmits<{
   /**
    * 弹窗关闭事件
    * @description 弹窗关闭时触发，无额外参数
    */
-  (e: 'close'): void;
+  (e: 'close'): void
 
   /**
    * （可选）若后续扩展其他事件，可在此补充
    * 示例：如需要传递关闭时的数据源，可定义为：
    * (e: 'close-with-data', data: DataFinalType): void;
    */
-}>();
+}>()
 //窗口关闭前事件
 const handleClose = (cb: () => void) => {
-  dataFinal.value = {};
-  emit('close');
-  cb();
-};
-const init = (data: {}, openCb: () => void = () => {}) => {
-  dataFinal.value = { ...data };
-  myDialog.value.init();
+  dataFinal.value = {}
+  emit('close')
+  cb()
+}
+const init = (data: { [key: string]: any } | Promise<any> = {}, openCb: () => void = () => {}) => {
+  let finaldata = {}
+  if (data instanceof Promise) {
+    data.then((res) => {
+      if (res[props.dataConfig.code] === props.dataConfig.status) {
+        finaldata = res[props.dataConfig.data]
+        dataFinal.value = { ...finaldata }
+      }
+    })
+  } else {
+    finaldata = { ...data }
+  }
+  dataFinal.value = { ...finaldata }
+  myDialog.value.init()
   nextTick(() => {
-    openCb();
-  });
-};
-defineExpose({ init, handleClose });
+    openCb()
+  })
+}
+defineExpose({ init, handleClose })
 </script>
 <style scoped lang="scss">
 .detail {
