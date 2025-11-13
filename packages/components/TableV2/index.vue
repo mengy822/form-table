@@ -718,28 +718,29 @@ if (import.meta.hot) {
 
   // 监听当前模块的热更新
   import.meta.hot.accept((updatedModules) => {
-    console.log('当前组件已热更新')
+    //console.log('当前组件已热更新')
     handleQuery(undefined, false)
   })
 
   // 在销毁前保存状态
   import.meta.hot.dispose((data) => {
     data.baseClass = baseClass.value
-    console.log('保存状态:', data.baseClass)
+    //console.log('保存状态:', data.baseClass)
   })
 }
 //多选数据
 const multipleSelection = ref<any[]>([])
 //多选
 const toggleSelection = (
+  checkProp: string,
   rows?: tableColumnItem[],
   ignoreSelectable?: boolean,
-  checkProp: string
+  
 ) => {
   if (hasSelectionComputed.value) {
     if (rows) {
       dataListComputed.value = dataListComputed.value.map((row) => {
-        const selectData = rows.find((item) => item[checkProp] == row[checkProp])
+        const selectData = rows.find((item:tableColumnItem) => item[checkProp] == row[checkProp])
         if (selectData) {
           row.checked = ignoreSelectable ?? false
         }
@@ -1185,24 +1186,7 @@ const dataChildrenListMap = ref<{ [key: string]: any[] }>({})
 //树形表格存储展开子数据
 const dataExpandMap = ref<{ [key: string]: { row: any; treeNode: any; resolve: any } }>({})
 const treeConfig = ref<IsTreeConfig>(undefined)
-//多选事件
-const selectable = (row: tableColumnItem) => row.selectable
-//多选数据
-const multipleSelection = ref<any[]>([])
-//多选
-const toggleSelection = (rows?: tableColumnItem[], ignoreSelectable?: boolean) => {
-  if (rows) {
-    rows.forEach((row) => {
-      tableRef.value?.toggleRowSelection(row, undefined, ignoreSelectable)
-    })
-  } else {
-    tableRef.value?.clearSelection()
-  }
-}
-//多选
-const handleSelectionChange = (val: tableColumnItem[]) => {
-  multipleSelection.value = val
-}
+
 //行展开
 const tableRowStatusChange = (row: any, expandedRows: any[] | boolean): void => {
   if (proxyProps.value['onExpandChange']) emits('expand-change', row, expandedRows)

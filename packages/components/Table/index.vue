@@ -821,11 +821,34 @@ const operationWidthComputed = computed(() => {
 const listenDoc = useListenDomChange(() => {
   setTimeout(autoHeight, 100)
 })
+const baseClass=ref(props.baseClass)
+// 热更新相关
+if (import.meta.hot) {
+  // 保存状态
+  // import.meta.hot.data = import.meta.hot.data || {};
+  //123
+  // // 恢复状态
+  if (import.meta.hot.data.baseClass) {
+    baseClass.value = import.meta.hot.data.baseClass
+  }
+
+  // 监听当前模块的热更新
+  import.meta.hot.accept((updatedModules) => {
+    console.log('当前组件已热更新')
+    handleQuery(undefined, false)
+  })
+
+  // 在销毁前保存状态
+  import.meta.hot.dispose((data) => {
+    data.baseClass = baseClass.value
+    console.log('保存状态:', data.baseClass)
+  })
+}
 const autoHeight = () => {
   // console.log('重建dom', new Date().getTime());
   nextTick(() => {
     if (
-      props.baseClass &&
+      baseClass.value &&
       typeof props.height == 'undefined' &&
       typeof props.maxHeight === 'undefined'
     ) {
@@ -835,7 +858,7 @@ const autoHeight = () => {
         '.table-plus .el-card__body'
       )
       const { borderTopWidth, borderBottomWidth } = getComputedStyle('.table-plus .el-card__header')
-      const { height, dom } = getRemainingHeight(props.baseClass, ['.table-plus' ,...props.authHeightExcludeClassName])
+      const { height, dom } = getRemainingHeight(baseClass.value, ['.table-plus' ,...props.authHeightExcludeClassName])
       heightInner.value =
         height -
         tableHeaderHeight -

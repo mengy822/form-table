@@ -1,0 +1,69 @@
+name: get gitee
+on:
+  workflow_dispatch:
+  schedule:                  # 定时任务
+    - cron: '0 0 * * *'
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - name: Checkout with Full Permissions
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}  # ✅ 正确：使用 secrets 引用
+          
+      - name: Configure Git User
+        run: |
+          git config user.name "mengy822"
+          git config user.email "mengy822@users.noreply.github.com"  # 或者你的真实邮箱
+          
+      - name: Debug Info
+        run: |
+          echo "=== 当前状态 ==="
+          git status
+          echo "=== 远程信息 ==="
+          git remote -v
+          echo "=== 分支信息 ==="
+          git branch -a
+          echo "=== 最新提交 ==="
+          git log -3 --oneline
+          echo "=== Git 配置 ==="
+          git config --list | grep user
+          
+      - name: Add Gitee Remote
+        run: |
+          git remote add gitee https://deshuofa:${{ secrets.GITEE_TOKEN }}@gitee.com/deshuofa/form-table.git  # ✅ 也保护 Gitee token
+          
+      - name: Fetch and Compare
+        run: |
+          echo "=== 拉取 Gitee 代码 ==="
+          git fetch gitee
+          
+          echo "=== 比较差异 ==="
+          echo "Gitee 有但本地没有的提交："
+          git log HEAD..gitee/master --oneline
+          echo "本地有但 Gitee 没有的提交："
+          git log gitee/master..HEAD --oneline
+          
+      - name: Force Override
+        run: |
+          echo "=== 执行强制覆盖 ==="
+          git reset --hard gitee/master
+          echo "覆盖后状态："
+          git status
+          git log -1 --oneline
+
+      - name: Create Sync Commit (可选)
+        run: |
+          # 如果需要创建一个新的同步提交
+          git commit --allow-empty -m "chore: sync from Gitee" --author="mengy822 <mengy822@users.noreply.github.com>"
+          
+      - name: Push Changes
+        run: |
+          git push --force-with-lease origin master
+          echo "✅ 同步完成，提交者为 mengy822"
