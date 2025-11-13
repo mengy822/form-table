@@ -176,6 +176,16 @@ const intersectionHash = (arr1, arr2) => {
 
   return result;
 };
+export const getHeight = (className: string): number => {
+  const baseClassHeightDom = document.querySelector(className)
+  let baseClassHeight = 0
+  if (baseClassHeightDom) {
+    const baseClassStyle = getComputedStyle(baseClassHeightDom)
+    // console.log(getDomComputed(baseClassStyle, 'height') ,className)
+    baseClassHeight = getDomComputed(baseClassStyle, 'height')
+  }
+  return baseClassHeight
+}
 /**
  * 获取容器剩余高度（优化版）
  * @param {string} className - 容器选择器
@@ -217,9 +227,12 @@ export const getRemainingHeight = (
     ) {
       continue;
     }
-    doms.push(child);
     // 获取计算样式
     const style = getComputedStyle(child);
+    if (style['position']) {
+      continue;
+    }
+    doms.push(child);
 
     // 获取box-sizing属性
     const boxSizing = style.boxSizing;

@@ -1,6 +1,6 @@
 <template>
   <div v-show="showSearch" class="mb-[20px]">
-    <el-card shadow="hover">
+    <el-card shadow="hover"  class="form-plus-main-card">
       <el-config-provider :locale="language">
         <div
           class="searchList form form-plus-main"
@@ -247,7 +247,7 @@ const props = withDefaults(defineProps<SearchFormProps>(), {
   defaultSearch: true,
 
   // 布局样式
-  labelWidth: '100px',
+  labelWidth: 'auto',
   gutter: 20,
   showSearchLabel: true,
 
@@ -550,8 +550,11 @@ const openList = () => {
 const updateData = (prop: string, data: any) => {
   dynamicComputedMap.value[prop] = data;
 };
+const getData = (prop: string): void => {
+  return dynamicComputedMap.value[prop];
+};
 //暴露的数据
-defineExpose({ fold, dynamicRefMap, formPlusMain, buttons, updateData });
+defineExpose({ fold, dynamicRefMap, formPlusMain, buttons, updateData,getData });
 </script>
 
 <style scoped lang="scss">

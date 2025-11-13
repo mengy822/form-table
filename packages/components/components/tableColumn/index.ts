@@ -12,7 +12,7 @@ export default {
     // 渲染列的信息, renderColumnList不可为箭头函数,因为call不能改变其this指向
     function renderColumnList(
       columns: tableColumnItem[] = [],
-      align:string,
+      align: string,
       other: {
         tableColumnFinal?: tableColumnItem[];
         defaultBlock?: string;
@@ -32,6 +32,9 @@ export default {
           }
           slot.default = (scope) => {
             const { row, $index } = scope;
+            if (column.showFun && !column.showFun(row, other)) {
+              return undefined;
+            }
             // 顺序：multiHeader->render->slot->prop->default
             if (Array.isArray(column.list) && column.list.length) {
               // 多级表头,递归调用
@@ -69,7 +72,8 @@ export default {
               label: column.label,
               fixed: column.fixed ?? false,
               minWidth: column.width ?? 100,
-              align: column.align ?? align,
+              align: column.align ?? 'center',
+              sortable: column.sortable,
               showOverflowTooltip: column.showOverflow ?? true,
               className: column.hidden && !column.visible ? 'table-column-hidden' : ''
             },

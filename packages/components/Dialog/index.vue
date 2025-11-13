@@ -7,7 +7,7 @@
 </template>
 
 <script setup lang="ts" name="MyDialog">
-import { computed, ref, useAttrs, useSlots } from 'vue';
+import { ComponentInternalInstance, computed, getCurrentInstance, ref, useAttrs, useSlots } from 'vue';
 import { getName } from '../js/utils';
 
 const dialogVisible = ref<boolean>(false);
@@ -55,9 +55,15 @@ const emits = defineEmits<{
 const handleClose = () => {
   // cb(() => {});
 
-  emits('beforeClose', () => {
-    dialogVisible.value = false;
-  });
+  const internal = getCurrentInstance() as ComponentInternalInstance;
+  const onEmit = (internal?.vnode.props || {}) as Record<string, any>;
+  if (onEmit['onBeforeClose']) {
+    emits('beforeClose', () => {
+      dialogVisible.value = false;
+    });
+    return;
+  }
+  dialogVisible.value = false;
 };
 const init = () => {
   dialogVisible.value = true;

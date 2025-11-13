@@ -1,6 +1,6 @@
 <template>
   <el-config-provider :locale="language">
-    <el-card shadow="hover" class="table-plus">
+    <el-card shadow="hover" class="table-plus table-plus-card">
       <template #header>
         <slot name="header">
           <el-row :gutter="10">
@@ -23,10 +23,11 @@
                 :loading="operationLoading"
                 type="danger"
                 plain
+                :disabled="multipleSelection.length == 0"
                 :icon="hasBatchRemoveIcon"
                 @click="handleBatchRemove()"
               >
-                {{ typeof hasBatchRemove !== 'boolean' ? hasBatchRemove : '删除' }}
+                {{ typeof hasBatchRemove !== 'boolean' ? hasBatchRemove : '批量删除' }}
               </el-button>
             </el-col>
             <el-col :span="1.5" v-if="hasExport && proxyProps[`onExport`]">
@@ -88,6 +89,7 @@
         :load="loadFunComputed"
         :default-expand-all="defaultExpandAll"
         @expand-change="tableRowStatusChange"
+        @sort-change="onSort"
       >
         <el-table-column
           v-if="hasSelectionComputed"
@@ -107,7 +109,13 @@
             {{ queryParams.pageSize * (queryParams.pageNum - 1) + scope.$index + 1 }}
           </template>
         </el-table-column>
-        <MyTableColumn :defaultBlock="defaultBlock"  :tableColumnFinal="tableColumnFinal" :align="align" v-bind="$attrs"></MyTableColumn>
+        <MyTableColumn
+          :defaultBlock="defaultBlock"
+          :searchValue="queryParams"
+          :tableColumnFinal="tableColumnFinal"
+          :align="align"
+          v-bind="$attrs"
+        ></MyTableColumn>
 
         <el-table-column
           fixed="right"
@@ -122,7 +130,8 @@
           </template>
           <template #default="scope">
             <slot
-              :name="`operationBefore`"
+              v-if="slots['operationBefore']"
+              name="operationBefore"
               :data="scope.row"
               :index="scope.$index"
               :text="hasOperationText"
@@ -169,7 +178,8 @@
               </el-tooltip>
             </slot>
             <slot
-              :name="`operationAfterAddSon`"
+              v-if="slots['operationAfterAddSon']"
+              name="operationAfterAddSon"
               :data="scope.row"
               :index="scope.$index"
               :text="hasOperationText"
@@ -216,7 +226,8 @@
               </el-tooltip>
             </slot>
             <slot
-              :name="`operationAfterDetail`"
+              v-if="slots['operationAfterDetail']"
+              name="operationAfterDetail"
               :data="scope.row"
               :index="scope.$index"
               :text="hasOperationText"
@@ -263,7 +274,8 @@
               </el-tooltip>
             </slot>
             <slot
-              :name="`operationAfterUpdate`"
+              v-if="slots['operationAfterUpdate']"
+              name="operationAfterUpdate"
               :data="scope.row"
               :index="scope.$index"
               :text="hasOperationText"
@@ -310,7 +322,8 @@
               </el-tooltip>
             </slot>
             <slot
-              :name="`operationAfter`"
+              v-if="slots['operationAfter']"
+              name="operationAfter"
               :data="scope.row"
               :index="scope.$index"
               :text="hasOperationText"
@@ -331,7 +344,14 @@
         v-model:page="queryParams.pageNum"
         v-model:limit="queryParams.pageSize"
         @pagination="handleQuery"
-      />
+      >
+        <template #extra>
+          <span :key="key" v-for="(value, key, index) in extra" class="extra">
+            <span v-if="index === 0">&nbsp;</span>
+            {{ key }} :{{ value }}
+          </span>
+        </template>
+      </pagination>
     </el-card>
   </el-config-provider>
 </template>
@@ -353,9 +373,9 @@ import pagination from '../components/Pagination/index.vue'
 import RightToolbar from '../components/RightToolbar/index.vue'
 import MyTableColumn from '../components/tableColumn'
 import { Delete, Download, Edit, Plus, Upload, View } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox, TableInstance } from 'element-plus'
+import { ElMessage, ElMessageBox, TableColumnCtx, TableInstance } from 'element-plus'
 
-import { deepClone, getComputedStyle, getDomComputed, getRemainingHeight } from '../js/utils'
+import { deepClone, getComputedStyle, getHeight, getRemainingHeight } from '../js/utils'
 
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { useListenDomChange } from '../utils/hooks'
@@ -370,9 +390,6 @@ interface IsTreeConfig {
 
 // 定义 Props 类型（提取为独立接口，增强可读性和复用性）
 export interface TableProps {
-  //默认对齐
-  align: 'center' | 'left' | 'right';
-  operationAlign: 'center' | 'left' | 'right';
   /** 是否显示分页 */
   hasPage: boolean
   /**是树结构*/
@@ -405,6 +422,10 @@ export interface TableProps {
   height: number | string | undefined
   /** 基础样式类（用于计算高度等） */
   baseClass: string
+  authHeightExcludeClassName:string[]
+  //默认对齐
+  align: 'center' | 'left' | 'right'
+  operationAlign: 'center' | 'left' | 'right'
   /** 是否启用最大宽度限制 */
   maxWidth: boolean
   /** 是否显示【新增】按钮（支持布尔值、自定义文本、函数动态控制） */
@@ -471,9 +492,10 @@ export interface TableProps {
   dataList: Array<dataItemType> | undefined
   /** 数据源加载函数 */
   dataListFun?: Function
+  dataLoadFun?: Function
   /** 数据源格式配置（数据列表字段、总数字段） */
-  dataConfig: { rows: string; total: string }
-  /** 数据总数（用于分页） */ script
+  dataConfig: { rows: string; total: string; extra: string }
+  /** 数据总数（用于分页） */
   total: number
   /** 是否高亮当前行 */
   highlightCurrentRow: boolean
@@ -518,7 +540,11 @@ export interface TableProps {
   /** 删除成功的状态码字段 */
   code?: string
   /**导出的默认下载方式*/
-  downFun?: Function;
+  downFun?: Function
+  /** 默认排序方式 本地/远程*/
+  sortable?: boolean
+  sortableConfig?: { descending: string | number | boolean; ascending: string | number | boolean }
+  searchSortableConfig?: { fieId: string; fieVal: string }
 }
 
 export interface query extends queryParamType {
@@ -543,7 +569,15 @@ export interface tableColumnItem {
   isForm?: boolean
   showOverflow?: boolean
   width?: number
-  unit?: string //单位
+  unit?: string |((row: dataItemType, prop: string, other?: {
+      index?: number
+      tableColumnFinal?: tableColumnItem[]
+      [key: string]: any
+    })=>string);//单位
+  sortFun?: Function
+  sort?: boolean | 'custom'
+  sortable?: boolean | 'custom'
+  sortProp?: string
   hidden?: boolean
   visible?: boolean
   align?: 'center' | 'left' | 'right'
@@ -556,6 +590,7 @@ export interface tableColumnItem {
     other?: {
       index?: number
       tableColumnFinal?: tableColumnItem[]
+      searchValue?: { [key: string]: any };
       [key: string]: any
     }
   ) => string
@@ -566,10 +601,19 @@ export interface tableColumnItem {
     other?: {
       index?: number
       tableColumnFinal?: tableColumnItem[]
+      searchValue?: { [key: string]: any };
       [key: string]: any
     }
   ) => string
-  showFun?: (row?: queryParamType | any) => boolean
+  showFun?: (
+    row?: queryParamType | any,
+    other?: {
+      index?: number;
+      tableColumnFinal?: tableColumnItem[];
+      searchValue?: { [key: string]: any };
+      [key: string]: any;
+    }
+  ) => boolean
   slot?: string
   // render?: any
   header?: string
@@ -591,14 +635,10 @@ const hasIndexComputed = computed(() => {
 const hasOperationComputed = computed(() => {
   return (
     props.hasOperation &&
-    (props.hasAddSon ||
-      proxyProps.value[`onAddSon`] ||
-      props.hasDetail ||
-      proxyProps.value[`onDetail`] ||
-      props.hasUpdate ||
-      proxyProps.value[`onUpdate`] ||
-      props.hasRemove ||
-      proxyProps.value[`onRemove`] ||
+    ((props.hasAddSon && proxyProps.value[`onAddSon`]) ||
+      (props.hasDetail && proxyProps.value[`onDetail`]) ||
+      (props.hasUpdate && proxyProps.value[`onUpdate`]) ||
+      (props.hasRemove && proxyProps.value[`onRemove`]) ||
       slots['operationBefore'] ||
       slots['operationAfterAddSon'] ||
       slots['operationAfterDetail'] ||
@@ -617,9 +657,6 @@ const props = withDefaults(defineProps<TableProps>(), {
   hasPage: true,
   isTree: false,
   downFun: undefined,
-  //默认对齐方式
-  align: 'center',
-  operationAlign: 'center',
   //删除成功的状态码
   status: 200,
   //删除成功的状态码字段
@@ -638,8 +675,11 @@ const props = withDefaults(defineProps<TableProps>(), {
   maxHeight: undefined,
   height: undefined,
   baseClass: undefined,
+  authHeightExcludeClassName: () => [],
   maxWidth: true,
-
+  sortable: true,
+  sortableConfig: () => ({ descending: 'descending', ascending: 'ascending' }),
+  searchSortableConfig: () => ({ fieId: 'fieId', fieVal: 'fieVal' }),
   // 顶部操作按钮（新增/批量删除/导入/导出）
   hasAdd: true,
   hasAddIcon: () => Plus,
@@ -673,7 +713,8 @@ const props = withDefaults(defineProps<TableProps>(), {
   hasRemove: '删除',
   hasRemoveIcon: () => Delete,
   hasRemoveType: () => 'danger',
-
+  align: 'center',
+  operationAlign: 'center',
   // 表格核心配置
   tableColumn: undefined, // 注：原代码中为 required: true，此处需保留 undefined（TS 会强制校验必填）
   queryParam: undefined,
@@ -689,7 +730,8 @@ const props = withDefaults(defineProps<TableProps>(), {
   // 数据源配置
   dataList: undefined,
   dataListFun: undefined,
-  dataConfig: () => ({ rows: 'rows', total: 'total' }),
+  dataLoadFun: undefined,
+  dataConfig: () => ({ rows: 'rows', total: 'total', extra: 'extra' }),
   total: 0,
 
   // 表格样式与交互配置
@@ -715,16 +757,6 @@ const props = withDefaults(defineProps<TableProps>(), {
 const tableRef = ref<TableInstance>()
 const heightInner = ref(0)
 const maxHeightInner = ref(0)
-const getHeight = (className: string): number => {
-  const baseClassHeightDom = document.querySelector(className)
-  let baseClassHeight = 0
-  if (baseClassHeightDom) {
-    const baseClassStyle = getComputedStyle(baseClassHeightDom)
-    // console.log(getDomComputed(baseClassStyle, 'height') ,className)
-    baseClassHeight = getDomComputed(baseClassStyle, 'height')
-  }
-  return baseClassHeight
-}
 
 const totalInner = ref<number>(0)
 const dataListInner = ref<dataItemType[]>([])
@@ -736,6 +768,7 @@ const totalComputed = computed({
     totalInner.value = val
   },
 })
+const extra = ref()
 const dataListComputed = computed({
   get: () => {
     return props.dataList || dataListInner.value
@@ -766,6 +799,7 @@ onMounted(() => {
   // hasUpdateListener.value = typeof props.onUpdate === 'function'
   autoHeight()
 })
+
 const operationWidthComputed = computed(() => {
   let width = props.operationWidth ?? 100
   if (typeof props.operationWidth === 'undefined') {
@@ -801,7 +835,7 @@ const autoHeight = () => {
         '.table-plus .el-card__body'
       )
       const { borderTopWidth, borderBottomWidth } = getComputedStyle('.table-plus .el-card__header')
-      const { height, dom } = getRemainingHeight(props.baseClass, ['.table-plus'])
+      const { height, dom } = getRemainingHeight(props.baseClass, ['.table-plus' ,...props.authHeightExcludeClassName])
       heightInner.value =
         height -
         tableHeaderHeight -
@@ -859,15 +893,31 @@ const tableColumnFinal = computed({
             item.align = 'left'
           }
           item.visible = item.visible ?? true
+          item.sortable = item.sort ?? item.sortable ?? false
+          if (typeof item.sortable === 'string' && props.sortable) {
+            item.sortable = true
+          }
+          if (typeof item.sortable === 'boolean' && !props.sortable) {
+            item.sortable = 'custom'
+          }
+          if (item.sortable) {
+            item.sortProp = item.sortProp ?? item.prop
+            sortProp.value[item.prop] = item.sortProp
+          }
           if (slots[item.prop]) {
             item.slot = item.prop
           }
           item.selectable = item.selectable ?? true
           item.maxWidth = item.width ? false : item.maxWidth ?? props.maxWidth
+          item.unit = item.unit ?? '';
           item.fun =
             item.fun ??
-            ((row: dataItemType, prop: string) =>
-              String(row[prop] ?? props.defaultBlock) + (item.unit ?? ''))
+            ((row: dataItemType, prop: string, other?: {
+      index?: number
+      tableColumnFinal?: tableColumnItem[]
+      [key: string]: any
+    }) =>
+              String(row[prop] ?? props.defaultBlock) + (typeof item.unit == 'string' ? item.unit : (item.unit&&item.unit(row, prop, other))??''));
           return item
         })
     }
@@ -911,7 +961,14 @@ type TableRowData = dataItemType // 复用组件内已定义的 dataItemType
 type TableQueryParams = query // 复用组件内已定义的 query 类型
 
 // 3. 导出操作的回调函数类型（用于控制导出加载状态）
-type ExportCallback=(url?: string, params?: { [key: string]: any },fileName?:string|undefined,methods?:'get'|'post') => void
+type ExportCallback = (
+  url?: string,
+  params?: {
+    [key: string]: any
+  },
+  fileName?: string,
+  methods?: 'get' | 'post'
+) => void
 
 // 4. 删除操作的回调函数类型（用于控制删除结果和加载状态）
 type RemoveCallback = (flag: boolean | Promise<any>) => void
@@ -965,7 +1022,7 @@ interface MyTableEmits {
    * @param eventName 事件名：固定为 'batch-remove'
    * @param selectedRows 选中的行数据列表（从 multipleSelection 提取）
    */
-  (eventName: 'batch-remove', selectedRows: TableRowData[]): void
+  (eventName: 'batch-remove', selectedRows: TableRowData[], callback: RemoveCallback): void
 
   /**
    * 导入按钮点击事件
@@ -1031,9 +1088,9 @@ const startQuery = () => {
 //树形表格存储原始数据
 const originalData = ref<any[]>()
 //树形表格存储子数据
-const dataChildrenListMap = ref<{ [key: string]: any[] }>()
+const dataChildrenListMap = ref<{ [key: string]: any[] }>({})
 //树形表格存储展开子数据
-const dataExpandMap = ref<{ [key: string]: any[] }>({})
+const dataExpandMap = ref<{ [key: string]: { row: any; treeNode: any; resolve: any } }>({})
 const treeConfig = ref<IsTreeConfig>(undefined)
 //多选事件
 const selectable = (row: tableColumnItem) => row.selectable
@@ -1060,6 +1117,42 @@ const tableRowStatusChange = (row: any, expandedRows: any[] | boolean): void => 
     delete dataExpandMap.value[String(row[treeConfig.value.id])]
   }
 }
+//排序
+const onSort = (data: {
+  column: TableColumnCtx
+  prop: string
+  order: 'descending' | 'ascending' | undefined
+}): void => {
+  if (typeof data.order !== 'undefined') {
+    sortPropData.value[data.prop] = props.sortableConfig[data.order]
+  } else {
+    delete sortPropData.value[data.prop]
+  }
+
+  handleQuery()
+}
+//排序参数键名对照
+const sortProp = ref<{ [key: string]: any }>({})
+//排序数据
+const sortPropData = ref<{ [key: string]: any }>({})
+const sortPropDataComputed = computed(() => {
+  const queryParam = {
+    [props.searchSortableConfig.fieId]: '',
+    [props.searchSortableConfig.fieVal]: '',
+  }
+  for (const sortPropDatum in sortPropData.value) {
+    queryParam[props.searchSortableConfig.fieId] += ',' + sortProp.value[sortPropDatum]
+    queryParam[props.searchSortableConfig.fieVal] += ',' + sortPropData.value[sortPropDatum]
+  }
+  if (queryParam[props.searchSortableConfig.fieId].length > 0) {
+    queryParam[props.searchSortableConfig.fieId] =
+      queryParam[props.searchSortableConfig.fieId].slice(1)
+    queryParam[props.searchSortableConfig.fieVal] =
+      queryParam[props.searchSortableConfig.fieVal].slice(1)
+  }
+  return queryParam
+})
+// 树结构懒加载
 const loadFunComputed = computed(() => {
   return props.loadFun ?? getChildrenList
 })
@@ -1106,7 +1199,8 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
   if (typeof isFirst === 'boolean' && isFirst) {
     queryParam.pageNum = 1
   }
-  queryParams.value = { ...queryParam }
+  queryParams.value = { ...queryParam, ...sortPropDataComputed.value };
+  // queryParam = { ...queryParam, ...sortPropDataComputed.value };
   if (!props.dataListFun) {
     emits('query', queryParam)
   } else {
@@ -1114,13 +1208,29 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
       try {
         if (res instanceof Promise) {
           res = await (res as Promise<any>)
+        } else if (res instanceof String && props.dataLoadFun) {
+          const query = {
+            url: res,
+            method: obj[1] ?? 'GET',
+            params: obj[0],
+            data: obj[0],
+          }
+          if (query.method.toLowerCase() === 'get') {
+            delete query.data
+          } else {
+            delete query.params
+          }
+          res = await props.dataLoadFun(query)
         } else {
           res = {
             [props.dataConfig.rows]: res,
             [props.dataConfig.total]: obj[0],
+            [props.dataConfig.extra]: obj[1],
           }
         }
+
         const datas = res[props.dataConfig.rows]
+        const extras = res[props.dataConfig.extra]
         let treeDatas = []
         const isTree = props.isTree
         if (isTree) {
@@ -1139,7 +1249,7 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
         }
 
         if (treeConfig.value) {
-          const tempMap = {}
+          const tempMap: { [key: string]: any } = {}
           // 存储 父菜单:子菜单列表
           for (const dataItem of datas) {
             const parentId = String(dataItem[treeConfig.value.parentId])
@@ -1166,6 +1276,7 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
         if (proxyProps.value['onDataLoadCompleted']) emits('dataLoadCompleted', datas, total)
         dataListComputed.value = datas
         totalComputed.value = total
+        extra.value = extras
       } catch (e) {
       } finally {
         loading.value = false
@@ -1182,34 +1293,39 @@ const handleImport = () => {
 const operationData = computed(() => {
   return {
     ...queryParams.value,
-    multipleSelection: multipleSelection.value
-  };
-});
-const downloadInnerFun = (url:string, params = {}) => {
+    multipleSelection: multipleSelection.value,
+  }
+})
+const downloadInnerFun = (url: string | URL, params = {}) => {
   request('GET', url, params, true).then((res) => {
-    handleFileDownload(res);
-  });
-};
+    handleFileDownload(res)
+  })
+}
 const downloadFun = computed(() => {
-  return props.downFun ?? downloadInnerFun;
-});
+  return props.downFun ?? downloadInnerFun
+})
 const handleExport = () => {
   const data = {
     ...queryParams.value,
     multipleSelection: multipleSelection.value,
   }
-  const cb = (url: any , params = {}, fileName: string | undefined = undefined, methods:'get'|'post' = 'get') => {
+  const cb = (
+    url: any,
+    params = {},
+    fileName: string | undefined = undefined,
+    methods: 'get' | 'post' = 'get'
+  ) => {
     if (typeof url !== 'undefined') {
       downloadFun.value(url, params, fileName, methods).finally(() => {
-        operationLoading.value = false;
-      });
-    } else operationLoading.value = false;
-  };
+        operationLoading.value = false
+      })
+    } else operationLoading.value = false
+  }
   operationLoading.value = true
   if (typeof props.exportMessage === 'boolean' && !props.exportMessage) {
     emits('export', data, cb)
   } else {
-    ElMessageBox.confirm(props.exportMessage, props.exportType, {
+    ElMessageBox.confirm(props.exportMessage as string, props.exportType, {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       title: props.exportMessageTitle,
@@ -1225,7 +1341,47 @@ const handleExport = () => {
 }
 
 const handleBatchRemove = () => {
-  emits('batch-remove',multipleSelection.value)
+  operationLoading.value = true
+  ElMessageBox.confirm(props.removeMessage, props.removeType, {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    title: props.removeMessageTitle,
+    type: props.removeType,
+  })
+    .then(() => {
+      emits(
+        'batch-remove',
+        multipleSelection.value,
+        async (flag: boolean | Promise<any> = true) => {
+          if (flag instanceof Promise) {
+            try {
+              const res = await (flag as Promise<any>)
+              flag = res[props.code] == props.status
+            } catch (e) {
+              flag = false
+            }
+          }
+          if (flag) {
+            ElMessage({
+              message: props.message,
+              grouping: true,
+              duration: props.duration,
+              type: 'success',
+              showClose: props.duration! > 0,
+              onClose: () => {
+                operationLoading.value = false
+                handleQuery()
+              },
+            })
+          } else {
+            operationLoading.value = false
+          }
+        }
+      )
+    })
+    .catch(() => {
+      operationLoading.value = false
+    })
 }
 
 const handleUpdate = (row: dataItemType) => {
@@ -1283,7 +1439,7 @@ const handleAddSon = (row: dataItemType) => {
  * @param refresh 刷新模式
  */
 const updateLoading = (cb: Promise<any>, refresh: 'now' | 'first' | '' = 'now') => {
-  operationLoading.value = true;
+  operationLoading.value = true
   cb.then((res) => {
     if (res[props.code] == props.status) {
       ElMessage({
@@ -1293,21 +1449,21 @@ const updateLoading = (cb: Promise<any>, refresh: 'now' | 'first' | '' = 'now') 
         type: 'success',
         showClose: props.duration! > 0,
         onClose: () => {
-          operationLoading.value = false;
+          operationLoading.value = false
           if (refresh === 'now') {
-            handleQuery();
+            handleQuery()
           } else if (refresh === 'first') {
-            handleQuery(undefined, true);
+            handleQuery(undefined, true)
           }
-        }
-      });
+        },
+      })
     } else {
-      operationLoading.value = false;
+      operationLoading.value = false
     }
   }).catch(() => {
-    operationLoading.value = false;
-  });
-};
+    operationLoading.value = false
+  })
+}
 defineExpose({
   multipleSelection: multipleSelection.value,
   toggleSelection,
@@ -1315,7 +1471,7 @@ defineExpose({
   query: handleQuery,
   slots,
   originalData: originalData.value,
-  updateLoading
+  updateLoading,
 })
 </script>
 <style scoped lang="scss">
@@ -1343,5 +1499,11 @@ defineExpose({
 
 :deep(.el-table) {
   transition: height 0.1s;
+}
+
+.extra {
+  color: var(--el-text-color-regular);
+  font-weight: normal;
+  margin-left: var(--el-pagination-item-gap);
 }
 </style>

@@ -55,7 +55,7 @@ export const handleFileDownload = async (response: Response) => {
     a.remove();
 };
 // 核心请求函数
-export const request = async (method: string, url: string | URL, data = null, isFileDownload = false) => {
+export const request = async (method: string, url: string | URL, data:{[key:string]:any}|null = null, isFileDownload = false) => {
     const config: RequestInit = {
         method,
         // headers: getAuthHeaders(),

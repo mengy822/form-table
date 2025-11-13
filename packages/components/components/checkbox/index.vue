@@ -19,13 +19,15 @@
         <slot :name="`checkbox_${dataFinal.prop}`">
           <div v-if="props.type === 'checkbox'">
             <el-checkbox
-              v-for="(item, index) in (typeof dataFinal.options==='number'?[]:dataFinal.options)"
+              v-for="(item, index) in typeof dataFinal.options === 'number'
+                ? []
+                : dataFinal.options"
               :key="JSON.stringify(item)"
               :label="item.label"
               :value="String(item.value ?? item.label)"
               :true-value="dataFinal.config?.trueValue"
               :false-value="dataFinal.config?.falseValue"
-              :disabled="(dataFinal.config)?.disabled ?? false"
+              :disabled="dataFinal.config?.disabled ?? false"
               :name="dataFinal.config?.name ?? ''"
               :checked="dataFinal.config?.checked ?? false"
               :border="dataFinal.config?.border"
@@ -42,7 +44,7 @@
 
           <div v-if="props.type === 'checkboxButton'">
             <el-checkbox-button
-              v-for="item in (typeof dataFinal.options==='number'?[]:dataFinal.options)"
+              v-for="item in typeof dataFinal.options === 'number' ? [] : dataFinal.options"
               :key="JSON.stringify(item)"
               :label="item.label"
               :value="String(item.value ?? item.label)"
@@ -62,7 +64,7 @@
 </template>
 <script lang="ts">
 export default {
-    name: 'checkbox'
+  name: 'checkbox',
 }
 </script>
 <script setup name="checkbox" lang="ts">
@@ -79,19 +81,22 @@ const props = defineProps({
   },
   type: {
     type: String as PropType<'checkbox' | 'checkboxButton'>,
-    default:'checkbox'
+    default: 'checkbox',
   },
   data: {
     type: Object as PropType<checkboxInnerType>,
-    required:true
+    required: true,
   },
   modelValue: {
     type: Array<String | Number>,
     default: () => [],
   },
 })
-const max=computed(()=>{
-  let len=typeof dataFinal.value.options==='number'?dataFinal.value.options:dataFinal.value.options.length
+const max = computed(() => {
+  let len =
+    typeof dataFinal.value.options === 'number'
+      ? dataFinal.value.options
+      : dataFinal.value.options.length
   return len
 })
 
@@ -108,23 +113,27 @@ const dataFinal = computed(() => {
     data.options = option
   }
   //设置默认值
-  if (data.isDefault && data.options.length > 0) {
-    let isDefault = data.options.find((item) => !item.disabled)
-    bindValue.value=[(isDefault && isDefault.value) || '']
-  }
+  setDefaultValue(data)
   data.change = data.change || function () {}
   return data
 })
-
+const setDefaultValue = (data: checkboxInnerType) => {
+  if (data.isDefault && (data.options as any[]).length > 0) {
+    const isDefault = (data.options as any[]).find((item) => !item.disabled)
+    bindValue.value = [(isDefault && isDefault.value) || '']
+  }
+}
 const emits = defineEmits(['update:modelValue'])
 
 const bindValue = computed({
   get() {
+    if (!props.modelValue || props.modelValue.length === 0) setDefaultValue(dataFinal.value)
+
     return props.modelValue
   },
   set(val) {
     // if (props.modelValue != val) {
-      change(val)
+    change(val)
     // }
   },
 })

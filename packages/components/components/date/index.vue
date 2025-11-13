@@ -17,6 +17,7 @@
       :range-separator="dataFinal.rangeSeparator ?? '-'"
       :start-placeholder="dataFinal.startPlaceholder ?? '开始日期'"
       :end-placeholder="dataFinal.endPlaceholder ?? '结束日期'"
+      :disabled-date="dataFinal.disabledDate"
       @blur="blur"
       @focus="dataFinal.focus"
       @clear="dataFinal.clear"

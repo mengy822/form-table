@@ -8,6 +8,7 @@
       @before-close="handleClose"
     >
       <div class="editDialog">
+        <slot name="left" :data="dynamicComputedMap"></slot>
         <el-form
           ref="formRef"
           class="editForm"
@@ -26,122 +27,129 @@
           :disabled="disabled"
           :scroll-to-error="scrollToError"
         >
-          <div
-            v-for="item in columnFinal"
-            :key="JSON.stringify(item)"
-            :class="`class_${item.prop}`"
-          >
-            <slot :name="`item_${item.prop}`" :prop="item.prop" :data="dynamicComputedMap">
-              <el-form-item
-                :ref="(el: any) => dynamicCreateRef(el, item.prop)"
-                :label="item.label"
-                :prop="item.prop"
-                :rules="
-                  typeof item.dynamicRequired === 'undefined' ||
-                  (item.dynamicRequired && item.dynamicRequired(dynamicComputedMap))
-                    ? rules[item.prop]
-                    : []
-                "
-                v-if="item.showFun && item.showFun(dynamicComputedMap)"
-              >
-                <template #label v-if="slots[`label_${item.prop}`]">
-                  <slot
-                    :name="`label_${item.prop}`"
-                    :prop="item.prop"
-                    :data="dynamicComputedMap"
-                  ></slot>
-                </template>
-                <template #error v-if="slots[`error_${item.prop}`]">
-                  <slot
-                    :name="`error_${item.prop}`"
-                    :prop="item.prop"
-                    :data="dynamicComputedMap"
-                  ></slot>
-                </template>
+          <div v-for="(columnItem, index) in columnFinal" :key="index" :class="`class_${index}`">
+            <div
+              v-for="item in columnItem"
+              :key="JSON.stringify(item)"
+              :class="`class_${item.prop}`"
+            >
+              <slot :name="`item_${item.prop}`" :prop="item.prop" :data="dynamicComputedMap">
+                <el-form-item
+                  :ref="(el: any) => dynamicCreateRef(el, item.prop)"
+                  :label="item.label"
+                  :prop="item.prop"
+                  :rules="
+                    typeof item.dynamicRequired === 'undefined' ||
+                    (item.dynamicRequired && item.dynamicRequired(dynamicComputedMap))
+                      ? rules[item.prop]
+                      : []
+                  "
+                  v-if="item.showFun && item.showFun(dynamicComputedMap)"
+                >
+                  <template #label v-if="slots[`label_${item.prop}`]">
+                    <slot
+                      :name="`label_${item.prop}`"
+                      :prop="item.prop"
+                      :data="dynamicComputedMap"
+                    ></slot>
+                  </template>
+                  <template #error v-if="slots[`error_${item.prop}`]">
+                    <slot
+                      :name="`error_${item.prop}`"
+                      :prop="item.prop"
+                      :data="dynamicComputedMap"
+                    ></slot>
+                  </template>
 
-                <template #default>
-                  <slot
-                    :name="item.slotName || item.prop"
-                    :prop="item.prop"
-                    :data="dynamicComputedMap"
-                    :config="item"
-                  >
-                    <Input
-                      :data="item as inputInnerType"
-                      v-if="item.type === 'input'"
-                      :disabled="
-                        typeof item.disabled === 'function'
-                          ? item.disabled(dynamicComputedMap)
-                          : item.disabled
-                      "
-                      v-model="dynamicComputedMap[item.prop]"
-                    ></Input>
-                    <MyDate
-                      :data="item as dateInnerType"
-                      v-if="item.type === 'date'"
-                      :disabled="
-                        typeof item.disabled === 'function'
-                          ? item.disabled(dynamicComputedMap)
-                          : item.disabled
-                      "
-                      v-model="dynamicComputedMap[item.prop]"
-                    ></MyDate>
-
-                    <Select
-                      :data="item as selectInnerType"
-                      v-if="item.type === 'select'"
-                      :disabled="
-                        typeof item.disabled === 'function'
-                          ? item.disabled(dynamicComputedMap)
-                          : item.disabled
-                      "
-                      v-model="dynamicComputedMap[item.prop]"
-                    ></Select>
-                    <Switch
-                      :data="item as switchInnerType"
-                      v-if="item.type === 'switch'"
-                      :disabled="
-                        typeof item.disabled === 'function'
-                          ? item.disabled(dynamicComputedMap)
-                          : item.disabled
-                      "
-                      v-model="dynamicComputedMap[item.prop]"
-                    ></Switch>
-                    <CheckBox
-                      :data="item as checkboxInnerType"
-                      v-if="item.type === 'checkbox'"
-                      :disabled="
-                        typeof item.disabled === 'function'
-                          ? item.disabled(dynamicComputedMap)
-                          : item.disabled
-                      "
-                      v-model="dynamicComputedMap[item.prop]"
-                    ></CheckBox>
-                    <Radio
-                      :data="item as radioInnerType"
-                      v-if="item.type === 'radio'"
-                      :disabled="
-                        typeof item.disabled === 'function'
-                          ? item.disabled(dynamicComputedMap)
-                          : item.disabled
-                      "
-                      v-model="dynamicComputedMap[item.prop]"
-                    ></Radio>
-                    <File
-                      :data="item as fileInnerType"
-                      v-if="item.type === 'file'"
-                      v-model="dynamicComputedMap[item.prop]"
-                      :disabled="typeof item.disabled === 'function' ? item.disabled(dynamicComputedMap) : item.disabled"
-                      @fileSizeError="emits('fileSizeError')"
-                      @fileTypeError="emits('fileTypeError')"
+                  <template #default>
+                    <slot
+                      :name="item.slotName || item.prop"
+                      :prop="item.prop"
+                      :data="dynamicComputedMap"
+                      :config="item"
                     >
-                    </File>
-                  </slot>
-                </template>
-              </el-form-item>
-            </slot>
+                      <Input
+                        :data="item as inputInnerType"
+                        v-if="item.type === 'input'"
+                        :disabled="
+                          typeof item.disabled === 'function'
+                            ? item.disabled(dynamicComputedMap)
+                            : item.disabled
+                        "
+                        v-model="dynamicComputedMap[item.prop]"
+                      ></Input>
+                      <MyDate
+                        :data="item as dateInnerType"
+                        v-if="item.type === 'date'"
+                        :disabled="
+                          typeof item.disabled === 'function'
+                            ? item.disabled(dynamicComputedMap)
+                            : item.disabled
+                        "
+                        v-model="dynamicComputedMap[item.prop]"
+                      ></MyDate>
+
+                      <Select
+                        :data="item as selectInnerType"
+                        v-if="item.type === 'select'"
+                        :disabled="
+                          typeof item.disabled === 'function'
+                            ? item.disabled(dynamicComputedMap)
+                            : item.disabled
+                        "
+                        v-model="dynamicComputedMap[item.prop]"
+                      ></Select>
+                      <Switch
+                        :data="item as switchInnerType"
+                        v-if="item.type === 'switch'"
+                        :disabled="
+                          typeof item.disabled === 'function'
+                            ? item.disabled(dynamicComputedMap)
+                            : item.disabled
+                        "
+                        v-model="dynamicComputedMap[item.prop]"
+                      ></Switch>
+                      <CheckBox
+                        :data="item as checkboxInnerType"
+                        v-if="item.type === 'checkbox'"
+                        :disabled="
+                          typeof item.disabled === 'function'
+                            ? item.disabled(dynamicComputedMap)
+                            : item.disabled
+                        "
+                        v-model="dynamicComputedMap[item.prop]"
+                      ></CheckBox>
+                      <Radio
+                        :data="item as radioInnerType"
+                        v-if="item.type === 'radio'"
+                        :disabled="
+                          typeof item.disabled === 'function'
+                            ? item.disabled(dynamicComputedMap)
+                            : item.disabled
+                        "
+                        v-model="dynamicComputedMap[item.prop]"
+                      ></Radio>
+                      <File
+                        :data="item as fileInnerType"
+                        v-if="item.type === 'file'"
+                        v-model="dynamicComputedMap[item.prop]"
+                        :disabled="
+                          typeof item.disabled === 'function'
+                            ? item.disabled(dynamicComputedMap)
+                            : item.disabled
+                        "
+                        @fileSizeError="emits('fileSizeError')"
+                        @fileTypeError="emits('fileTypeError')"
+                      >
+                      </File>
+                    </slot>
+                  </template>
+                </el-form-item>
+              </slot>
+            </div>
           </div>
         </el-form>
+        <slot name="right" :data="dynamicComputedMap"></slot>
       </div>
 
       <template #footer>
@@ -174,7 +182,8 @@ import type {
   dateInnerType,
   inputInnerType,
   radioInnerType,
-  selectInnerType,fileInnerType,
+  selectInnerType,
+  fileInnerType,
   switchInnerType,
 } from '../components/form/types'
 import MyComputedData from '../utils/hooks/MyComputedData'
@@ -186,7 +195,12 @@ import { MyDialogInstance } from '@/components/FormTable'
 const myDialog = useTemplateRef<MyDialogInstance>('myDialog')
 const top = ref('15vh')
 const slots = useSlots()
-
+const display = computed(() => {
+  return slots['left'] || slots['right'] ? 'grid' : 'block'
+})
+const gridTemplateColumns = computed(() => {
+  return `${slots['left'] ? 'auto ' : ''}1fr${slots['right'] ? ' auto' : ''}`
+})
 // 定义 Props 类型接口
 interface FormDialogProps {
   /** 语言配置 */
@@ -266,10 +280,13 @@ interface FormDialogProps {
   autoUpdate?: () => void
   status?: number | boolean | string
   code?: string
+  /** 数据源格式配置（数据列表字段、总数字段） */
+  dataConfig: { data: string; status: string | number | boolean; code: string }
 }
 
 // 使用 withDefaults 定义 Props 并配置默认值
 const props = withDefaults(defineProps<FormDialogProps>(), {
+  dataConfig: () => ({ data: 'data', status: 200, code: 'code' }),
   // 语言配置
   language: () => zhCn,
   //删除成功的状态码
@@ -337,19 +354,13 @@ const computedSearchSign = (list: typeof props.column = [], flag = false) => {
     searchSign.value = list.map((item) => `${item.prop}-${item.type}`)
   }
 }
-const columnFinal = computed<
-  Array<
-    | inputInnerType
-    | switchInnerType
-    | checkboxInnerType
-    | radioInnerType
-    | selectInnerType
-    | dateInnerType
-  >
->(() => {
+const editFormDisplay = ref()
+const editFormGridTemplateColumns = ref()
+const columnFinal = computed<(typeof props.column)[]>(() => {
   // computedSearchSign(props.column)
   rules.value = createRules(props.column, props.notNeedChangeCheck)
-  return props.column.map(
+  const clu: (typeof props.column)[] = []
+  props.column.map(
     (
       item:
         | inputInnerType
@@ -373,9 +384,16 @@ const columnFinal = computed<
       //   ? item.readonly
       //   : item.readonly && item.readonly(dynamicComputedMap.value)
       item.type = item.type ?? 'input'
-      return item
+      if (clu[(item.column || 1) - 1]) {
+        clu[(item.column || 1) - 1].push(item)
+      } else {
+        clu[(item.column || 1) - 1] = [item]
+      }
     }
   )
+  editFormDisplay.value = clu.length > 1 ? 'grid' : 'block'
+  editFormGridTemplateColumns.value = Math.max(...props.column.map((item) => item.column || 1))
+  return clu
 })
 const dynamicRefMap = ref<{ [name: string]: any }>({})
 //动态创建表单ref
@@ -416,36 +434,52 @@ const attr = computed(() => {
 
 const isAdd = ref(true)
 const loading = ref(false)
-const init = (
-  data: object = {},
+const init = async (
+  data:
+    | {
+        [key: string]: any
+      }
+    | Promise<any> = {},
   add: boolean | undefined = undefined,
-  openCb: () => void = () => {}
+  openCb: (dynamicComputedMap: any, initData: any) => void = () => {}
 ) => {
   // console.time('初始化标题')
+  let finaldata = {}
+
+  if (data instanceof Promise) {
+    const res = await data
+    if (res[props.dataConfig.code] === props.dataConfig.status) {
+      finaldata = res[props.dataConfig.data]
+    }
+  } else {
+    finaldata = { ...data }
+  }
   if (typeof add === 'undefined') {
-    isAdd.value = Object.keys(data).length === 0
+    isAdd.value = Object.keys(finaldata).length === 0
   } else {
     isAdd.value = add as boolean
   }
   // console.timeEnd('初始化标题')
   // console.time('初始化数据')
-  dataFinal.value = { ...data }
+  dataFinal.value = { ...finaldata }
   // console.timeEnd('初始化数据')
   // console.time('注册数据事件')
-  columnFinal.value.forEach((item) => {
-    if (item.isDefault && typeof dataFinal.value[item.prop] === 'undefined') {
-      let data = ''
-      if (item.type === 'radio') {
-        data = (item as radioInnerType).options[0].value
+  columnFinal.value.forEach((item1) => {
+    item1.forEach((item) => {
+      if (item.isDefault && typeof dataFinal.value[item.prop] === 'undefined') {
+        let data = ''
+        if (item.type === 'radio') {
+          data = (item as radioInnerType).options[0].value
+        }
+        if (item.type === 'select' && !(item as selectInnerType).multiple) {
+          data = (item as selectInnerType).options[0].value
+        }
+        if (item.type === 'switch') {
+          data = (item as switchInnerType).activeValue
+        }
+        dataFinal.value[item.prop] = data
       }
-      if (item.type === 'select' && !(item as selectInnerType).multiple) {
-        data = (item as selectInnerType).options[0].value
-      }
-      if (item.type === 'switch') {
-        data = (item as switchInnerType).activeValue
-      }
-      dataFinal.value[item.prop] = data
-    }
+    })
   })
   const { dynamicComputedFun: dynamicComputedFun1, dynamicComputedMap: dynamicComputedMap1 } =
     MyComputedData(dataFinal.value, dataFinal)
@@ -457,56 +491,64 @@ const init = (
   }
   // console.timeEnd('注册数据事件')
   // console.time('绑定数据')
-  columnFinal.value.forEach((item: checkboxInnerType|selectInnerType|dateInnerType) => {
-    let f = false
-    switch (item.type) {
-      case 'date':
-        if (((item as dateInnerType).dateType || '').indexOf('range') !== -1) {
-          //时间范围根据aliases转成对应字段
-          dynamicComputedFun(item.prop, 'variable', (item as dateInnerType).aliases as string)
-        } else if (((item as dateInnerType).dateType || '').slice(-1) === 's') {
-          //时间范围根据aliases转成对应字段
-          dynamicComputedFun(item.prop, 'string', ',')
-        } else {
+  columnFinal.value.forEach((item1: (checkboxInnerType | selectInnerType | dateInnerType)[]) => {
+    item1.forEach((item) => {
+      let f = false
+      switch (item.type) {
+        case 'date':
+          if (((item as dateInnerType).dateType || '').indexOf('range') !== -1) {
+            //时间范围根据aliases转成对应字段
+            dynamicComputedFun(item.prop, 'variable', (item as dateInnerType).aliases as string)
+          } else if (((item as dateInnerType).dateType || '').slice(-1) === 's') {
+            //时间范围根据aliases转成对应字段
+            dynamicComputedFun(item.prop, 'string', ',')
+          } else {
+            f = true
+          }
+          break
+        case 'checkbox':
+          if ((item as checkboxInnerType).valueType === 'string') {
+            dynamicComputedFun(item.prop, 'string', ',')
+          } else {
+            f = true
+          }
+          break
+        case 'select':
+          if (
+            !(item as selectInnerType).multiple &&
+            (item as checkboxInnerType).valueType !== 'string'
+          ) {
+            f = true
+          } else {
+            //多选下拉转成逗号字符串
+            dynamicComputedFun(item.prop, 'string', ',')
+          }
+          break
+        case 'input':
+          if (typeof item.multiple == 'undefined') {
+            f = true
+          } else if (item.multiple) {
+            //根据aliases转成对应字段
+            dynamicComputedFun(item.prop, 'variable', item.aliases as string)
+          } else if (item.multiple == false) {
+            //根据aliases转成对应字段
+            dynamicComputedFun(item.prop, 'string', ',')
+          }
+          break
+        default:
           f = true
-        }
-        break
-      case 'checkbox':
-        if ((item as checkboxInnerType).valueType === 'string') {
-          dynamicComputedFun(item.prop, 'string', ',');
-        } else {
-          f = true;
-        }
-        break;
-      case 'select':
-        if (!(item as selectInnerType).multiple && (item as checkboxInnerType).valueType !== 'string') {
-          f = true;
-        } else {
-          //多选下拉转成逗号字符串
-          dynamicComputedFun(item.prop, 'string', ',');
-        }
-        break;
-      case 'input':
-        if (item.multiple) {
-          //根据aliases转成对应字段
-          dynamicComputedFun(item.prop, 'variable', item.aliases as string)
-        } else {
-          f = true
-        }
-        break
-      default:
-        f = true
-    }
-    if (f) {
-      dynamicComputedFun(item.prop, '', '')
-    }
+      }
+      if (f) {
+        dynamicComputedFun(item.prop, '', '')
+      }
+    })
   })
   // console.timeEnd('绑定数据')
   // console.time('打开窗口')
   myDialog.value.init()
   nextTick(() => {
     scrollTo(0, 100, document.querySelector('.editDialog') as HTMLElement)
-    openCb()
+    openCb(dynamicComputedMap.value, dataFinal.value)
     formRef.value.clearValidate([])
   })
   // console.timeEnd('打开窗口')
@@ -531,10 +573,14 @@ const updateData = (prop: string, data: any) => {
   dynamicComputedMap.value[prop] = data
   formRef.value.validateField(prop)
 }
+const getData = (prop: string) => {
+  return dynamicComputedMap.value[prop]
+}
 defineExpose({
   init,
   close: cancelFun,
   updateData,
+  getData,
 })
 const submitFun = async () => {
   formRef.value?.validate((valid: boolean, fields: any) => {
@@ -578,5 +624,14 @@ const submitFun = async () => {
 .editDialog {
   max-height: 50vh;
   overflow-y: auto;
+  display: v-bind(display);
+  grid-gap: 20px;
+  grid-template-columns: v-bind(gridTemplateColumns);
+  .el-form {
+    display: v-bind(editFormDisplay);
+    grid-gap: 20px;
+    grid-template-columns: repeat(v-bind(editFormGridTemplateColumns), 1fr);
+    //v-bind(editFormGridTemplateColumns);
+  }
 }
 </style>

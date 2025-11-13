@@ -14,7 +14,9 @@
       @size-change="handleSizeChange"
       @current-change="handleCurrentChange"
       v-bind="$attrs"
-    />
+    >
+        <slot name="extra"></slot>
+      </el-pagination>
   </div>
 </el-config-provider>
 </template>

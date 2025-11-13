@@ -1,7 +1,7 @@
 <template>
 <el-config-provider :locale="language">
   <el-input
-    :placeholder="'请输入' + dataFinal.label"
+    :placeholder="dataFinal.placeholder ? dataFinal.placeholder : '请输入' + dataFinal.label"
     v-model="bindValue"
     ref="_ref"
     :clearable="dataFinal.clearable??false"

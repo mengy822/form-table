@@ -2,58 +2,62 @@
   <el-config-provider :locale="language">
     <!--    <el-dialog v-model="dialogVisible" :title="title" :width="width" :before-close="handleClose">-->
     <MyDialog ref="myDialog" :width="width" :title="title" @before-close="handleClose">
-      <el-descriptions
-        class="detail"
-        :border="desBorder"
-        :column="desColumn"
-        :direction="desDirection"
-        :size="desSize"
-        :title="desTitle"
-        :extra="desExtra"
-      >
-        <template v-for="item in columnFinal" :key="JSON.stringify(item)">
-          <el-descriptions-item
-            :label="item.label"
-            :span="item.span"
-            :rowspan="item.rowspan"
-            :width="item.width"
-            :align="item.align"
-            :label-align="item.labelAlign"
-            :class-name="item.className"
-            :label-class-name="item.labelClassName"
-            v-if="item.showFun && item.showFun(dataFinal, item.prop)"
-          >
-            <template #label>
-              <slot
-                :name="'label_' + item.prop"
-                :prop="item.prop"
-                :nowData="dataFinal[item.prop]"
-                :row="dataFinal"
-              >
-                {{ item.label }}：
-              </slot>
-            </template>
-            <template #default>
-              <slot
-                :name="item.prop"
-                :prop="item.prop"
-                :nowData="dataFinal[item.prop]"
-                :row="dataFinal"
-              >
-                <span
-                  :class="`span span_${item.prop} span_${item.prop}_${
-                    dataFinal[item.prop]
-                  } span_other_${item.classFun && item.classFun(dataFinal, item.prop, attr)} ${
-                    item.classFun && item.classFun(dataFinal, item.prop, attr)
-                  } ${(item.fun && item.fun(dataFinal, item.prop, attr))??defaultBlock}`"
+      <div class="detailDialog">
+        <slot name="left" :data="dataFinal"></slot>
+        <el-descriptions
+          class="detail"
+          :border="desBorder"
+          :column="desColumn"
+          :direction="desDirection"
+          :size="desSize"
+          :title="desTitle"
+          :extra="desExtra"
+        >
+          <template v-for="item in columnFinal" :key="JSON.stringify(item)">
+            <el-descriptions-item
+              :label="item.label"
+              :span="item.span"
+              :rowspan="item.rowspan"
+              :width="item.width"
+              :align="item.align"
+              :label-align="item.labelAlign"
+              :class-name="item.className"
+              :label-class-name="item.labelClassName"
+              v-if="item.showFun && item.showFun(dataFinal, item.prop)"
+            >
+              <template #label>
+                <slot
+                  :name="'label_' + item.prop"
+                  :prop="item.prop"
+                  :nowData="dataFinal[item.prop]"
+                  :row="dataFinal"
                 >
-                  {{ (item.fun && item.fun(dataFinal, item.prop, attr)) ?? defaultBlock }}
-                </span>
-              </slot>
-            </template>
-          </el-descriptions-item>
-        </template>
-      </el-descriptions>
+                  {{ item.label }}：
+                </slot>
+              </template>
+              <template #default>
+                <slot
+                  :name="item.prop"
+                  :prop="item.prop"
+                  :nowData="dataFinal[item.prop]"
+                  :row="dataFinal"
+                >
+                  <span
+                    :class="`span span_${item.prop} span_${item.prop}_${
+                      dataFinal[item.prop]
+                    } span_other_${item.classFun && item.classFun(dataFinal, item.prop, attr)} ${
+                      item.classFun && item.classFun(dataFinal, item.prop, attr)
+                    } ${(item.fun && item.fun(dataFinal, item.prop, attr)) ?? defaultBlock}`"
+                  >
+                    {{ (item.fun && item.fun(dataFinal, item.prop, attr)) ?? defaultBlock }}
+                  </span>
+                </slot>
+              </template>
+            </el-descriptions-item>
+          </template>
+        </el-descriptions>
+        <slot name="right" :data="dataFinal"></slot>
+      </div>
       <template #footer>
         <slot name="footer" :data="dataFinal">
           <div class="dialog-footer">
@@ -66,14 +70,20 @@
   </el-config-provider>
 </template>
 <script lang="ts" setup name="MyDetail">
-import { computed, nextTick, ref, useAttrs, useTemplateRef } from 'vue'
+import { computed, nextTick, ref, useAttrs, useSlots, useTemplateRef } from 'vue'
 
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { deepClone } from '../js/utils'
 import { MyDialogInstance, MyDialog } from '../..'
 
 const attr = useAttrs()
-
+const slots = useSlots()
+const display = computed(() => {
+  return slots['left'] || slots['right'] ? 'grid' : 'block'
+})
+const gridTemplateColumns = computed(() => {
+  return `${slots['left'] ? 'auto ' : ''}1fr${slots['right'] ? ' auto' : ''}`
+})
 interface columnType {
   prop: string
   label: string //标签文本
@@ -90,6 +100,7 @@ interface columnType {
     prop: string,
     other?: {
       index?: number
+      searchValue?: { [key: string]: any }
       [key: string]: any
     }
   ) => string
@@ -98,10 +109,19 @@ interface columnType {
     prop: string,
     other?: {
       index?: number
+      searchValue?: { [key: string]: any }
       [key: string]: any
     }
   ) => string
-  showFun?: (row: any, prop: string) => boolean
+  showFun?: (
+    row: any,
+    prop: string,
+    other?: {
+      index?: number
+      searchValue?: { [key: string]: any }
+      [key: string]: any
+    }
+  ) => boolean
 }
 
 // 定义 Props 类型接口，清晰划分配置维度
@@ -171,9 +191,23 @@ const columnFinal = computed<columnType[]>(() => {
         item.align = item.align ?? 'left'
         item.span = item.span ?? 1
         item.rowspan = item.rowspan ?? 1
+        item.unit = item.unit ?? ''
+        // item.fun = item.fun ?? ((row: any, prop: string) => String(row[prop] ?? props.defaultBlock) + (item.unit ?? ''));
         item.fun =
           item.fun ??
-          ((row: any, prop: string) => String(row[prop] ?? props.defaultBlock) + (item.unit ?? ''))
+          ((
+            row: any,
+            prop: string,
+            other?: {
+              index?: number
+              searchValue?: { [key: string]: any }
+              [key: string]: any
+            }
+          ) =>
+            String(row[prop] ?? props.defaultBlock) +
+            (typeof item.unit == 'string'
+              ? item.unit
+              : (item.unit && item.unit(row, prop, other)) ?? ''))
 
         if (!item.showFun) item.showFun = (row: any) => true
         // console.log(item.width);
@@ -201,22 +235,23 @@ const handleClose = (cb: () => void) => {
   emit('close')
   cb()
 }
-const init = (data: { [key: string]: any } | Promise<any> = {}, openCb: () => void = () => {}) => {
+const init = async (
+  data: { [key: string]: any } | Promise<any> = {},
+  openCb: (data: any) => void = () => {}
+) => {
   let finaldata = {}
   if (data instanceof Promise) {
-    data.then((res) => {
-      if (res[props.dataConfig.code] === props.dataConfig.status) {
-        finaldata = res[props.dataConfig.data]
-        dataFinal.value = { ...finaldata }
-      }
-    })
+    const res = await data
+    if (res[props.dataConfig.code] === props.dataConfig.status) {
+      finaldata = res[props.dataConfig.data]
+    }
   } else {
     finaldata = { ...data }
   }
   dataFinal.value = { ...finaldata }
   myDialog.value.init()
   nextTick(() => {
-    openCb()
+    openCb(dataFinal.value)
   })
 }
 defineExpose({ init, handleClose })
@@ -256,5 +291,12 @@ defineExpose({ init, handleClose })
       }
     }
   }
+}
+.detailDialog {
+  max-height: 50vh;
+  overflow-y: auto;
+  display: v-bind(display);
+  grid-gap: 20px;
+  grid-template-columns: v-bind(gridTemplateColumns);
 }
 </style>

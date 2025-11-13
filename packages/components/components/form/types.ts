@@ -31,6 +31,7 @@ interface columnType {
   showLabel?: boolean;
   showFun?: (dataForm: any) => boolean;
   slotName?:string;
+  column?: number;
 }
 export interface inputInnerType extends columnType, inputType { }
 export interface selectInnerType extends columnType, selectType { }

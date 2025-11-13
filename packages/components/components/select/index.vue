@@ -96,6 +96,7 @@ const props = defineProps({
 const emits = defineEmits(['update:modelValue'])
 const bindValue = computed({
   get() {
+    if (!props.modelValue || props.modelValue.length === 0) setDefaultValue(dataFinal.value)
     return props.modelValue
   },
   set(val) {
@@ -122,8 +123,10 @@ const dataFinal = computed(() => {
   let data: selectInnerType = { ...props.data }
   if (typeof data.options === 'number' || typeof data.options === 'string') {
     let option: { label: string; value: string | number }[] = []
-    if (isNaN(Number(data.options))||Number(data.options)<0) {
-      throw new Error(`${data.label}:options数据格式错误,应该为{ label,value}[]或数字,实际为${data.options}`)
+    if (isNaN(Number(data.options)) || Number(data.options) < 0) {
+      throw new Error(
+        `${data.label}:options数据格式错误,应该为{ label,value}[]或数字,实际为${data.options}`
+      )
     }
     for (let i = 0; i < Number(data.options); i++) {
       option.push({
@@ -134,6 +137,16 @@ const dataFinal = computed(() => {
     data.options = option
   }
   //设置默认值
+  setDefaultValue(data)
+  data.change = data.change || function () {}
+  data.visibleChange = data.visibleChange || function () {}
+  data.removeTag = data.removeTag || function () {}
+  data.clear = data.clear || function () {}
+  data.blur = data.blur || function () {}
+  data.focus = data.focus || function () {}
+  return data
+})
+const setDefaultValue = (data) => {
   if (data.isDefault && data.options.length > 0) {
     if (props.type === '') {
       const isDefault: selectOptionsType | undefined = (data.options as selectOptionsType[]).find(
@@ -155,14 +168,7 @@ const dataFinal = computed(() => {
     }
     data.clearable = false
   }
-  data.change = data.change || function () {}
-  data.visibleChange = data.visibleChange || function () {}
-  data.removeTag = data.removeTag || function () {}
-  data.clear = data.clear || function () {}
-  data.blur = data.blur || function () {}
-  data.focus = data.focus || function () {}
-  return data
-})
+}
 const _ref = ref()
 defineExpose({
   _ref,
