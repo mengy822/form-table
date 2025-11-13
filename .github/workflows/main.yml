@@ -46,14 +46,14 @@ jobs:
           
           echo "=== 比较差异 ==="
           echo "Gitee 有但本地没有的提交："
-          git log HEAD..gitee/main --oneline
+          git log HEAD..gitee/master --oneline
           echo "本地有但 Gitee 没有的提交："
-          git log gitee/main..HEAD --oneline
+          git log gitee/master..HEAD --oneline
           
       - name: Force Override
         run: |
           echo "=== 执行强制覆盖 ==="
-          git reset --hard gitee/main
+          git reset --hard gitee/master
           echo "覆盖后状态："
           git status
           git log -1 --oneline
@@ -65,5 +65,5 @@ jobs:
           
       - name: Push Changes
         run: |
-          git push --force-with-lease origin main
+          git push --force-with-lease origin master
           echo "✅ 同步完成，提交者为 mengy822"
