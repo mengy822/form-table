@@ -1,8 +1,9 @@
-import  type {button} from "../../js/sizeType";
+import type { button } from "../../js/sizeType";
 
 export interface inputType {
-  inputType?: 'text' | 'textarea' | 'password' | 'number';
-
+  inputType?: 'text' | 'textarea' | 'password' | 'number' | 'numberRange';
+  decimalPlaces?: number;
+  integerPlaces?: number;
   maxlength?: string | number;//	同原生 maxlength 属性
   minlength?: string | number;//	原生属性，最小输入长度
   showWordLimit?: boolean;//	是否显示统计字数, 只在 type 为 'text' 或 'textarea' 的时候生效	 false

@@ -1,57 +1,57 @@
 <template>
-<el-config-provider :locale="language">
-  <el-input
-    :placeholder="dataFinal.placeholder ? dataFinal.placeholder : '请输入' + dataFinal.label"
-    v-model="bindValue"
-    ref="_ref"
-    :clearable="dataFinal.clearable??false"
-    :class="`_class${dataFinal.prop}`"
-    :type="dataFinal.inputType ?? 'text'"
-    :maxlength="dataFinal.maxlength"
-    :minlength="dataFinal.minlength"
-    :show-word-limit="dataFinal.showWordLimit ?? false"
-    :show-password="dataFinal.showPassword ?? false"
-    :disabled="dataFinal.disabled ?? false"
-    :size="dataFinal.size ?? 'default'"
-    :prefix-icon="dataFinal.prefixIcon"
-    :suffix-icon="dataFinal.suffixIcon"
-    :rows="dataFinal.rows ?? 2"
-    :autosize="dataFinal.autosize ?? false"
-    :autocomplete="dataFinal.autocomplete ?? 'off'"
-    :name="dataFinal.name"
-    :readonly="dataFinal.readonly ?? false"
-    :max="dataFinal.max"
-    :min="dataFinal.min"
-    :step="dataFinal.step"
-    :resize="dataFinal.resize"
-    :autofocus="dataFinal.autofocus ?? false"
-    :form="dataFinal.form"
-    :validate-event="dataFinal.validateEvent ?? true"
-    :inputStyle="dataFinal.inputStyle ?? {}"
-    @blur="blur"
-    @focus="dataFinal.focus"
-    @change="change"
-    @input="dataFinal.input"
-    @clear="dataFinal.clear"
-    v-bind="$attrs"
-  >
-    <template v-for="(_,name) in slots" #[getName(name)]="scopeData">
-      <slot :name="name" v-bind="scopeData"></slot>
-    </template>
-  </el-input>
-</el-config-provider>
+  <el-config-provider :locale="language">
+    <el-input
+      :placeholder="dataFinal.placeholder ? dataFinal.placeholder : '请输入' + dataFinal.label"
+      v-model="bindValue"
+      ref="_ref"
+      :clearable="dataFinal.clearable ?? false"
+      :class="`_class${dataFinal.prop}`"
+      :type="dataFinal.inputType ?? 'text'"
+      :maxlength="dataFinal.maxlength"
+      :minlength="dataFinal.minlength"
+      :show-word-limit="dataFinal.showWordLimit ?? false"
+      :show-password="dataFinal.showPassword ?? false"
+      :disabled="dataFinal.disabled ?? false"
+      :size="dataFinal.size ?? 'default'"
+      :prefix-icon="dataFinal.prefixIcon"
+      :suffix-icon="dataFinal.suffixIcon"
+      :rows="dataFinal.rows ?? 2"
+      :autosize="dataFinal.autosize ?? false"
+      :autocomplete="dataFinal.autocomplete ?? 'off'"
+      :name="dataFinal.name"
+      :readonly="dataFinal.readonly ?? false"
+      :max="dataFinal.max"
+      :min="dataFinal.min"
+      :step="dataFinal.step"
+      :resize="dataFinal.resize"
+      :autofocus="dataFinal.autofocus ?? false"
+      :form="dataFinal.form"
+      :validate-event="dataFinal.validateEvent ?? true"
+      :inputStyle="dataFinal.inputStyle ?? {}"
+      @blur="blur"
+      @focus="dataFinal.focus"
+      @change="change"
+      @input="dataFinal.input"
+      @clear="dataFinal.clear"
+      v-bind="$attrs"
+    >
+      <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
+        <slot :name="name" v-bind="scopeData"></slot>
+      </template>
+    </el-input>
+  </el-config-provider>
 </template>
 <script lang="ts">
 export default {
-    name: 'Input'
+  name: 'Input',
 }
 </script>
 <script setup name="Input" lang="ts">
-import {getName} from '../../js/utils'
+import { getName } from '../../js/utils'
 import { type PropType, computed, ref, useSlots } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import type { inputInnerType } from '../form/types'
-const slots=useSlots()
+const slots = useSlots()
 const props = defineProps({
   language: {
     type: Object,
@@ -68,25 +68,65 @@ const props = defineProps({
     default: '',
   },
 })
-const blur = (e:FocusEvent) => {
-
-    // if (bindValue.value) {
-    //   document.querySelector(`._class${dataFinal.value.prop}`)?.classList.remove('error')
-    // } else {
-    //   document.querySelector(`._class${dataFinal.value.prop}`)?.classList.add('error')
-    // }
-  dataFinal.value&&dataFinal.value.blur&&dataFinal.value.blur(e)
+const blur = (e: FocusEvent) => {
+  // if (bindValue.value) {
+  //   document.querySelector(`._class${dataFinal.value.prop}`)?.classList.remove('error')
+  // } else {
+  //   document.querySelector(`._class${dataFinal.value.prop}`)?.classList.add('error')
+  // }
+  dataFinal.value && dataFinal.value.blur && dataFinal.value.blur(e)
 }
 const dataFinal = computed<typeof props.data>(() => {
   let data = { ...props.data }
-  data.change = data.change || function () {}
-  data.blur = data.blur || function () {}
-  data.focus = data.focus || function () {}
-  data.clear = data.clear || function () {}
-  data.input = data.input || function () {}
+ data.focus = data.focus || function () {};
+  data.clear = data.clear || function () {};
+  let defaultInputFun = (inputValue: string | number) => {};
+  let defaultChangeFun = (inputValue: string | number) => {};
+  let defaultBlurFun = (e: FocusEvent) => {};
+  if (data.inputType === 'numberRange') {
+    data.inputType = 'text';
+    defaultInputFun = (value: string | number) => {
+      const maxIntegerDigits = data.integerPlaces || 10;
+      const maxDecimalDigits = data.decimalPlaces || 2;
+      let result = (value as string)
+        // 去除非(数字、小数点、负号)
+        .replace(/[^\d.-]/g, '')
+        // 确保只有一个小数点
+        .replace(/(\..*)\./g, '$1')
+        // // 确保负号在开头且只有一个
+        .replace(/(?!^-)-/g, '')
+        // .replace(/^(-?)-/g, '$1');
+        // // 处理整数部分
+        .replace(new RegExp(`^(-?)0*(\\d{0,${maxIntegerDigits}})\\d*`), function (match, sign, digits) {
+          if (digits === '' && /^0+$/.test(match.replace(/^-/, '').split('.')[0])) {
+            return sign + '0';
+          }
+          return sign + (digits === '' ? '' : digits);
+        })
+        // 处理小数部分
+        .replace(new RegExp(`(\\.\\d{0,${maxDecimalDigits}})\\d*`, 'g'), '$1');
+      const nochange = ['.', '-', '-.'];
+      if (nochange.indexOf(result) === -1) {
+        let xsd = '';
+        if (result.slice(result.length - 1) === '.') {
+          xsd = '.';
+        }
+        result = result ? String(Number(result)) + xsd : result;
+      }
+      bindValue.value = result; //Number(result);
+      console.log(bindValue.value, result);
+    };
+    defaultBlurFun = (e: FocusEvent) => {
+      const nochange = ['.', '-', '-.'];
+      if (nochange.includes(e?.target?.value)) bindValue.value = '';
+      else bindValue.value = Number(e?.target?.value);
+    };
+  }
+  data.change = data.change || defaultChangeFun;
+  data.blur = data.blur || defaultBlurFun;
+  data.input = data.input || defaultInputFun;
   return data
 })
-
 
 const emits = defineEmits(['update:modelValue'])
 const bindValue = computed({
@@ -95,7 +135,7 @@ const bindValue = computed({
   },
   set(val) {
     // if (props.modelValue != val) {
-      change(val)
+    change(val)
     // }
   },
 })
