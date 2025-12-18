@@ -10,6 +10,7 @@ import { fileType } from "../File/types";
 interface columnType {
   prop: string; //model 的键名。 它可以是一个属性的值(如 a.b.0 或 ['a', 'b', '0'])。 在使用了 validate、resetFields 的方法时，该属性是必填的。
   label: string;
+  class?: string;
   labelPosition?: '' | 'left' | 'right' | 'top'; // 2.7.7	表单域标签的位置， 当设置为 left 或 right 时，则也需要设置 label-width 属性 默认会继承 Form的label-position
   labelWidth?: string | number; //标签宽度，例如 '50px'。 可以使用 auto。
   isForm?: boolean;
