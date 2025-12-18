@@ -43,6 +43,7 @@ interface RulesType {
   number: requiredType[];
   numberZero: requiredType[];
   numberAuto: requiredType[];
+  url: requiredType[];
   decimal: requiredType[];
   ruleIp: requiredType[];
   ruleExtCellEmun: requiredType[];
@@ -76,6 +77,7 @@ let rules: RulesType = {
   numberAuto: [],
   // 数字--小数两位
   decimal: [],
+  url:[],
   ruleIp: [
     // 校验设备IP
   ],
@@ -522,6 +524,11 @@ export function formRules(
     numberAuto: [
       // { type: 'number', message: `${generateValidationMessage(min, max, maxlength)}` },
       { validator: validNumberAuto, trigger: 'blur', required: true, min: min, max: max, maxlength: maxlength }
+    ],
+    // URL
+    url: [
+      { type: 'url', message: `请输入URL` },
+      { pattern: /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i, message: '请输入正确的URL', trigger: 'blur' }
     ],
     // 数字--小数两位
     decimal: [
