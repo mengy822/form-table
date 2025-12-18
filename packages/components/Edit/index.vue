@@ -38,6 +38,7 @@
                   :ref="(el: any) => dynamicCreateRef(el, item.prop)"
                   :label="item.label"
                   :prop="item.prop"
+                  :class="item.class"
                   :rules="
                     typeof item.dynamicRequired === 'undefined' ||
                     (item.dynamicRequired && item.dynamicRequired(dynamicComputedMap))
