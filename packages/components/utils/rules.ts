@@ -585,7 +585,7 @@ export function createRules(
         if (item.isRequired === 'numberAuto') {
           rules[item.prop] = formRules(item.label, item.isRequired, item.maxlength, item.min, item.max);
         } else {
-          rules[item.prop] = formRules(item.label, item.isRequired);
+          rules[item.prop] = formRules(item.label, item.isRequired, item.maxlength, item.min, item.max);
         }
         required = {
           required: true,
