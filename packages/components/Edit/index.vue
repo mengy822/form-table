@@ -26,6 +26,7 @@
           :size="size"
           :disabled="disabled"
           :scroll-to-error="scrollToError"
+          @submit.native.prevent="submitFun"
         >
           <div v-for="(columnItem, index) in columnFinal" :key="index" :class="`class_${index}`">
             <div
