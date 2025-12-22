@@ -549,7 +549,7 @@ export function formRules(
     password: [
       { required: true, message: label + '不能为空', trigger: 'blur' },
       {
-        pattern: new RegExp(`/^(?=.*[a-zA-Z])(?=.*\\d)(?=.*[~!@#$%^&*()_+\`\\-={}:";'<>,.\\/]).{${min},${max}}$/`),
+        pattern: new RegExp(`(?=.*[a-zA-Z])(?=.*\\d)(?=.*[~!@#$%^&*()_+\`\\-={}:";'<>,.\\/]).{${min},${max}}`),
         message: `密码必须为长度${min}-${max}位，且为字母、数字和非空格特殊字符的混合组合`,
         trigger: 'blur'
       }
