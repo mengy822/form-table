@@ -374,7 +374,7 @@ import RightToolbar from '../components/RightToolbar/index.vue'
 import MyTableColumn from '../components/tableColumn'
 import { Delete, Download, Edit, Plus, Upload, View } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, TableColumnCtx, TableInstance } from 'element-plus'
-
+import FunctionAnalyzer from '@/components/FormTable/utils/FunctionAnalyzer';
 import { deepClone, getComputedStyle, getHeight, getRemainingHeight } from '../js/utils'
 
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
