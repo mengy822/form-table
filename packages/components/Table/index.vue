@@ -1326,7 +1326,7 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
 const handleAdd = () => {
   if (proxyPropsParamsInfo.value['onAdd']) {
     operationLoading.value=true
-    emits('add', () => {
+    emits('add', undefined, () => {
       operationLoading.value=false
     });
   } else {
