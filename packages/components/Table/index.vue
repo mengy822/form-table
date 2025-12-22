@@ -788,13 +788,29 @@ const proxyProps = ref<{
   onDataLoadCompleted: false,
   'onUpdate:showSearch': false,
 })
-
+const proxyPropsParamsInfo = ref<{
+  [key: string]: boolean;
+}>({
+  onAdd: false,
+  onUpdate: false,
+  onDetail: false,
+  onRemove: false,
+  onAddSon: false,
+  onDataLoadCompleted: false,
+  'onUpdate:showSearch': false
+});
 onMounted(() => {
   const internal = getCurrentInstance()
   const onEmit = (internal?.vnode.props || {}) as Record<string, any>
   for (const emit in onEmit) {
     proxyProps.value[emit] = typeof onEmit[emit] === 'function'
   }
+  if (proxyProps.value[emit]) {
+      const funInfo = FunctionAnalyzer.analyzeParameters(onEmit[emit]);
+      if (funInfo.parameterCount > 0 && funInfo.parameters.find((item) => item.name === 'cb' || item.name === 'callback')) {
+        proxyPropsParamsInfo.value[emit] = true;
+      }
+    }
   // 事件处理器会被归一化为 onXxx
   // hasUpdateListener.value = typeof props.onUpdate === 'function'
   autoHeight()
@@ -1308,10 +1324,24 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
   }
 }
 const handleAdd = () => {
-  emits('add')
+  if (proxyPropsParamsInfo.value['onAdd']) {
+    operationLoading.value=true
+    emits('add', () => {
+      operationLoading.value=false
+    });
+  } else {
+    emits('add');
+  }
 }
 const handleImport = () => {
-  emits('import')
+  if (proxyPropsParamsInfo.value['onImport']) {
+    operationLoading.value=true
+    emits('import', () => {
+      operationLoading.value=false
+    });
+  } else {
+    emits('import');
+  }
 }
 const operationData = computed(() => {
   return {
@@ -1408,7 +1438,14 @@ const handleBatchRemove = () => {
 }
 
 const handleUpdate = (row: dataItemType) => {
-  emits('update', row)
+  if (proxyPropsParamsInfo.value['onUpdate']) {
+    operationLoading.value = true;
+    emits('update', row, () => {
+      operationLoading.value = false;
+    });
+  } else {
+    emits('update', row);
+  }
 }
 const operationLoading = ref(false)
 const handleRemove = (row: dataItemType) => {
@@ -1451,7 +1488,14 @@ const handleRemove = (row: dataItemType) => {
     })
 }
 const handleDetail = (row: dataItemType) => {
-  emits('detail', row)
+  if (proxyPropsParamsInfo.value['onDetail']) {
+    operationLoading.value = true;
+    emits('detail', row, () => {
+      operationLoading.value = false;
+    });
+  } else {
+    emits('detail', row);
+  }
 }
 const handleAddSon = (row: dataItemType) => {
   emits('add-son', row)
