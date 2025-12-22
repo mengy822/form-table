@@ -23,6 +23,7 @@
               :inline="true"
               :model="dynamicComputedMap"
               :label-width="labelWidth"
+              @submit.native.prevent="submitFun('search')"
             >
               <slot
                 v-for="(item, index) in rowItem"
