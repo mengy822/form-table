@@ -184,7 +184,7 @@ export const getHeight = (className: string): number => {
     // console.log(getDomComputed(baseClassStyle, 'height') ,className)
     baseClassHeight = getDomComputed(baseClassStyle, 'height')
   }
-  return baseClassHeight
+  return isNaN(baseClassHeight) ? 0 : baseClassHeight
 }
 /**
  * 获取容器剩余高度（优化版）
