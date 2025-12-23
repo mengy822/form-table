@@ -887,7 +887,7 @@ const autoHeight = () => {
       dom.forEach((item) => {
         listenDoc.listen(item)
       })
-      listenDoc.listen('.pagination-container');
+      if(props.hasPage)listenDoc.listen('.pagination-container');
       // listenDoc.listen('.el-card__header');
       // listenDoc.listen('.el-table__header-wrapper');
     }
