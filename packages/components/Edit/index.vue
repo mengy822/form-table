@@ -155,11 +155,13 @@
       </div>
 
       <template #footer>
-        <slot name="footer">
+        <slot name="footer" :loading="loading" :data="dynamicComputedMap" :orginaData="dataFinal">
           <div class="dialog-footer">
+          <slot name="submitFooter" :loading="loading" :data="dynamicComputedMap" :orginaData="dataFinal">
             <el-button type="primary" @click="submitFun" :loading="loading">
               {{ isAdd ? submitButtonTxt.add : submitButtonTxt.edit }}
             </el-button>
+            </slot>
             <el-button @click="cancelFun" :loading="loading"> {{ cancelButtonTxt }}</el-button>
           </div>
         </slot>
@@ -578,12 +580,7 @@ const updateData = (prop: string, data: any) => {
 const getData = (prop: string) => {
   return dynamicComputedMap.value[prop]
 }
-defineExpose({
-  init,
-  close: cancelFun,
-  updateData,
-  getData,
-})
+
 const submitFun = async () => {
   formRef.value?.validate((valid: boolean, fields: any) => {
     if (valid) {
@@ -620,6 +617,12 @@ const submitFun = async () => {
     }
   })
 }
+defineExpose({
+  init,
+  close: cancelFun,
+  updateData,
+  getData,submit: submitFun
+})
 </script>
 
 <style scoped lang="scss">
