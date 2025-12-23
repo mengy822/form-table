@@ -555,7 +555,7 @@ const getData = (prop: string): void => {
   return dynamicComputedMap.value[prop];
 };
 //暴露的数据
-defineExpose({ fold, dynamicRefMap, formPlusMain, buttons, updateData,getData });
+defineExpose({ fold, dynamicRefMap, formPlusMain, buttons, updateData,getData,searchFun });
 </script>
 
 <style scoped lang="scss">
