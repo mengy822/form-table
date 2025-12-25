@@ -90,6 +90,7 @@
         :default-expand-all="defaultExpandAll"
         @expand-change="tableRowStatusChange"
         @sort-change="onSort"
+        @current-change="handleCurrentChange"
       >
         <el-table-column
           v-if="hasSelectionComputed"
@@ -1107,6 +1108,13 @@ interface MyTableEmits {
    * @param parentRow 父行数据（新增子节点的上级）
    */
   (eventName: 'add-son', parentRow: TableRowData): void
+  
+  /**
+   * 行内新增子节点按钮点击事件（树形表格专用）
+   * @param eventName 事件名：固定为 'current-change'
+   * @param val 被选中的行数据
+   */
+  (eventName: 'current-change', val: TableRowData): void;
 }
 
 // ========================================================================
@@ -1157,6 +1165,9 @@ const tableRowStatusChange = (row: any, expandedRows: any[] | boolean): void => 
     delete dataExpandMap.value[String(row[treeConfig.value.id])]
   }
 }
+const handleCurrentChange = (val: any) => {
+  if (proxyProps.value['onCurrentChange']) emits('current-change', val);
+};
 //排序
 const onSort = (data: {
   column: TableColumnCtx
