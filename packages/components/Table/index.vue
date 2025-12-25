@@ -1168,6 +1168,9 @@ const tableRowStatusChange = (row: any, expandedRows: any[] | boolean): void => 
 const handleCurrentChange = (val: any) => {
   if (proxyProps.value['onCurrentChange']) emits('current-change', val);
 };
+const setCurrentRow = (val: any) => {
+  tableRef.value?.setCurrentRow(val);
+};
 //排序
 const onSort = (data: {
   column: TableColumnCtx
@@ -1250,6 +1253,7 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
   if (typeof isFirst === 'boolean' && isFirst) {
     queryParam.pageNum = 1
   }
+  setCurrentRow()
   queryParams.value = { ...queryParam, ...sortPropDataComputed.value };
   // queryParam = { ...queryParam, ...sortPropDataComputed.value };
   if (!props.dataListFun) {
@@ -1550,7 +1554,7 @@ defineExpose({
   query: handleQuery,
   slots,
   originalData: originalData.value,
-  updateLoading,
+  updateLoading,setCurrentRow
 })
 </script>
 <style scoped lang="scss">
