@@ -345,6 +345,7 @@
         v-model:page="queryParams.pageNum"
         v-model:limit="queryParams.pageSize"
         @pagination="handleQuery"
+        :layout="pageLayout
       >
         <template #extra>
           <span :key="key" v-for="(value, key, index) in extra" class="extra">
@@ -393,6 +394,8 @@ interface IsTreeConfig {
 export interface TableProps {
   /** 是否显示分页 */
   hasPage: boolean
+  /** 分页配置 **/
+  pageLayout: string;
   /**是树结构*/
   isTree?: boolean | IsTreeConfig
   /** 是否懒加载（树形结构） */
