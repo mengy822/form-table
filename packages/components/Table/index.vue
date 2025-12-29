@@ -497,7 +497,7 @@ export interface TableProps {
   /** 表格数据源（树形结构数据） */
   dataList: Array<dataItemType> | undefined
   /** 数据源加载函数 */
-  dataListFun?: Function
+  dataListFun?: (query: { [key: string]: any }, cb: (res: string | Promise<any> | any[], ...obj: any[]) => void) => void;
   dataLoadFun?: Function
   /** 数据源格式配置（数据列表字段、总数字段） */
   dataConfig: { rows: string; total: string; extra: string }
@@ -1266,7 +1266,7 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
   if (!props.dataListFun) {
     emits('query', queryParam)
   } else {
-    props.dataListFun(queryParam, async (res: any, ...obj: any[]) => {
+    props.dataListFun(queryParam, async (res: string|Promise|any[], ...obj: any[]) => {
       try {
         if (res instanceof Promise) {
           res = await (res as Promise<any>)
