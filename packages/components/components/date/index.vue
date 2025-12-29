@@ -1,6 +1,37 @@
 <template>
   <el-config-provider :locale="language">
-    <el-date-picker
+  <el-time-picker
+    v-if="isTime"
+    v-model="bindValue"
+    :is-range="dataFinal.dateType == 'timerange'"
+    :placeholder="`请选择${dataFinal.label}`"
+    :readonly="dataFinal.readonly"
+    :disabled="dataFinal.disabled"
+    :editable="dataFinal.editable"
+    :clearable="dataFinal.clearable"
+    :size="dataFinal.size ?? 'default'"
+    :value-format="dataFinal.valueFormat"
+    :format="dataFinal.format"
+    :type="dataFinal.dateType"
+    :range-separator="dataFinal.rangeSeparator ?? '-'"
+    :start-placeholder="dataFinal.startPlaceholder ?? '开始日期'"
+    :end-placeholder="dataFinal.endPlaceholder ?? '结束日期'"
+    :disabled-date="dataFinal.disabledDate"
+    v-bind="$attrs"
+    @blur="blur"
+    @focus="dataFinal.focus"
+    @clear="dataFinal.clear"
+    @calendar-change="dataFinal.calendarChange"
+    @panel-change="dataFinal.panelChange"
+    @visible-change="dataFinal.visibleChange"
+  >
+  >
+      <template v-for="(_,name) in slots" #[getName(name)]="scopeData">
+        <slot :name="name" v-bind="scopeData"></slot>
+      </template>
+</el-time-picker>
+  <el-date-picker
+    v-else
       @change="change"
       ref="_ref"
       :class="`_class${dataFinal.prop}`"
@@ -69,12 +100,17 @@ const blur = (e: FocusEvent) => {
   // }
   dataFinal.value && dataFinal.value.blur && dataFinal.value.blur(e)
 }
+const isTime = ref(false);
 const dataFinal = computed(() => {
   let data = { ...props.data }
 
   let format = 'YYYY-MM-DD';
   if ((data.dateType||'').indexOf('time') > -1) {
     format += ` HH:mm:ss`;
+  }
+  isTime.value = data.dateType == 'time' || data.dateType == 'timerange';
+  if (isTime) {
+    format = `HH:mm:ss`;
   }
   data.valueFormat = data.valueFormat ?? format;
   data.format = data.format ?? data.valueFormat ?? format;
