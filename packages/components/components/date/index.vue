@@ -92,7 +92,9 @@ const bindValue = computed({
   get() {
     return typeof props.modelValue !== 'object'
       ? String(props.modelValue)
-      : props.modelValue.map((item) => String(item))
+      : props.modelValue != null
+        ? props.modelValue.map((item) => String(item))
+        : props.modelValue;
   },
   set(val) {
     change(val)
