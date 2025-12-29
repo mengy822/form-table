@@ -345,7 +345,8 @@
         v-model:page="queryParams.pageNum"
         v-model:limit="queryParams.pageSize"
         @pagination="handleQuery"
-        :layout="pageLayout
+        :layout="pageLayout"
+        :pagerCount="pagerCount"
       >
         <template #extra>
           <span :key="key" v-for="(value, key, index) in extra" class="extra">
@@ -396,6 +397,7 @@ export interface TableProps {
   hasPage: boolean
   /** 分页配置 **/
   pageLayout: string;
+  pagerCount: number;
   /**是树结构*/
   isTree?: boolean | IsTreeConfig
   /** 是否懒加载（树形结构） */
@@ -674,6 +676,8 @@ const props = withDefaults(defineProps<TableProps>(), {
   hasSelection: false,
   hasOperation: true,
   operationWidth: undefined,
+  pagerCount: undefined,
+  pageLayout: undefined,
   oneOperationWidth: 70,
   hasOperationName: true,
   maxHeight: undefined,
