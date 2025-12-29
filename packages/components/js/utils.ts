@@ -30,7 +30,8 @@ export const deepClone = (target) => {
 
     // 处理函数对象
     if (typeof data === 'function') {
-      return new Function('return ' + data.toString())();
+      return data
+      // return new Function('return ' + data.toString())();
     }
 
     // 处理数组
