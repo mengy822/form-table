@@ -21,7 +21,7 @@
             >
               <el-button
                 :loading="operationLoading"
-                type="danger"
+                :type="hasBatchRemoveType"
                 plain
                 :disabled="multipleSelection.length == 0"
                 :icon="hasBatchRemoveIcon"
@@ -442,6 +442,8 @@ export interface TableProps {
   hasBatchRemove: boolean | string | ((data: dataItemType) => boolean | string)
   /** 【批量删除】按钮图标配置 */
   hasBatchRemoveIcon: object
+  /** 【批量删除】按钮类型 */
+  hasBatchRemoveType: ButtonType;
   /** 是否显示【导入】按钮（支持布尔值、自定义文本、函数动态控制） */
   hasImport: boolean | string | ((data: dataItemType) => boolean | string)
   /** 【导入】按钮图标配置 */
@@ -721,6 +723,7 @@ const props = withDefaults(defineProps<TableProps>(), {
   hasRemove: '删除',
   hasRemoveIcon: () => Delete,
   hasRemoveType: () => 'danger',
+  hasBatchRemoveType: () => 'danger',
   align: 'center',
   operationAlign: 'center',
   // 表格核心配置
