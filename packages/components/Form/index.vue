@@ -1,6 +1,6 @@
 <template>
   <div v-show="showSearch" class="mb-[20px]">
-    <el-card shadow="hover"  class="form-plus-main-card">
+    <el-card shadow="hover" class="form-plus-main-card">
       <el-config-provider :locale="language">
         <div
           class="searchList form form-plus-main"
@@ -71,33 +71,57 @@
                         :data="item as inputInnerType"
                         v-if="item.type === 'input'"
                         v-model="dynamicComputedMap[item.prop]"
-                      ></Input>
+                      >
+                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
+                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        </template>
+                      </Input>
                       <MyDate
                         :data="item as dateInnerType"
                         v-if="item.type === 'date'"
                         v-model="dynamicComputedMap[item.prop]"
-                      ></MyDate>
+                      >
+                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
+                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        </template>
+                      </MyDate>
 
                       <Select
                         :data="item as selectInnerType"
                         v-if="item.type === 'select'"
                         v-model="dynamicComputedMap[item.prop]"
-                      ></Select>
+                      >
+                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
+                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        </template>
+                      </Select>
                       <Switch
                         :data="item as switchInnerType"
                         v-if="item.type === 'switch'"
                         v-model="dynamicComputedMap[item.prop]"
-                      ></Switch>
+                      >
+                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
+                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        </template>
+                      </Switch>
                       <CheckBox
                         :data="item as checkboxInnerType"
                         v-if="item.type === 'checkbox'"
                         v-model="dynamicComputedMap[item.prop]"
-                      ></CheckBox>
+                      >
+                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
+                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        </template>
+                      </CheckBox>
                       <Radio
                         :data="item as radioInnerType"
                         v-if="item.type === 'radio'"
                         v-model="dynamicComputedMap[item.prop]"
-                      ></Radio>
+                      >
+                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
+                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        </template>
+                      </Radio>
                     </slot>
                   </template>
                 </el-form-item>
@@ -173,6 +197,7 @@
 </template>
 
 <script setup lang="ts" name="MyForm">
+import { getName } from '../js/utils'
 import { ref, watch, computed, nextTick, onMounted, onUnmounted, provide } from 'vue'
 // import { RefreshLeft, ArrowUp, ArrowDown, Search } from '@element-plus/icons-vue'
 import type { button, queryInnerType, refresh, search, searchRefresh } from '../js/types'
@@ -365,9 +390,12 @@ const initSearchValue = () => {
         } else {
           f = true
         }
-        break;
+        break
       case 'select':
-        if (!(item as selectInnerType).multiple&&(item as checkboxInnerType).valueType !== 'string') {
+        if (
+          !(item as selectInnerType).multiple &&
+          (item as checkboxInnerType).valueType !== 'string'
+        ) {
           f = true
         } else {
           //多选下拉转成逗号字符串
@@ -549,13 +577,13 @@ const openList = () => {
   fold.value = !fold.value
 }
 const updateData = (prop: string, data: any) => {
-  dynamicComputedMap.value[prop] = data;
-};
+  dynamicComputedMap.value[prop] = data
+}
 const getData = (prop: string): void => {
-  return dynamicComputedMap.value[prop];
-};
+  return dynamicComputedMap.value[prop]
+}
 //暴露的数据
-defineExpose({ fold, dynamicRefMap, formPlusMain, buttons, updateData,getData,searchFun });
+defineExpose({ fold, dynamicRefMap, formPlusMain, buttons, updateData, getData, searchFun })
 </script>
 
 <style scoped lang="scss">

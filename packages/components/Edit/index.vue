@@ -79,7 +79,11 @@
                             : item.disabled
                         "
                         v-model="dynamicComputedMap[item.prop]"
-                      ></Input>
+                      >
+                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
+                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        </template>
+                      </Input>
                       <MyDate
                         :data="item as dateInnerType"
                         v-if="item.type === 'date'"
@@ -89,7 +93,11 @@
                             : item.disabled
                         "
                         v-model="dynamicComputedMap[item.prop]"
-                      ></MyDate>
+                      >
+                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
+                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        </template>
+                      </MyDate>
 
                       <Select
                         :data="item as selectInnerType"
@@ -100,7 +108,11 @@
                             : item.disabled
                         "
                         v-model="dynamicComputedMap[item.prop]"
-                      ></Select>
+                      >
+                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
+                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        </template>
+                      </Select>
                       <Switch
                         :data="item as switchInnerType"
                         v-if="item.type === 'switch'"
@@ -110,7 +122,11 @@
                             : item.disabled
                         "
                         v-model="dynamicComputedMap[item.prop]"
-                      ></Switch>
+                      >
+                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
+                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        </template>
+                      </Switch>
                       <CheckBox
                         :data="item as checkboxInnerType"
                         v-if="item.type === 'checkbox'"
@@ -120,7 +136,11 @@
                             : item.disabled
                         "
                         v-model="dynamicComputedMap[item.prop]"
-                      ></CheckBox>
+                      >
+                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
+                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        </template>
+                      </CheckBox>
                       <Radio
                         :data="item as radioInnerType"
                         v-if="item.type === 'radio'"
@@ -130,8 +150,12 @@
                             : item.disabled
                         "
                         v-model="dynamicComputedMap[item.prop]"
-                      ></Radio>
-                      <File
+                      >
+                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
+                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        </template>
+                      </Radio>
+                      <MyFile
                         :data="item as fileInnerType"
                         v-if="item.type === 'file'"
                         v-model="dynamicComputedMap[item.prop]"
@@ -143,7 +167,11 @@
                         @fileSizeError="emits('fileSizeError')"
                         @fileTypeError="emits('fileTypeError')"
                       >
-                      </File>
+                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
+                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        </template>
+                      
+                      </MyFile>
                     </slot>
                   </template>
                 </el-form-item>
@@ -171,6 +199,7 @@
   </el-config-provider>
 </template>
 <script lang="ts" setup name="MyEdit">
+  import { getName } from '../js/utils';
 import { computed, nextTick, ref, type Ref, useAttrs, useSlots, useTemplateRef } from 'vue'
 import { ElMessage, FormRules } from 'element-plus'
 import Input from '../components/input/index.vue'
@@ -178,6 +207,7 @@ import Select from '../components/select/index.vue'
 import CheckBox from '../components/checkbox/index.vue'
 import Radio from '../components/radio/index.vue'
 import MyDate from '../components/date/index.vue'
+import MyFile from '../components/File/index.vue'
 import Switch from '../components/switch/index.vue'
 import MyDialog from '../Dialog/index.vue'
 

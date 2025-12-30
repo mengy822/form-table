@@ -8,7 +8,7 @@
     :readonly="dataFinal.readonly"
     :disabled="dataFinal.disabled"
     :editable="dataFinal.editable"
-    :clearable="dataFinal.clearable"
+    :clearable="data.isDefault?false:dataFinal.clearable"
     :size="dataFinal.size ?? 'default'"
     :value-format="dataFinal.valueFormat"
     :format="dataFinal.format"
@@ -40,7 +40,7 @@
       :readonly="dataFinal.readonly"
       :disabled="dataFinal.disabled"
       :editable="dataFinal.editable"
-      :clearable="dataFinal.clearable"
+      :clearable="data.isDefault?false:dataFinal.clearable"
       :size="dataFinal.size"
       :value-format="dataFinal.valueFormat"
       :format="dataFinal.format"
@@ -123,6 +123,7 @@ const dataFinal = computed(() => {
   data.visibleChange = data.visibleChange || function () {}
   return data
 })
+
 const emits = defineEmits(['update:modelValue'])
 const bindValue = computed({
   get() {
