@@ -28,7 +28,12 @@ export default {
           const slot: { header?: (scope: any) => Function; default?: (scope: any) => Function } = {}; // 插槽
           if (column.header) {
             // generateColumnSlot 从自身往上找指定的插槽
-            slot.header = (scope) => generateColumnSlot.call($self, column.header as string, scope); // 自定义表头
+            slot.header = (scope) => {
+              if (typeof column.header === 'string') {
+                return generateColumnSlot.call($self, column.header as string, scope);
+              }
+              return column.header!(column, other);
+            }; // 自定义表头
           }
           slot.default = (scope) => {
             const { row, $index } = scope;
@@ -47,6 +52,8 @@ export default {
                 fun: column.fun,
                 nowData: row[column.prop]
               });
+            } else if (column.funDom) {
+              return column.funDom(row, column.prop, other);
             } else if (column.prop) {
               delete other.tableColumnFinal;
               other.index = $index;
@@ -91,6 +98,8 @@ export default {
     const { tableColumnFinal, align } = this.$attrs;
     const { renderColumnList } = this;
     const $self = this;
-    return renderColumnList.call($self, tableColumnFinal, align, { ...this.$attrs }); // renderColumnList内部需借助当前this查找父组件
+    return renderColumnList.call($self, tableColumnFinal, align, {
+      ...this.$attrs,
+      renderTxt: (context:string|number|boolean) => context ?? this.$attrs.defaultBlock }); // renderColumnList内部需借助当前this查找父组件
   }
 };

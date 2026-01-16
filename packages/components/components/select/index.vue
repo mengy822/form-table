@@ -96,7 +96,7 @@ const props = defineProps({
 const emits = defineEmits(['update:modelValue'])
 const bindValue = computed({
   get() {
-    if (!props.modelValue || props.modelValue.length === 0) setDefaultValue(dataFinal.value)
+    if (typeof props.modelValue == 'undefined'  || (props.modelValue as Array<String | Number | Boolean | Object>).length === 0) setDefaultValue(dataFinal.value)
     return props.modelValue
   },
   set(val) {
@@ -146,8 +146,8 @@ const dataFinal = computed(() => {
   data.focus = data.focus || function () {}
   return data
 })
-const setDefaultValue = (data) => {
-  if (data.isDefault && data.options.length > 0) {
+const setDefaultValue = (data:selectInnerType) => {
+  if (data.isDefault && (data.options as Array<any>).length > 0) {
     if (props.type === '') {
       const isDefault: selectOptionsType | undefined = (data.options as selectOptionsType[]).find(
         (item: selectOptionsType) => !item.disabled

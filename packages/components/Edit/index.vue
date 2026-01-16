@@ -80,8 +80,8 @@
                         "
                         v-model="dynamicComputedMap[item.prop]"
                       >
-                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
-                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                          <slot :name="name" v-bind="scopeData"></slot>
                         </template>
                       </Input>
                       <MyDate
@@ -94,8 +94,8 @@
                         "
                         v-model="dynamicComputedMap[item.prop]"
                       >
-                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
-                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                          <slot :name="name" v-bind="scopeData"></slot>
                         </template>
                       </MyDate>
 
@@ -109,8 +109,8 @@
                         "
                         v-model="dynamicComputedMap[item.prop]"
                       >
-                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
-                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                          <slot :name="name" v-bind="scopeData"></slot>
                         </template>
                       </Select>
                       <Switch
@@ -123,8 +123,8 @@
                         "
                         v-model="dynamicComputedMap[item.prop]"
                       >
-                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
-                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                          <slot :name="name" v-bind="scopeData"></slot>
                         </template>
                       </Switch>
                       <CheckBox
@@ -137,8 +137,8 @@
                         "
                         v-model="dynamicComputedMap[item.prop]"
                       >
-                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
-                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                          <slot :name="name" v-bind="scopeData"></slot>
                         </template>
                       </CheckBox>
                       <Radio
@@ -151,8 +151,8 @@
                         "
                         v-model="dynamicComputedMap[item.prop]"
                       >
-                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
-                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                          <slot :name="name" v-bind="scopeData"></slot>
                         </template>
                       </Radio>
                       <MyFile
@@ -167,8 +167,8 @@
                         @fileSizeError="emits('fileSizeError')"
                         @fileTypeError="emits('fileTypeError')"
                       >
-                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
-                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                          <slot :name="name" v-bind="scopeData"></slot>
                         </template>
                       
                       </MyFile>
@@ -344,7 +344,7 @@ const props = withDefaults(defineProps<FormDialogProps>(), {
   // 表单布局
   inline: false,
   labelPosition: 'right',
-  labelWidth: '120px',
+  labelWidth: 'auto',
   labelSuffix: '',
 
   // 表单验证
@@ -410,6 +410,7 @@ const columnFinal = computed<(typeof props.column)[]>(() => {
       item.labelWidth = item.labelWidth ?? ''
       item.showFun = item.showFun ?? (() => true)
       item.disabled = item.disabled ?? false
+      item.clearable = item.clearable ?? true;
       // typeof item.disabled === 'boolean'
       //   ? item.disabled
       //   : item.disabled && item.disabled(dynamicComputedMap.value)
@@ -481,7 +482,13 @@ const init = async (
   let finaldata = {}
 
   if (data instanceof Promise) {
-    const res = await data
+    let res;
+    try {
+      res = await data;
+    } catch (e) {
+      openCb({},{});
+      return;
+    }
     if (res[props.dataConfig.code] === props.dataConfig.status) {
       finaldata = res[props.dataConfig.data]
     }
@@ -503,13 +510,13 @@ const init = async (
       if (item.isDefault && typeof dataFinal.value[item.prop] === 'undefined') {
         let data = ''
         if (item.type === 'radio') {
-          data = (item as radioInnerType).options[0].value
+          data = ((item as radioInnerType).options as Array<any>)[0].value
         }
         if (item.type === 'select' && !(item as selectInnerType).multiple) {
-          data = (item as selectInnerType).options[0].value
+          data = ((item as selectInnerType).options as Array<any>)[0].value
         }
         if (item.type === 'switch') {
-          data = (item as switchInnerType).activeValue
+          data = (item as switchInnerType).activeValue as string
         }
         dataFinal.value[item.prop] = data
       }
@@ -559,12 +566,12 @@ const init = async (
           }
           break
         case 'input':
-          if (typeof item.multiple == 'undefined') {
+          if (typeof (item as inputInnerType).multiple == 'undefined') {
             f = true
-          } else if (item.multiple) {
+          } else if ((item as inputInnerType).multiple) {
             //根据aliases转成对应字段
-            dynamicComputedFun(item.prop, 'variable', item.aliases as string)
-          } else if (item.multiple == false) {
+            dynamicComputedFun(item.prop, 'variable', (item as inputInnerType).aliases as string)
+          } else if ((item as inputInnerType).multiple == false) {
             //根据aliases转成对应字段
             dynamicComputedFun(item.prop, 'string', ',')
           }
@@ -600,12 +607,14 @@ interface MyEditEmits {
 
 const emits = defineEmits<MyEditEmits>()
 const cancelFun = () => {
+  dataFinal.value = {};
   formRef.value.clearValidate([])
   myDialog.value?.handleClose()
 }
 const updateData = (prop: string, data: any) => {
   dynamicComputedMap.value[prop] = data
-  formRef.value.validateField(prop)
+  //formRef.value.validateField(prop)
+  formRef.value?.clearValidate(prop);
 }
 const getData = (prop: string) => {
   return dynamicComputedMap.value[prop]

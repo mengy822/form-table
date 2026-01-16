@@ -75,11 +75,22 @@ const dataFinal = computed<fileInnerType>(() => {
   return data
 })
 const uploadRef = useTemplateRef('uploadRef')
-const fileList = ref<UploadUserFile[]>([])
+const fileList = computed({
+  get() {
+    return Array.isArray(props.modelValue)
+      ? props.modelValue
+      : typeof props.modelValue === 'undefined' || props.modelValue === ''
+        ? []
+        : [props.modelValue];
+  },
+  set(val) {
+    updateModelValue(val);
+  }
+});
 const handleOnRemove = (file: any, uploadFiles: UploadUserFile[]) => {
   // console.log(file, uploadFiles, fileList.value);
   fileList.value = uploadFiles
-  updateModelValue()
+  // updateModelValue()
 }
 const updateModelValue = (file?:UploadUserFile[]|UploadUserFile|string[]|string) => {
   let files:UploadUserFile[]|UploadUserFile|string[]|string = file ?? fileList.value.map((item) => item.raw)
@@ -91,7 +102,7 @@ const updateModelValue = (file?:UploadUserFile[]|UploadUserFile|string[]|string)
 const handleChange: UploadProps['onChange'] = (uploadFile, uploadFiles) => {
   // console.log(uploadFile, uploadFiles);
   fileList.value = uploadFiles
-  updateModelValue()
+  // updateModelValue()
 }
 const downloadInnerFun = (url: string | URL) => {
   request('GET', url, null, true).then((res) => {

@@ -43,14 +43,12 @@
                   :row="dataFinal"
                 >
                   <span
-                    :class="`span span_${item.prop} span_${item.prop}_${
-                      dataFinal[item.prop]
-                    } span_other_${item.classFun && item.classFun(dataFinal, item.prop, attr)} ${
-                      item.classFun && item.classFun(dataFinal, item.prop, attr)
-                    } ${(item.fun && item.fun(dataFinal, item.prop, attr)) ?? defaultBlock}`"
+                    v-if="!item.funDom||!item.useRander"
+                    :class="`span span_${item.prop} span_${item.prop}_${dataFinal[item.prop]} span_other_${item.classFun && item.classFun(dataFinal, item.prop, attr)} ${item.classFun && item.classFun(dataFinal, item.prop, attr)} ${(item.fun && item.fun(dataFinal, item.prop, attr)) ?? defaultBlock}`"
                   >
                     {{ (item.fun && item.fun(dataFinal, item.prop, attr)) ?? defaultBlock }}
                   </span>
+                  <component v-else :is="createMarkRaw(item.funDom, dataFinal, item.prop)"></component>
                 </slot>
               </template>
             </el-descriptions-item>
@@ -70,11 +68,12 @@
   </el-config-provider>
 </template>
 <script lang="ts" setup name="MyDetail">
-import { computed, nextTick, ref, useAttrs, useSlots, useTemplateRef } from 'vue'
+import { computed, markRaw, nextTick, ref, useAttrs, useSlots, useTemplateRef } from 'vue'
 
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { deepClone } from '../js/utils'
 import { MyDialogInstance, MyDialog } from '../..'
+import { dataItemType, tableColumnItem } from '../Table/index.vue'
 
 const attr = useAttrs()
 const slots = useSlots()
@@ -84,45 +83,14 @@ const display = computed(() => {
 const gridTemplateColumns = computed(() => {
   return `${slots['left'] ? 'auto ' : ''}1fr${slots['right'] ? ' auto' : ''}`
 })
-interface columnType {
-  prop: string
-  label: string //标签文本
-  span?: number //	列的数量
-  rowspan?: number //	单元格应该跨越的行数
-  width?: string | number //列的宽度，不同行相同列的宽度按最大值设定（如无 border ，宽度包含标签与内容）
-  minWidth?: string | number //列的最小宽度，与 width 的区别是 width 是固定的，min-width 会把剩余宽度按比例分配给设置了 min-width 的列（如无 border，宽度包含标签与内容）
-  align?: 'left' | 'center' | 'right' //	列的内容对齐方式（如无 border，对标签和内容均生效）
-  labelAlign?: 'left' | 'center' | 'right' //列的标签对齐方式，若不设置该项，则使用内容的对齐方式（如无 border，请使用 align 参数）
-  className?: string //列的内容自定义类名
-  labelClassName?: string //column label custom class name
-  fun?: (
-    row: any,
-    prop: string,
-    other?: {
-      index?: number
-      searchValue?: { [key: string]: any }
-      [key: string]: any
+const createMarkRaw = (myRender:tableColumnItem['funDom'], data:dataItemType, prop:string, other = {}) => {
+  const innerother = { ...other, ...attr, loading: false, renderTxt: (context:string|number|boolean) => context ?? props.defaultBlock };
+  return markRaw({
+    render() {
+      return myRender!(data, prop, innerother);
     }
-  ) => string
-  classFun?: (
-    row: any,
-    prop: string,
-    other?: {
-      index?: number
-      searchValue?: { [key: string]: any }
-      [key: string]: any
-    }
-  ) => string
-  showFun?: (
-    row: any,
-    prop: string,
-    other?: {
-      index?: number
-      searchValue?: { [key: string]: any }
-      [key: string]: any
-    }
-  ) => boolean
-}
+  });
+};
 
 // 定义 Props 类型接口，清晰划分配置维度
 interface DesDialogProps {
@@ -147,7 +115,7 @@ interface DesDialogProps {
   /** 描述区域右上方操作区文本 */
   desExtra: string
   /** 描述项配置列表（必填，核心配置） */
-  column: columnType[]
+  column: (tableColumnItem&{useRander?:boolean})[]
   defaultBlock: string
   /** 数据源格式配置（数据、成功状态码、状态码字段） */
   dataConfig: { data: string; status: string | number | boolean; code: string }
@@ -176,7 +144,7 @@ const props = withDefaults(defineProps<DesDialogProps>(), {
 })
 const myDialog = useTemplateRef<MyDialogInstance>('myDialog')
 const dataFinal = ref<{ [key: string]: any }>({})
-const columnFinal = computed<columnType[]>(() => {
+const columnFinal = computed<(tableColumnItem&{useRander?:boolean})[]>(() => {
   return deepClone(props.column)
     .filter((item: { isForm: any }) => typeof item.isForm == 'undefined' || item.isForm)
     .map(
@@ -187,11 +155,13 @@ const columnFinal = computed<columnType[]>(() => {
         fun: (row: any, prop: string) => string
         unit: any
         showFun: (row: any) => boolean
+        useRander: boolean
       }) => {
         item.align = item.align ?? 'left'
         item.span = item.span ?? 1
         item.rowspan = item.rowspan ?? 1
         item.unit = item.unit ?? ''
+        item.useRander=item.useRander||false
         // item.fun = item.fun ?? ((row: any, prop: string) => String(row[prop] ?? props.defaultBlock) + (item.unit ?? ''));
         item.fun =
           item.fun ??
@@ -241,7 +211,13 @@ const init = async (
 ) => {
   let finaldata = {}
   if (data instanceof Promise) {
-    const res = await data
+    let res;
+    try {
+      res = await data;
+    } catch (e) {
+      openCb({});
+      return;
+    }
     if (res[props.dataConfig.code] === props.dataConfig.status) {
       finaldata = res[props.dataConfig.data]
     }
@@ -254,7 +230,14 @@ const init = async (
     openCb(dataFinal.value)
   })
 }
-defineExpose({ init, handleClose })
+const updateData = (prop: string, data: any): void => {
+  dataFinal.value[prop] = data;
+};
+
+const getData = (prop: string): void => {
+  return dataFinal.value[prop];
+};
+defineExpose({ init, handleClose, updateData, getData });
 </script>
 <style scoped lang="scss">
 .detail {

@@ -8,7 +8,7 @@
               <el-button
                 :loading="operationLoading"
                 type="primary"
-                plain
+                :plain="hasTableTopPlain"
                 :icon="hasAddIcon"
                 @click="handleAdd()"
               >
@@ -22,7 +22,7 @@
               <el-button
                 :loading="operationLoading"
                 :type="hasBatchRemoveType"
-                plain
+                :plain="hasTableTopPlain"
                 :disabled="multipleSelection.length == 0"
                 :icon="hasBatchRemoveIcon"
                 @click="handleBatchRemove()"
@@ -34,7 +34,7 @@
               <el-button
                 :loading="operationLoading"
                 type="warning"
-                plain
+                :plain="hasTableTopPlain"
                 :icon="hasExportIcon"
                 @click="handleExport()"
               >
@@ -45,7 +45,7 @@
               <el-button
                 :loading="operationLoading"
                 type="info"
-                plain
+                :plain="hasTableTopPlain"
                 :icon="hasImportIcon"
                 @click="handleImport()"
               >
@@ -53,7 +53,12 @@
               </el-button>
             </el-col>
             <el-col :span="1.5" v-if="slots['tableOperation']">
-              <slot name="tableOperation" :data="operationData"></slot>
+              <slot
+                name="tableOperation"
+                :data="operationData"
+                :loading="operationLoading"
+                :plain="hasTableTopPlain"
+              ></slot>
             </el-col>
             <right-toolbar
               :search="proxyProps['onUpdate:showSearch']"
@@ -141,16 +146,8 @@
             ></slot>
             <slot name="addSon" :data="scope.row">
               <el-tooltip
-                disabled
-                :content="`${
-                  (typeof hasAddSon === 'boolean'
-                    ? undefined
-                    : typeof hasAddSon === 'function'
-                    ? hasOperationName
-                      ? hasAddSon(scope.row)
-                      : undefined
-                    : hasAddSon) ?? '新增'
-                }`"
+                :disabled="hasOperationName"
+                :content="`${getOperationLabel(hasAddSon, scope, '新增')}`"
                 placement="top"
                 v-if="
                   typeof hasAddSon === 'function'
@@ -166,15 +163,7 @@
                   :icon="hasAddSonIcon"
                   @click="handleAddSon(scope.row)"
                 >
-                  {{
-                    typeof hasAddSon === 'boolean'
-                      ? undefined
-                      : typeof hasAddSon === 'function'
-                      ? hasOperationName
-                        ? hasAddSon(scope.row)
-                        : undefined
-                      : hasAddSon
-                  }}
+                  {{ getOperationLabel(hasAddSon, scope, '新增') }}
                 </el-button>
               </el-tooltip>
             </slot>
@@ -189,16 +178,8 @@
             ></slot>
             <slot name="detail" :data="scope.row">
               <el-tooltip
-                disabled
-                :content="`${
-                  (typeof hasDetail === 'boolean'
-                    ? undefined
-                    : typeof hasDetail === 'function'
-                    ? hasOperationName
-                      ? hasDetail(scope.row)
-                      : undefined
-                    : hasDetail) ?? '详情'
-                }`"
+                :disabled="hasOperationName"
+                :content="`${getOperationLabel(hasDetail, scope, '详情')}`"
                 placement="top"
                 v-if="
                   typeof hasDetail === 'function'
@@ -214,15 +195,7 @@
                   :icon="hasDetailIcon"
                   @click="handleDetail(scope.row)"
                 >
-                  {{
-                    typeof hasDetail === 'boolean'
-                      ? undefined
-                      : typeof hasDetail === 'function'
-                      ? hasOperationName
-                        ? hasDetail(scope.row)
-                        : undefined
-                      : hasDetail
-                  }}
+                  {{ getOperationLabel(hasDetail, scope, '详情') }}
                 </el-button>
               </el-tooltip>
             </slot>
@@ -237,16 +210,8 @@
             ></slot>
             <slot name="update" :data="scope.row">
               <el-tooltip
-                disabled
-                :content="`${
-                  (typeof hasUpdate === 'boolean'
-                    ? undefined
-                    : typeof hasUpdate === 'function'
-                    ? hasOperationName
-                      ? hasUpdate(scope.row)
-                      : undefined
-                    : hasUpdate) ?? '修改'
-                }`"
+                :disabled="hasOperationName"
+                :content="`${getOperationLabel(hasUpdate, scope, '修改')}`"
                 placement="top"
                 v-if="
                   typeof hasUpdate === 'function'
@@ -262,15 +227,7 @@
                   :icon="hasUpdateIcon"
                   @click="handleUpdate(scope.row)"
                 >
-                  {{
-                    typeof hasUpdate === 'boolean'
-                      ? undefined
-                      : typeof hasUpdate === 'function'
-                      ? hasOperationName
-                        ? hasUpdate(scope.row)
-                        : undefined
-                      : hasUpdate
-                  }}
+                  {{ getOperationLabel(hasUpdate, scope, '修改') }}
                 </el-button>
               </el-tooltip>
             </slot>
@@ -285,16 +242,8 @@
             ></slot>
             <slot name="remove" :data="scope.row">
               <el-tooltip
-                disabled
-                :content="`${
-                  (typeof hasRemove === 'boolean'
-                    ? undefined
-                    : typeof hasRemove === 'function'
-                    ? hasOperationName
-                      ? hasRemove(scope.row)
-                      : undefined
-                    : hasRemove) ?? '删除'
-                }`"
+                :disabled="hasOperationName"
+                :content="`${getOperationLabel(hasRemove, scope, '删除')}`"
                 placement="top"
                 v-if="
                   typeof hasRemove === 'function'
@@ -310,15 +259,7 @@
                   :icon="hasRemoveIcon"
                   @click="handleRemove(scope.row)"
                 >
-                  {{
-                    typeof hasRemove === 'boolean'
-                      ? undefined
-                      : typeof hasRemove === 'function'
-                      ? hasOperationName
-                        ? hasRemove(scope.row)
-                        : undefined
-                      : hasRemove
-                  }}
+                  {{ getOperationLabel(hasRemove, scope, '删除') }}
                 </el-button>
               </el-tooltip>
             </slot>
@@ -377,7 +318,7 @@ import RightToolbar from '../components/RightToolbar/index.vue'
 import MyTableColumn from '../components/tableColumn'
 import { Delete, Download, Edit, Plus, Upload, View } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, TableColumnCtx, TableInstance } from 'element-plus'
-import FunctionAnalyzer from '@/components/FormTable/utils/FunctionAnalyzer';
+import FunctionAnalyzer from '@/components/FormTable/utils/FunctionAnalyzer'
 import { deepClone, getComputedStyle, getHeight, getRemainingHeight } from '../js/utils'
 
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
@@ -395,9 +336,13 @@ interface IsTreeConfig {
 export interface TableProps {
   /** 是否显示分页 */
   hasPage: boolean
+  
+  /** 表格顶部按钮Plain */
+  hasTableTopPlain: boolean
+
   /** 分页配置 **/
-  pageLayout: string;
-  pagerCount: number;
+  pageLayout: string
+  pagerCount: number
   /**是树结构*/
   isTree?: boolean | IsTreeConfig
   /** 是否懒加载（树形结构） */
@@ -428,7 +373,7 @@ export interface TableProps {
   height: number | string | undefined
   /** 基础样式类（用于计算高度等） */
   baseClass: string
-  authHeightExcludeClassName:string[]
+  authHeightExcludeClassName: string[]
   //默认对齐
   align: 'center' | 'left' | 'right'
   operationAlign: 'center' | 'left' | 'right'
@@ -443,7 +388,7 @@ export interface TableProps {
   /** 【批量删除】按钮图标配置 */
   hasBatchRemoveIcon: object
   /** 【批量删除】按钮类型 */
-  hasBatchRemoveType: ButtonType;
+  hasBatchRemoveType: ButtonType
   /** 是否显示【导入】按钮（支持布尔值、自定义文本、函数动态控制） */
   hasImport: boolean | string | ((data: dataItemType) => boolean | string)
   /** 【导入】按钮图标配置 */
@@ -499,7 +444,10 @@ export interface TableProps {
   /** 表格数据源（树形结构数据） */
   dataList: Array<dataItemType> | undefined
   /** 数据源加载函数 */
-  dataListFun?: (query: { [key: string]: any }, cb: (res: string | Promise<any> | any[], ...obj: any[]) => void) => void;
+  dataListFun?: (
+    query: { [key: string]: any },
+    cb: (res: string | Promise<any> | any[], ...obj: any[]) => void
+  ) => void
   dataLoadFun?: Function
   /** 数据源格式配置（数据列表字段、总数字段） */
   dataConfig: { rows: string; total: string; extra: string }
@@ -577,11 +525,17 @@ export interface tableColumnItem {
   isForm?: boolean
   showOverflow?: boolean
   width?: number
-  unit?: string |((row: dataItemType, prop: string, other?: {
-      index?: number
-      tableColumnFinal?: tableColumnItem[]
-      [key: string]: any
-    })=>string);//单位
+  unit?:
+    | string
+    | ((
+        row: dataItemType,
+        prop: string,
+        other?: {
+          index?: number
+          tableColumnFinal?: tableColumnItem[]
+          [key: string]: any
+        }
+      ) => string) //单位
   sortFun?: Function
   sort?: boolean | 'custom'
   sortable?: boolean | 'custom'
@@ -598,33 +552,49 @@ export interface tableColumnItem {
     other?: {
       index?: number
       tableColumnFinal?: tableColumnItem[]
-      searchValue?: { [key: string]: any };
+      searchValue?: { [key: string]: any }
       [key: string]: any
     }
   ) => string
-  funDom?: VNode | Component
+  funDom?: (
+    row: dataItemType,
+    prop: string,
+    other?: {
+      index?: number
+      tableColumnFinal?: tableColumnItem[]
+      searchValue?: { [key: string]: any }
+      [key: string]: any
+    }
+  ) => VNode | Component
   classFun?: (
     row: dataItemType,
     prop: string,
     other?: {
       index?: number
       tableColumnFinal?: tableColumnItem[]
-      searchValue?: { [key: string]: any };
+      searchValue?: { [key: string]: any }
       [key: string]: any
     }
   ) => string
   showFun?: (
     row?: queryParamType | any,
     other?: {
-      index?: number;
-      tableColumnFinal?: tableColumnItem[];
-      searchValue?: { [key: string]: any };
-      [key: string]: any;
+      index?: number
+      tableColumnFinal?: tableColumnItem[]
+      searchValue?: { [key: string]: any }
+      [key: string]: any
     }
   ) => boolean
   slot?: string
   // render?: any
-  header?: string
+  header?:
+    | string
+    | ((
+        column: tableColumnItem,
+        other?: {
+          [key: string]: any
+        }
+      ) => string | VNode | Component)
 
   list?: tableColumnItem[]
 }
@@ -699,7 +669,7 @@ const props = withDefaults(defineProps<TableProps>(), {
   hasImportIcon: () => Upload,
   hasExport: true,
   hasExportIcon: () => Download,
-
+  hasTableTopPlain: true,
   // 操作列通用配置
   hasOperationText: true,
   hasOperationLink: true,
@@ -800,7 +770,7 @@ const proxyProps = ref<{
   'onUpdate:showSearch': false,
 })
 const proxyPropsParamsInfo = ref<{
-  [key: string]: boolean;
+  [key: string]: boolean
 }>({
   onAdd: false,
   onUpdate: false,
@@ -808,8 +778,8 @@ const proxyPropsParamsInfo = ref<{
   onRemove: false,
   onAddSon: false,
   onDataLoadCompleted: false,
-  'onUpdate:showSearch': false
-});
+  'onUpdate:showSearch': false,
+})
 onMounted(() => {
   const internal = getCurrentInstance()
   const onEmit = (internal?.vnode.props || {}) as Record<string, any>
@@ -817,11 +787,14 @@ onMounted(() => {
     proxyProps.value[emit] = typeof onEmit[emit] === 'function'
   }
   if (proxyProps.value[emit]) {
-      const funInfo = FunctionAnalyzer.analyzeParameters(onEmit[emit]);
-      if (funInfo.parameterCount > 0 && funInfo.parameters.find((item) => item.name === 'cb' || item.name === 'callback')) {
-        proxyPropsParamsInfo.value[emit] = true;
-      }
+    const funInfo = FunctionAnalyzer.analyzeParameters(onEmit[emit])
+    if (
+      funInfo.parameterCount > 0 &&
+      funInfo.parameters.find((item) => item.name === 'cb' || item.name === 'callback')
+    ) {
+      proxyPropsParamsInfo.value[emit] = true
     }
+  }
   // 事件处理器会被归一化为 onXxx
   // hasUpdateListener.value = typeof props.onUpdate === 'function'
   autoHeight()
@@ -848,7 +821,7 @@ const operationWidthComputed = computed(() => {
 const listenDoc = useListenDomChange(() => {
   setTimeout(autoHeight, 100)
 })
-const baseClass=ref(props.baseClass)
+const baseClass = ref(props.baseClass)
 // 热更新相关
 if (import.meta.hot) {
   // 保存状态
@@ -885,7 +858,10 @@ const autoHeight = () => {
         '.table-plus .el-card__body'
       )
       const { borderTopWidth, borderBottomWidth } = getComputedStyle('.table-plus .el-card__header')
-      const { height, dom } = getRemainingHeight(baseClass.value, ['.table-plus' ,...props.authHeightExcludeClassName])
+      const { height, dom } = getRemainingHeight(baseClass.value, [
+        '.table-plus',
+        ...props.authHeightExcludeClassName,
+      ])
       heightInner.value =
         height -
         tableHeaderHeight -
@@ -898,7 +874,7 @@ const autoHeight = () => {
       dom.forEach((item) => {
         listenDoc.listen(item)
       })
-      if(props.hasPage)listenDoc.listen('.pagination-container');
+      if (props.hasPage) listenDoc.listen('.pagination-container')
       // listenDoc.listen('.el-card__header');
       // listenDoc.listen('.el-table__header-wrapper');
     }
@@ -960,15 +936,22 @@ const tableColumnFinal = computed({
           }
           item.selectable = item.selectable ?? true
           item.maxWidth = item.width ? false : item.maxWidth ?? props.maxWidth
-          item.unit = item.unit ?? '';
+          item.unit = item.unit ?? ''
           item.fun =
             item.fun ??
-            ((row: dataItemType, prop: string, other?: {
-      index?: number
-      tableColumnFinal?: tableColumnItem[]
-      [key: string]: any
-    }) =>
-              String(row[prop] ?? props.defaultBlock) + (typeof item.unit == 'string' ? item.unit : (item.unit&&item.unit(row, prop, other))??''));
+            ((
+              row: dataItemType,
+              prop: string,
+              other?: {
+                index?: number
+                tableColumnFinal?: tableColumnItem[]
+                [key: string]: any
+              }
+            ) =>
+              String(row[prop] ?? props.defaultBlock) +
+              (typeof item.unit == 'string'
+                ? item.unit
+                : (item.unit && item.unit(row, prop, other)) ?? ''))
           return item
         })
     }
@@ -1022,7 +1005,7 @@ type ExportCallback = (
 ) => void
 
 // 4. 删除操作的回调函数类型（用于控制删除结果和加载状态）
-type RemoveCallback = (flag: boolean | Promise<any>) => void
+type RemoveCallback = (flag: boolean | string | Promise<any>) => void
 
 // 7. 所有 Emit 事件接口（覆盖组件所有触发场景）
 interface MyTableEmits {
@@ -1037,21 +1020,21 @@ interface MyTableEmits {
    * 新增按钮点击事件
    * @param eventName 事件名：固定为 'add'
    */
-  (eventName: 'add'): void
+  (eventName: 'add', callback?: RemoveCallback): void
 
   /**
    * 行内修改按钮点击事件
    * @param eventName 事件名：固定为 'update'
    * @param row 当前行数据
    */
-  (eventName: 'update', row: TableRowData): void
+  (eventName: 'update', row: TableRowData, callback?: RemoveCallback): void
 
   /**
    * 行内详情按钮点击事件
    * @param eventName 事件名：固定为 'detail'
    * @param row 当前行数据
    */
-  (eventName: 'detail', row: TableRowData): void
+  (eventName: 'detail', row: TableRowData, callback?: RemoveCallback): void
 
   /**
    * 行内删除按钮点击事件
@@ -1059,7 +1042,7 @@ interface MyTableEmits {
    * @param row 当前行数据
    * @param callback 删除结果回调（控制加载状态和提示）
    */
-  (eventName: 'remove', row: TableRowData, callback: RemoveCallback): void
+  (eventName: 'remove', row: TableRowData, callback?: RemoveCallback): void
 
   /**
    * 搜索区域显示/隐藏切换事件
@@ -1073,13 +1056,13 @@ interface MyTableEmits {
    * @param eventName 事件名：固定为 'batch-remove'
    * @param selectedRows 选中的行数据列表（从 multipleSelection 提取）
    */
-  (eventName: 'batch-remove', selectedRows: TableRowData[], callback: RemoveCallback): void
+  (eventName: 'batch-remove', selectedRows: TableRowData[], callback?: RemoveCallback): void
 
   /**
    * 导入按钮点击事件
    * @param eventName 事件名：固定为 'import'
    */
-  (eventName: 'import'): void
+  (eventName: 'import', callback?: RemoveCallback): void
 
   /**
    * 导出按钮点击事件（含选中行筛选）
@@ -1117,14 +1100,29 @@ interface MyTableEmits {
    * @param eventName 事件名：固定为 'add-son'
    * @param parentRow 父行数据（新增子节点的上级）
    */
-  (eventName: 'add-son', parentRow: TableRowData): void
-  
+  (eventName: 'add-son', parentRow: TableRowData, callback?: RemoveCallback): void
+
   /**
    * 行内新增子节点按钮点击事件（树形表格专用）
    * @param eventName 事件名：固定为 'current-change'
    * @param val 被选中的行数据
    */
-  (eventName: 'current-change', val: TableRowData): void;
+  (eventName: 'current-change', val: TableRowData): void
+
+  /**
+   * 行内自定义按钮点击事件
+   * @param eventName 事件名：固定为 'custom-event'
+   * @param row 当前行数据
+   * @param callback 删除结果回调（控制加载状态和提示）
+   */
+  (
+    eventName: 'custom-event',
+    row: {
+      eventName: string
+      data: any
+    },
+    callback: RemoveCallback
+  ): void
 }
 
 // ========================================================================
@@ -1176,11 +1174,11 @@ const tableRowStatusChange = (row: any, expandedRows: any[] | boolean): void => 
   }
 }
 const handleCurrentChange = (val: any) => {
-  if (proxyProps.value['onCurrentChange']) emits('current-change', val);
-};
+  if (proxyProps.value['onCurrentChange']) emits('current-change', val)
+}
 const setCurrentRow = (val: any) => {
-  tableRef.value?.setCurrentRow(val);
-};
+  tableRef.value?.setCurrentRow(val)
+}
 //排序
 const onSort = (data: {
   column: TableColumnCtx
@@ -1205,6 +1203,7 @@ const sortPropDataComputed = computed(() => {
     [props.searchSortableConfig.fieVal]: '',
   }
   for (const sortPropDatum in sortPropData.value) {
+    if (typeof sortPropData.value[sortPropDatum] == 'undefined') continue
     queryParam[props.searchSortableConfig.fieId] += ',' + sortProp.value[sortPropDatum]
     queryParam[props.searchSortableConfig.fieVal] += ',' + sortPropData.value[sortPropDatum]
   }
@@ -1259,17 +1258,17 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
   if (typeof queryParam == 'undefined') {
     queryParam = { ...queryParams.value }
   }
-  queryParam = { ...queryParams.value, ...queryParam }
+  queryParam = { ...queryParams.value, ...queryParam, ...sortPropDataComputed.value }
   if (typeof isFirst === 'boolean' && isFirst) {
     queryParam.pageNum = 1
   }
-  setCurrentRow()
-  queryParams.value = { ...queryParam, ...sortPropDataComputed.value };
+  setCurrentRow(null)
+  queryParams.value = { ...queryParam, ...sortPropDataComputed.value }
   // queryParam = { ...queryParam, ...sortPropDataComputed.value };
   if (!props.dataListFun) {
     emits('query', queryParam)
   } else {
-    props.dataListFun(queryParam, async (res: string|Promise|any[], ...obj: any[]) => {
+    props.dataListFun(queryParam, async (res: string | Promise<any> | any[], ...obj: any[]) => {
       try {
         if (res instanceof Promise) {
           res = await (res as Promise<any>)
@@ -1325,7 +1324,8 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
           }
           // 设置有没有子菜单
           for (const dataItem of datas) {
-            dataItem['hasChildren'] = tempMap[dataItem[treeConfig.value.id]]?.length > 0
+            dataItem[props.treeProps.hasChildren] =
+              tempMap[dataItem[treeConfig.value.id]]?.length > 0
           }
           dataChildrenListMap.value = tempMap
           treeDatas = tempMap[treeConfig.value.firstParentId] || []
@@ -1351,22 +1351,22 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
 }
 const handleAdd = () => {
   if (proxyPropsParamsInfo.value['onAdd']) {
-    operationLoading.value=true
+    operationLoading.value = true
     emits('add', undefined, () => {
-      operationLoading.value=false
-    });
+      operationLoading.value = false
+    })
   } else {
-    emits('add');
+    emits('add')
   }
 }
 const handleImport = () => {
   if (proxyPropsParamsInfo.value['onImport']) {
-    operationLoading.value=true
+    operationLoading.value = true
     emits('import', () => {
-      operationLoading.value=false
-    });
+      operationLoading.value = false
+    })
   } else {
-    emits('import');
+    emits('import')
   }
 }
 const operationData = computed(() => {
@@ -1419,6 +1419,100 @@ const handleExport = () => {
   }
 }
 
+const handleUpdate = (row: dataItemType) => {
+  if (proxyPropsParamsInfo.value['onUpdate']) {
+    operationLoading.value = true
+    emits('update', row, () => {
+      operationLoading.value = false
+    })
+  } else {
+    emits('update', row)
+  }
+}
+const operationLoading = ref(false)
+const removeCallback = async (flag: string | boolean | Promise<any> = true, ...obj: any[]) => {
+  if (flag instanceof Promise) {
+    try {
+      const res = await (flag as Promise<any>)
+      flag = res[props.code] == props.status
+    } catch (e) {
+      flag = false
+    }
+  } else if (typeof flag == 'string' && props.dataLoadFun) {
+    try {
+      const query = {
+        url: flag,
+        method: obj[1] ?? 'POST',
+        params: obj[0],
+        data: obj[0],
+      }
+      if (query.method.toLowerCase() === 'get') {
+        delete query.data
+      } else {
+        delete query.params
+      }
+      const res = await props.dataLoadFun(query)
+      flag = res[props.code] == props.status
+    } catch (e) {
+    } finally {
+      flag = false
+    }
+  }
+  if (flag) {
+    ElMessage({
+      message: props.message,
+      grouping: true,
+      duration: props.duration,
+      type: 'success',
+      showClose: props.duration! > 0,
+      onClose: () => {
+        operationLoading.value = false
+        handleQuery()
+      },
+    })
+  } else {
+    operationLoading.value = false
+  }
+}
+//计算表格按钮文字
+const getOperationLabel = (
+  hasXXX: typeof props.hasDetail,
+  scope: {
+    row: any
+  },
+  defaultLabel: string
+) => {
+  const hasOperationName = props.hasOperationName
+  if (typeof hasXXX === 'boolean') {
+    return defaultLabel
+  }
+
+  if (typeof hasXXX === 'function') {
+    if (!hasOperationName) return ''
+
+    const result = hasXXX(scope.row)
+    return typeof result === 'boolean' ? defaultLabel : result
+  }
+
+  return hasXXX ?? defaultLabel
+}
+const handleRemove = (row: dataItemType) => {
+  operationLoading.value = true
+  ElMessageBox.confirm(props.removeMessage, props.removeType, {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    title: props.removeMessageTitle,
+    type: props.removeType,
+  })
+    .then(() => {
+      emits('remove', row, async (flag: string | boolean | Promise<any> = true, ...obj: any[]) => {
+        await removeCallback(flag, ...obj)
+      })
+    })
+    .catch(() => {
+      operationLoading.value = false
+    })
+}
 const handleBatchRemove = () => {
   operationLoading.value = true
   ElMessageBox.confirm(props.removeMessage, props.removeType, {
@@ -1431,30 +1525,8 @@ const handleBatchRemove = () => {
       emits(
         'batch-remove',
         multipleSelection.value,
-        async (flag: boolean | Promise<any> = true) => {
-          if (flag instanceof Promise) {
-            try {
-              const res = await (flag as Promise<any>)
-              flag = res[props.code] == props.status
-            } catch (e) {
-              flag = false
-            }
-          }
-          if (flag) {
-            ElMessage({
-              message: props.message,
-              grouping: true,
-              duration: props.duration,
-              type: 'success',
-              showClose: props.duration! > 0,
-              onClose: () => {
-                operationLoading.value = false
-                handleQuery()
-              },
-            })
-          } else {
-            operationLoading.value = false
-          }
+        async (flag: string | boolean | Promise<any> = true, ...obj: any[]) => {
+          await removeCallback(flag, ...obj)
         }
       )
     })
@@ -1462,69 +1534,25 @@ const handleBatchRemove = () => {
       operationLoading.value = false
     })
 }
-
-const handleUpdate = (row: dataItemType) => {
-  if (proxyPropsParamsInfo.value['onUpdate']) {
-    operationLoading.value = true;
-    emits('update', row, () => {
-      operationLoading.value = false;
-    });
-  } else {
-    emits('update', row);
-  }
-}
-const operationLoading = ref(false)
-const handleRemove = (row: dataItemType) => {
-  operationLoading.value = true
-  ElMessageBox.confirm(props.removeMessage, props.removeType, {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    title: props.removeMessageTitle,
-    type: props.removeType,
-  })
-    .then(() => {
-      emits('remove', row, async (flag: boolean | Promise<any> = true) => {
-        if (flag instanceof Promise) {
-          try {
-            const res = await (flag as Promise<any>)
-            flag = res[props.code] == props.status
-          } catch (e) {
-            flag = false
-          }
-        }
-        if (flag) {
-          ElMessage({
-            message: props.message,
-            grouping: true,
-            duration: props.duration,
-            type: 'success',
-            showClose: props.duration! > 0,
-            onClose: () => {
-              operationLoading.value = false
-              handleQuery()
-            },
-          })
-        } else {
-          operationLoading.value = false
-        }
-      })
-    })
-    .catch(() => {
-      operationLoading.value = false
-    })
-}
 const handleDetail = (row: dataItemType) => {
   if (proxyPropsParamsInfo.value['onDetail']) {
-    operationLoading.value = true;
+    operationLoading.value = true
     emits('detail', row, () => {
-      operationLoading.value = false;
-    });
+      operationLoading.value = false
+    })
   } else {
-    emits('detail', row);
+    emits('detail', row)
   }
 }
 const handleAddSon = (row: dataItemType) => {
-  emits('add-son', row)
+  if (proxyPropsParamsInfo.value['onAddSon']) {
+    operationLoading.value = true
+    emits('add-son', row, () => {
+      operationLoading.value = false
+    })
+  } else {
+    emits('add-son', row)
+  }
 }
 /**
  * 插槽按钮事件
@@ -1557,14 +1585,59 @@ const updateLoading = (cb: Promise<any>, refresh: 'now' | 'first' | '' = 'now') 
     operationLoading.value = false
   })
 }
+const handleNeedConfirmEvent = ({
+  data,
+  eventName,
+  message,
+  iconType = 'warning',
+  confirmText = '确定',
+  cancelText = '取消',
+  title = '提示',
+}: {
+  data: any
+  eventName: string
+  message: string
+  iconType: typeof props.removeType
+  confirmText: string
+  cancelText: string
+  title: string
+}) => {
+  if (!message || !data || !eventName) {
+    console.error('提示消息/数据/事件名称不能为空')
+  }
+  operationLoading.value = true
+  ElMessageBox.confirm(message, iconType, {
+    confirmButtonText: confirmText,
+    cancelButtonText: cancelText,
+    title: title,
+    type: iconType,
+  })
+    .then(() => {
+      emits(
+        'custom-event',
+        {
+          eventName,
+          data,
+        },
+        async (flag: string | boolean | Promise<any> = true, ...obj: any[]) => {
+          await removeCallback(flag, ...obj)
+        }
+      )
+    })
+    .catch(() => {
+      operationLoading.value = false
+    })
+}
 defineExpose({
   multipleSelection: multipleSelection.value,
   toggleSelection,
   startQuery,
   query: handleQuery,
   slots,
+  handleNeedConfirmEvent,
   originalData: originalData.value,
-  updateLoading,setCurrentRow
+  updateLoading,
+  setCurrentRow,
 })
 </script>
 <style scoped lang="scss">

@@ -72,8 +72,8 @@
                         v-if="item.type === 'input'"
                         v-model="dynamicComputedMap[item.prop]"
                       >
-                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
-                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                          <slot :name="name" v-bind="scopeData"></slot>
                         </template>
                       </Input>
                       <MyDate
@@ -81,8 +81,8 @@
                         v-if="item.type === 'date'"
                         v-model="dynamicComputedMap[item.prop]"
                       >
-                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
-                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                          <slot :name="name" v-bind="scopeData"></slot>
                         </template>
                       </MyDate>
 
@@ -91,8 +91,8 @@
                         v-if="item.type === 'select'"
                         v-model="dynamicComputedMap[item.prop]"
                       >
-                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
-                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                          <slot :name="name" v-bind="scopeData"></slot>
                         </template>
                       </Select>
                       <Switch
@@ -100,8 +100,8 @@
                         v-if="item.type === 'switch'"
                         v-model="dynamicComputedMap[item.prop]"
                       >
-                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
-                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                          <slot :name="name" v-bind="scopeData"></slot>
                         </template>
                       </Switch>
                       <CheckBox
@@ -109,8 +109,8 @@
                         v-if="item.type === 'checkbox'"
                         v-model="dynamicComputedMap[item.prop]"
                       >
-                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
-                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                          <slot :name="name" v-bind="scopeData"></slot>
                         </template>
                       </CheckBox>
                       <Radio
@@ -118,8 +118,8 @@
                         v-if="item.type === 'radio'"
                         v-model="dynamicComputedMap[item.prop]"
                       >
-                        <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
-                          <slot :name="item.prop + name" v-bind="scopeData"></slot>
+                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                          <slot :name="name" v-bind="scopeData"></slot>
                         </template>
                       </Radio>
                     </slot>
@@ -352,13 +352,14 @@ const searchFun = (fun: (typeof searchButtonFinal.value)[number]['fun']) => {
       } else return
     }
     if (fun === 'search') {
-      let needCheck: any[] = formRef.value.map((item: { validate: () => void }) => {
-        return item.validate()
-      })
+      let needCheck: any[] = formRef.value.map((item: { validate: any,fields:{prop:string}[] }) => {
+        const key = item.fields.map((item) => item.prop).join(',');
+        return { key, val: item.validate() };
+      });
       if (fold.value) {
-        needCheck = [needCheck[0]].filter((item) => item)
+        needCheck = needCheck.filter((item) => item.key === searchFinal.value[0].map((item) => item.prop).join(','))
       }
-      Promise.all(needCheck).then((res) => {
+      Promise.all(needCheck.map((item) => item.val)).then((res) => {
         // console.log(res)
         emits(fun, searchValue.value)
       })
@@ -601,6 +602,7 @@ defineExpose({ fold, dynamicRefMap, formPlusMain, buttons, updateData, getData, 
     height: 0;
     opacity: 0;
     transition: all 0.1s;
+    display: none;
     padding: 0px;
   }
 
@@ -608,6 +610,7 @@ defineExpose({ fold, dynamicRefMap, formPlusMain, buttons, updateData, getData, 
     opacity: 1;
     height: 100%;
     transition: all 0.5s;
+    display: unset;
   }
 
   .search_form_menu {

@@ -4,20 +4,20 @@ export const isMobile = () => {
   );
   return (flag && flag.length > 0) ?? false;
 };
-export const getName = (name: string | number) => {
+export const getName = (name: string | number, other: string = '') => {
   name = String(name);
-  return name.indexOf('_') > -1 ? (name.split('_')[0] ?? name) : name;
+  return (name.indexOf('_') > -1 ? (name.split('_')[0] ?? name) : name).replace(other, '');
 };
-export const deepClone = (target) => {
+export const deepClone = (target:any[]) => {
   // WeakMap作为记录对象Hash表（用于防止循环引用）
   const map = new WeakMap();
 
   // 判断是否为object类型的辅助函数，减少重复代码
-  function isObject(target) {
+  function isObject(target:any) {
     return (typeof target === 'object' && target) || typeof target === 'function';
   }
 
-  function clone(data) {
+  function clone(data:any) {
     // 基础类型直接返回值
     if (!isObject(data)) {
       return data;
@@ -36,7 +36,7 @@ export const deepClone = (target) => {
 
     // 处理数组
     if (Array.isArray(data)) {
-      const result = [];
+      const result:any[] = [];
       map.set(data, result);
       data.forEach((val, index) => {
         if (isObject(val)) {

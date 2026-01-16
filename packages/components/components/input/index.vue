@@ -122,6 +122,20 @@ const dataFinal = computed<typeof props.data>(() => {
       else bindValue.value = Number(e?.target?.value);
     };
   }
+  if (data.inputType === 'number') {
+    defaultInputFun = (value: string|number) => {
+      const min = data.min;
+      const max = data.max;
+      let result = Number(value);
+      if (typeof min === 'number') {
+        result = Math.max(result, min);
+      }
+      if (typeof max === 'number') {
+        result = Math.min(result, max);
+      }
+      bindValue.value = result; //Number(result);
+    };
+  }
   data.change = data.change || defaultChangeFun;
   data.blur = data.blur || defaultBlurFun;
   data.input = data.input || defaultInputFun;

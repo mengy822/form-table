@@ -27,7 +27,7 @@
               :value="(item.value ?? item.label)"
               :true-value="dataFinal.config?.trueValue"
               :false-value="dataFinal.config?.falseValue"
-              :disabled="dataFinal.config?.disabled ?? false"
+              :disabled="item.disabled??dataFinal.config?.disabled ?? false"
               :name="dataFinal.config?.name ?? ''"
               :checked="dataFinal.config?.checked ?? false"
               :border="dataFinal.config?.border"
@@ -36,7 +36,6 @@
               :validate-event="dataFinal.config?.validateEvent ?? true"
               :tabindex="index"
               @change="dataFinal.config?.change"
-              v-bind="$attrs"
             >
               {{ item.label }}
             </el-checkbox>
@@ -50,10 +49,9 @@
               :value="(item.value ?? item.label)"
               :true-value="dataFinal.config?.trueValue"
               :false-value="dataFinal.config?.falseValue"
-              :disabled="dataFinal.config?.disabled ?? false"
+              :disabled="item.disabled??dataFinal.config?.disabled ?? false"
               :name="dataFinal.config?.name ?? ''"
               :checked="dataFinal.config?.checked ?? false"
-              v-bind="$attrs"
               >{{ item.label }}</el-checkbox-button
             >
           </div>

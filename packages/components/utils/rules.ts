@@ -48,6 +48,7 @@ interface RulesType {
   ruleIp: requiredType[];
   ruleExtCellEmun: requiredType[];
   password: requiredType[];
+  version: requiredType[];
 }
 
 let rules: RulesType = {
@@ -78,6 +79,7 @@ let rules: RulesType = {
   // 数字--小数两位
   decimal: [],
   url:[],
+  version:[],//版本号
   ruleIp: [
     // 校验设备IP
   ],
@@ -100,7 +102,7 @@ type MaybeNumber = number | undefined;
  */
 function validateNumber(value: string, min: number | undefined, max: number | undefined, decimalPlaces: number = 0): boolean {
   // 1. 格式验证
-  const regex = generateNumberRangeRegex(min, max, decimalPlaces);
+  const regex = generateNumberRangeRegex(min as number, max as number, decimalPlaces);
   if (!regex.test(value)) {
     return false;
   }
@@ -127,7 +129,7 @@ function validateNumber(value: string, min: number | undefined, max: number | un
     isValid &&= value.split('.').length === 1;
   } else {
     const xiaoshu = value.split('.')[1];
-    isValid &&= xiaoshu && xiaoshu.length <= decimalPlaces;
+    isValid &&= (xiaoshu && xiaoshu.length <= decimalPlaces) as boolean;
   }
   return isValid;
 }
@@ -204,7 +206,7 @@ function generateRangeMessage(min: number, max: number, decimalPlaces: number): 
   return `请输入大于或等于 ${min} 且小于或等于 ${max} 的数字${decimalPart}`;
 }
 
-function generateNumberRangeRegex(min, max, decimalPlaces = 0) {
+function generateNumberRangeRegex(min: number, max: number, decimalPlaces = 0) {
   // 处理参数缺失情况
   const hasMin = min !== undefined;
   const hasMax = max !== undefined;
@@ -239,7 +241,7 @@ function generateNumberRangeRegex(min, max, decimalPlaces = 0) {
 }
 
 // 辅助函数：只限制最小值
-function generateMinOnlyRegex(min, decimalPlaces) {
+function generateMinOnlyRegex(min:number, decimalPlaces:number) {
   const isInteger = decimalPlaces === 0;
   const minStr = isInteger ? String(Math.round(min)) : min.toFixed(decimalPlaces);
 
@@ -269,7 +271,7 @@ function generateMinOnlyRegex(min, decimalPlaces) {
 }
 
 // 辅助函数：只限制最大值
-function generateMaxOnlyRegex(max, decimalPlaces) {
+function generateMaxOnlyRegex(max: number, decimalPlaces: number) {
   const isInteger = decimalPlaces === 0;
   const maxStr = isInteger ? String(Math.round(max)) : max.toFixed(decimalPlaces);
 
@@ -304,12 +306,12 @@ function generateMaxOnlyRegex(max, decimalPlaces) {
 }
 
 // 辅助函数：完整范围限制
-function generateRangeRegex(min, max, decimalPlaces) {
+function generateRangeRegex(min: number, max: number, decimalPlaces: number) {
   const factor = decimalPlaces ? Math.pow(10, decimalPlaces) : 1;
   const minScaled = Math.round(min * factor);
   const maxScaled = Math.round(max * factor);
 
-  function rangeToRegex(start, end) {
+  function rangeToRegex(start: number, end: number) {
     const parts = [];
     let current = start;
     while (current <= end) {
@@ -385,9 +387,9 @@ function generateRangeRegex(min, max, decimalPlaces) {
 export function formRules(
   label: string,
   type: keyof RulesType | string,
-  maxlength: number = undefined,
-  min: number = undefined,
-  max: number = undefined
+  maxlength: number|undefined = undefined,
+  min: number|undefined = undefined,
+  max: number | undefined = undefined
 ): requiredType[] {
   const validIp = (rule: any, value: string, callback: (arg0: Error | undefined) => void) => {
     let arr = [];
@@ -427,7 +429,7 @@ export function formRules(
       callback(undefined);
     }
   };
-  const validNumberAuto = (rule: any, value: string, callback: (arg0: Error | undefined) => void) => {
+  const validNumberAuto = (rule: any, value: string, callback: (arg0?: Error | undefined) => void) => {
     if (value) {
       if (isNaN(Number(value))) {
         callback(new Error('请输入数字'));
@@ -444,7 +446,7 @@ export function formRules(
       callback(undefined);
     }
   };
-  const validExtCellEmun = (rule: any, value: string, callback: (arg0: Error | undefined) => void) => {
+  const validExtCellEmun = (rule: any, value: string, callback: (arg0?: Error | undefined) => void) => {
     let arr = [];
     if (value) {
       value = value.trim();
@@ -495,6 +497,15 @@ export function formRules(
       { required: true, message: label + '不能为空', trigger: 'blur' },
       {
         pattern: /^1(3[0-9]|4[5,7]|5[0,1,2,3,5,6,7,8,9]|6[2,5,6,7]|7[0,1,7,8]|8[0-9]|9[1,8,9])\d{8}$/,
+        message: '请输入正确的' + label,
+        trigger: 'blur'
+      }
+    ],
+    version: [
+      // 输入框 版本号
+      { required: true, message: label + '不能为空', trigger: 'blur' },
+      {
+        pattern: /^(?!\d)[a-zA-Z0-9]+(?:[.\-_][a-zA-Z0-9]+)*$/,
         message: '请输入正确的' + label,
         trigger: 'blur'
       }

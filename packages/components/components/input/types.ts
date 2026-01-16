@@ -1,6 +1,7 @@
 import type { button } from "../../js/sizeType";
 
 export interface inputType {
+  multiple?: boolean | undefined;
   inputType?: 'text' | 'textarea' | 'password' | 'number' | 'numberRange';
   decimalPlaces?: number;
   integerPlaces?: number;
