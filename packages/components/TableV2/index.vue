@@ -70,13 +70,27 @@
         </slot>
       </template>
       <el-table-v2
+        ref="tableRef"
         class="table-plus-main"
-        :height="height || heightInner || maxHeight"
+        :height="height || heightInner"
         :columns="tableColumnFinal"
         :data="dataListComputed"
-        :row-height="rowHeightInner"
+        :estimated-row-height="rowHeightInner"
+        :row-class="rowClassName"
+        :header-class="headerRowClassName"
         :width="width || widthInner"
-        :fixed="hasOperationComputed || hasIndexComputed || hasOperationComputed"
+        :fixed="
+          (hasOperationComputed ||
+            hasIndexComputed ||
+            hasSelectionComputed ||
+            !!tableColumnFinal.find((item) => item.fixed)) as boolean
+        "
+        :expand-column-key="expandColumnKey"
+        :cell-props="cellProps"
+        :class="kls"
+        v-model:expanded-row-keys="expandedRowKeys"
+        @row-expand="tableRowStatusChange"
+        @expanded-rows-change="handleCurrentChange"
       >
         <template #overlay v-if="loading">
           <slot name="overlay">
@@ -114,258 +128,294 @@
   </el-config-provider>
 </template>
 
-
-
-
-
-
-
-
 <script setup lang="ts" name="MyTableV2">
-import { type Component, computed, type CSSProperties, getCurrentInstance, nextTick, onMounted, ref, useSlots, type VNode, watch } from 'vue';
-import pagination from '../components/Pagination/index.vue';
-import RightToolbar from '../components/RightToolbar/index.vue';
-import { Delete, Download, Edit, Plus, Sort, SortDown, SortUp, Upload, View } from '@element-plus/icons-vue';
-import { ElCheckbox, ElMessage, ElMessageBox, SortBy, SortState, TableInstance } from 'element-plus';
+import {
+  type Component,
+  computed,
+  type CSSProperties,
+  getCurrentInstance,
+  nextTick,
+  onMounted,
+  ref,
+  useSlots,
+  useTemplateRef,
+  type VNode,
+  watch,useAttrs,resolveComponent,h
+} from 'vue'
+import pagination from '../components/Pagination/index.vue'
+import RightToolbar from '../components/RightToolbar/index.vue'
+import {
+  Delete,
+  Download,
+  Edit,
+  Plus,
+  Sort,
+  SortDown,
+  SortUp,
+  Upload,
+  View,
+} from '@element-plus/icons-vue'
+import {
+  Column,
+  ElCheckbox,
+  ElMessage,
+  ElMessageBox,
+  SortBy,
+  SortState,
+  TableV2Instance,
+} from 'element-plus'
 
-import { deepClone, getComputedStyle, getHeight, getRemainingHeight } from '../js/utils';
+import { deepClone, getComputedStyle, getHeight, getRemainingHeight } from '../js/utils'
 
-import zhCn from 'element-plus/es/locale/lang/zh-cn';
-import { useListenDomChange } from '../utils/hooks';
-import { handleFileDownload, request } from '../js';
-import requestGlobal, { download } from '@/utils/request';
-import FunctionAnalyzer from '@/components/FormTable/utils/FunctionAnalyzer';
-import { CellRenderProps, HeaderRenderProps, TableColumn } from '@/components/FormTable/TableV2/types';
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import { useListenDomChange } from '../utils/hooks'
+import { handleFileDownload, request } from '../js'
+import FunctionAnalyzer from '../utils/FunctionAnalyzer'
+import { CellRenderProps, HeaderRenderProps, TableColumn } from '../TableV2/types'
 
+type Primitive = string | number | boolean | null | undefined | symbol | bigint | object
+type PrimitiveFun = Primitive | FunctionType
+type FunctionType = (((...args: Primitive[]) => Primitive))
+type ObjectType = {[key:string]:Primitive}
+type TableButtonType = boolean | string | ((data: dataItemType) => boolean | string)
+type FunType = (
+  row: dataItemType,
+  prop: string,
+  other?: {
+    index?: number
+    [key: string]: Primitive
+  },
+) => string | VNode | Component
 interface IsTreeConfig {
-  id: string;
-  parentId: string;
-  children: string;
-  firstParentId: string;
+  id: string
+  parentId: string
+  children: string
+  firstParentId: string
 }
 
 // 定义 Props 类型（提取为独立接口，增强可读性和复用性）
 export interface TableProps {
   /** 是否显示分页 */
-  hasPage: boolean;
+  hasPage: boolean
   /** 表格顶部按钮Plain */
-  hasTableTopPlain: boolean;
-  pageLayout: string;
-  pagerCount: number;
+  hasTableTopPlain: boolean
+  pageLayout: string
+  pagerCount: number
   /**是树结构*/
-  isTree?: boolean | IsTreeConfig;
+  isTree?: boolean | IsTreeConfig
   /** 是否懒加载（树形结构） */
-  lazy: boolean;
+  lazy: boolean
   /** 树形结构是否默认展开所有节点 */
-  defaultExpandAll: boolean;
+  defaultExpandAll: boolean
   /** 懒加载数据加载函数 */
-  loadFun: (row: any, treeNode: unknown, resolve: (data: any[]) => void) => void;
+  loadFun: (row: Primitive, treeNode: unknown, resolve: (data: Primitive[]) => void) => void
   /** 树形结构配置（子节点字段、是否有子节点字段） */
-  treeProps: { children: string; hasChildren: string };
+  treeProps: { children: string; hasChildren: string }
   /** 语言配置 */
-  language: object;
+  language: object
   /** 是否显示序号列（布尔值或自定义列名） */
-  hasIndex: boolean | string;
+  hasIndex: boolean | string
   /** 是否显示选择列（支持函数动态控制） */
-  hasSelection: boolean | ((row: any, index: number) => boolean);
+  hasSelection: boolean | ((row: {[key:string]:Primitive}, index: number) => boolean)
   /** 是否显示操作列（布尔值或自定义列名） */
-  hasOperation: boolean | string;
+  hasOperation: boolean | string
   /** 操作列总宽度 */
-  operationWidth: number | undefined;
+  operationWidth: number | undefined
   /** 单个操作按钮宽度 */
-  oneOperationWidth: number;
+  oneOperationWidth: number
   /** 是否显示操作列标题 */
-  hasOperationName: boolean;
-  /** 表格最大高度 */
-  maxHeight: number | string | undefined;
+  hasOperationName: boolean
   /** 表格固定高度 */
-  height: number | undefined;
-  width: number | undefined;
-  rowHeight: number | undefined;
+  height: number | undefined
+  /** 表格固定宽度 */
+  width: number | undefined
+  /** 表格行固定高度 */
+  rowHeight: number | undefined
   /** 基础样式类（用于计算高度等） */
-  baseClass: string;
-  authHeightExcludeClassName: string[];
+  baseClass: string
+  //表格自动高度排除class
+  autoHeightExcludeClassName: string[]
   //默认对齐
-  align: 'center' | 'left' | 'right';
-  operationAlign: 'center' | 'left' | 'right';
+  align: 'center' | 'left' | 'right'
+  // 操作列对齐方式
+  operationAlign: 'center' | 'left' | 'right'
   /** 是否启用最大宽度限制 */
-  maxWidth: boolean;
+  maxWidth: boolean
   /** 是否显示【新增】按钮（支持布尔值、自定义文本、函数动态控制） */
-  hasAdd: boolean | string | ((data: dataItemType) => boolean | string);
+  hasAdd: TableButtonType
   /** 【新增】按钮图标配置 */
-  hasAddIcon: object;
+  hasAddIcon: object
   /** 是否显示【批量删除】按钮（支持布尔值、自定义文本、函数动态控制） */
-  hasBatchRemove: boolean | string | ((data: dataItemType) => boolean | string);
+  hasBatchRemove: TableButtonType
   /** 【批量删除】按钮图标配置 */
-  hasBatchRemoveIcon: object;
+  hasBatchRemoveIcon: object
   /** 【批量删除】按钮类型 */
-  hasBatchRemoveType: ButtonType;
+  hasBatchRemoveType: ButtonType
   /** 是否显示【导入】按钮（支持布尔值、自定义文本、函数动态控制） */
-  hasImport: boolean | string | ((data: dataItemType) => boolean | string);
+  hasImport: TableButtonType
   /** 【导入】按钮图标配置 */
-  hasImportIcon: object;
+  hasImportIcon: object
   /** 是否显示【导出】按钮（支持布尔值、自定义文本、函数动态控制） */
-  hasExport: boolean | string | ((data: dataItemType) => boolean | string);
+  hasExport: TableButtonType
   /** 【导出】按钮图标配置 */
-  hasExportIcon: object;
+  hasExportIcon: object
   /** 操作按钮是否显示文本 */
-  hasOperationText: boolean;
+  hasOperationText: boolean
   /** 操作按钮是否显示链接样式 */
-  hasOperationLink: boolean;
+  hasOperationLink: boolean
   /** 是否显示【详情】按钮（支持布尔值、自定义文本、函数动态控制） */
-  hasDetail: boolean | string | ((data: dataItemType) => boolean | string);
+  hasDetail: TableButtonType
   /** 【详情】按钮图标配置 */
-  hasDetailIcon: object;
+  hasDetailIcon: object
   /** 【详情】按钮类型（对应 UI 库按钮类型） */
-  hasDetailType: ButtonType;
+  hasDetailType: ButtonType
   /** 是否显示【新增子节点】按钮（支持布尔值、自定义文本、函数动态控制） */
-  hasAddSon: boolean | string | ((data: dataItemType) => boolean | string);
+  hasAddSon: TableButtonType
   /** 【新增子节点】按钮图标配置 */
-  hasAddSonIcon: object;
+  hasAddSonIcon: object
   /** 【新增子节点】按钮类型（对应 UI 库按钮类型） */
-  hasAddSonType: ButtonType;
+  hasAddSonType: ButtonType
   /** 是否显示【修改】按钮（支持布尔值、自定义文本、函数动态控制） */
-  hasUpdate: boolean | string | ((data: dataItemType) => boolean | string);
+  hasUpdate: TableButtonType
   /** 【修改】按钮图标配置 */
-  hasUpdateIcon: object;
+  hasUpdateIcon: object
   /** 【修改】按钮类型（对应 UI 库按钮类型） */
-  hasUpdateType: ButtonType;
+  hasUpdateType: ButtonType
   /** 是否显示【删除】按钮（支持布尔值、自定义文本、函数动态控制） */
-  hasRemove: boolean | string | ((data: dataItemType) => boolean | string);
+  hasRemove: TableButtonType
   /** 【删除】按钮图标配置 */
-  hasRemoveIcon: object;
+  hasRemoveIcon: object
   /** 【删除】按钮类型（对应 UI 库按钮类型） */
-  hasRemoveType: ButtonType;
+  hasRemoveType: ButtonType
   /** 表格列配置（必填） */
-  tableColumn: tableColumnItem[];
+  tableColumn: tableColumnItem[]
   /** 查询参数配置 */
-  queryParam?: queryParamType;
+  queryParam?: queryParamType
   /** 删除确认提示文本 */
-  removeMessage: string;
+  removeMessage: string
   /** 删除确认弹窗类型 */
-  removeType: 'warning' | 'info' | 'error' | 'success';
+  removeType: 'warning' | 'info' | 'error' | 'success'
   /** 删除确认弹窗标题 */
-  removeMessageTitle: string;
+  removeMessageTitle: string
   /** 导出确认提示文本（false 表示不显示确认） */
-  exportMessage: string | boolean;
+  exportMessage: string | boolean
   /** 导出确认弹窗类型 */
-  exportType: 'warning' | 'info' | 'error' | 'success';
+  exportType: 'warning' | 'info' | 'error' | 'success'
   /** 导出确认弹窗标题 */
-  exportMessageTitle: string;
+  exportMessageTitle: string
   /** 表格数据源（树形结构数据） */
-  dataList: Array<dataItemType> | undefined;
+  dataList: Array<dataItemType> | undefined
   /** 数据源加载函数 */
   dataListFun?: (
     query: {
-      [key: string]: any;
+      [key: string]: Primitive
     },
-    cb: (res: string | Promise<any> | any[], ...obj: any[]) => void
-  ) => void;
-  dataLoadFun?: Function;
+    cb: (res: string | Promise<ObjectType> | Primitive[], ...obj: Primitive[]) => void,
+  ) => void
+  dataLoadFun?: FunctionType
   /** 数据源格式配置（数据列表字段、总数字段） */
-  dataConfig: { rows: string; total: string; extra: string };
+  dataConfig: { rows: string; total: string; extra: string }
   /** 数据总数（用于分页） */
-  total: number;
+  total: number
   /** 是否高亮当前行 */
-  highlightCurrentRow: boolean;
+  highlightCurrentRow: boolean
   /** 当前行 Key（用于高亮/选中） */
-  currentRowKey: string | number;
+  currentRowKey: string | number
   /** 行 className 配置（支持固定字符串或回调函数） */
-  rowClassName: string | ((data: { row: any; rowIndex: number }) => string);
+  rowClassName: string | ((data: { row: ObjectType; rowIndex: number }) => string)
   /** 行样式配置（支持固定对象或回调函数） */
-  rowStyle: CSSProperties | ((data: { row: any; rowIndex: number }) => CSSProperties);
+  rowStyle: CSSProperties | ((data: { row: ObjectType; rowIndex: number }) => CSSProperties)
   /** 单元格 className 配置（支持固定字符串或回调函数） */
-  cellClassName: string | ((data: { row: any; column: any; rowIndex: number; columnIndex: number }) => string);
+  cellClassName:
+    | string
+    | ((data: { row: ObjectType; column: ObjectType; rowIndex: number; columnIndex: number }) => string)
   /** 单元格样式配置（支持固定对象或回调函数） */
-  cellStyle: CSSProperties | ((data: { row: any; column: any; rowIndex: number; columnIndex: number }) => CSSProperties);
+  cellStyle:
+    | CSSProperties
+    | ((data: { row: ObjectType; column: ObjectType; rowIndex: number; columnIndex: number }) => CSSProperties)
   /** 表头行 className 配置（支持固定字符串或回调函数） */
-  headerRowClassName: string | ((data: { row: any; rowIndex: number }) => string);
+  headerRowClassName: string | ((data: { row: Primitive; rowIndex: number }) => string)
   /** 表头行样式配置（支持固定对象或回调函数） */
-  headerRowStyle: CSSProperties | ((data: { row: any; rowIndex: number }) => CSSProperties);
+  headerRowStyle: CSSProperties | ((data: { row: ObjectType; rowIndex: number }) => CSSProperties)
   /** 表头单元格 className 配置（支持固定字符串或回调函数） */
-  headerCellClassName: string | ((data: { row: any; column: any; rowIndex: number; columnIndex: number }) => string);
+  headerCellClassName:
+    | string
+    | ((data: { row: ObjectType; column: ObjectType; rowIndex: number; columnIndex: number }) => string)
   /** 表头单元格样式配置（支持固定对象或回调函数） */
-  headerCellStyle: CSSProperties | ((data: { row: any; column: any; rowIndex: number; columnIndex: number }) => CSSProperties);
+  headerCellStyle:
+    | CSSProperties
+    | ((data: { row: ObjectType; column: ObjectType; rowIndex: number; columnIndex: number }) => CSSProperties)
   /** 行 Key 配置（用于优化渲染和树形/选择功能） */
-  rowKey: string | ((row: any) => string);
+  rowKey: string | ((row: ObjectType) => string)
   /** 空数据提示文本 */
-  emptyText: string;
+  emptyText: string
   /** 操作成功提示时长（毫秒） */
-  duration: number;
+  duration: number
   /** 操作成功提示文本 */
-  message: string;
+  message: string
   /** 默认空白占位符 */
-  defaultBlock: string;
+  defaultBlock: string
   /** 删除成功的状态码 */
-  status?: number | boolean | string;
+  status?: number | boolean | string
   /** 删除成功的状态码字段 */
-  code?: string;
+  code?: string
   /**导出的默认下载方式*/
-  downFun?: Function;
+  downFun?: FunctionType
   /** 默认排序方式 本地/远程*/
-  sortable?: boolean;
-  sortableConfig?: { descending: string | number | boolean; ascending: string | number | boolean };
-  searchSortableConfig?: { fieId: string; fieVal: string };
+  sortable?: boolean
+  sortableConfig?: { desc: string | number | boolean; asc: string | number | boolean }
+  searchSortableConfig?: { fieId: string; fieVal: string }
 }
 export interface query extends queryParamType {
-  pageSize: number;
-  pageNum: number;
+  pageSize: number
+  pageNum: number
 }
 
 export interface queryParamType {
-  [key: string]: string | number | undefined | boolean;
+  [key: string]: string | number | undefined | boolean
 }
 
 export interface dataItemType {
-  [key: string]: string | number | undefined | boolean;
+  [key: string]: string | number | undefined | boolean
 }
 
-export type ButtonType = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info' | '';
+export type ButtonType = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info' | ''
 export interface tableColumnItem {
-  prop: string;
-  label: string;
-  isTable?: boolean;
-  isForm?: boolean;
-  showOverflow?: boolean;
-  width?: number;
-  unit?: string | ((row, prop, other) => string); //单位
-  sortFun?: Function;
-  sort?: boolean | 'custom';
-  sortable?: boolean | 'custom';
-  sortProp?: string;
-  hidden?: boolean;
-  visible?: boolean;
-  align?: 'center' | 'left' | 'right';
-  fixed?: false | true | 'left' | 'right';
-  selectable?: boolean;
-  maxWidth?: boolean;
-  fun?: (
-    row: dataItemType,
-    prop: string,
-    other?: {
-      index?: number;
-      [key: string]: any;
-    }
-  ) => string | VNode | Component;
-  funDom?: VNode | Component;
+  prop: string
+  label: string
+  isTable?: boolean
+  isForm?: boolean
+  showOverflow?: boolean
+  width?: number
+  unit?: string | ((row:object, prop:string, other:object) => string) //单位
+  sortFun?: FunctionType
+  sort?: boolean | 'custom'
+  sortable?: boolean | 'custom'
+  sortProp?: string
+  hidden?: boolean
+  visible?: boolean
+  align?: 'center' | 'left' | 'right'
+  fixed?: false | true | 'left' | 'right'
+  selectable?: boolean
+  maxWidth?: boolean
+  fun?: FunType
+  funDom?: FunType
   classFun?: (
     row: dataItemType,
     prop: string,
     other?: {
-      index?: number;
-      tableColumnFinal?: tableColumnItem[];
-      [key: string]: any;
-    }
-  ) => string;
+      index?: number
+      [key: string]: Primitive
+    },
+  ) => string
   showFun?: (
-    row?: queryParamType | any,
+    row?: queryParamType | Primitive,
     other?: {
-      index?: number;
-      tableColumnFinal?: tableColumnItem[];
-      [key: string]: any;
-    }
-  ) => boolean;
-  slot?: string;
+      index?: number
+      [key: string]: Primitive
+    },
+  ) => boolean
+  slot?: string
   // render?: any
   header?:
     | string
@@ -373,25 +423,26 @@ export interface tableColumnItem {
         row: dataItemType,
         prop: string,
         other?: {
-          index?: number;
-          tableColumnFinal?: tableColumnItem[];
-          [key: string]: any;
-        }
-      ) => string | VNode | Component);
+          index?: number
 
-  list?: tableColumnItem[];
+          [key: string]: Primitive
+        },
+      ) => string | VNode | Component)
+
+  list?: tableColumnItem[]
 }
 
-const slots = useSlots();
+const slots = useSlots()
+const attrs = useAttrs()
 //表格固定列控制显示的计算属性
 //多选
 const hasSelectionComputed = computed(() => {
-  return props.hasSelection;
-});
+  return props.hasSelection
+})
 //index
 const hasIndexComputed = computed(() => {
-  return props.hasIndex && !props.isTree;
-});
+  return props.hasIndex && !props.isTree
+})
 //操作列
 const hasOperationComputed = computed(() => {
   return (
@@ -409,8 +460,8 @@ const hasOperationComputed = computed(() => {
       slots['detail'] ||
       slots['update'] ||
       slots['remove'])
-  );
-});
+  )
+})
 
 // 使用 withDefaults 定义 Props 并配置默认值
 const props = withDefaults(defineProps<TableProps>(), {
@@ -418,7 +469,7 @@ const props = withDefaults(defineProps<TableProps>(), {
   hasPage: true,
   hasTableTopPlain: true,
   isTree: false,
-  downFun: download,
+  downFun: (()=>''),
   //删除成功的状态码
   status: 0,
   //删除成功的状态码字段
@@ -426,7 +477,7 @@ const props = withDefaults(defineProps<TableProps>(), {
   lazy: true,
   defaultExpandAll: false,
   loadFun: undefined,
-  dataLoadFun: requestGlobal,
+  dataLoadFun: (()=>''),
   treeProps: () => ({ children: 'children', hasChildren: 'hasChildren' }),
   language: () => zhCn,
   hasIndex: true,
@@ -442,7 +493,7 @@ const props = withDefaults(defineProps<TableProps>(), {
   width: undefined,
   rowHeight: 50,
   baseClass: '.app-main',
-  authHeightExcludeClassName: () => [],
+  autoHeightExcludeClassName: () => [],
   maxWidth: true,
   sortable: true,
   sortableConfig: () => ({ asc: 'asc', desc: 'desc' }),
@@ -518,36 +569,36 @@ const props = withDefaults(defineProps<TableProps>(), {
   // 提示配置
   duration: 1500,
   message: '操作成功',
-  defaultBlock: '-'
-});
+  defaultBlock: '-',
+})
 //表格实例
-const tableRef = ref<TableV2Instance>();
-const heightInner = ref(0);
-const widthInner = ref(0);
-const rowHeightInner = ref(props.rowHeight);
-const maxHeightInner = ref(0);
+const tableRef = useTemplateRef<TableV2Instance>('tableRef')
+const heightInner = ref<number>(0)
+const widthInner = ref<number>(0)
+const rowHeightInner = ref<number>(props.rowHeight)
+const maxHeightInner = ref<number>(0)
 
-const totalInner = ref<number>(0);
-const dataListInner = ref<dataItemType[]>([]);
-const totalComputed = computed({
+const totalInner = ref<number>(0)
+const dataListInner = ref<dataItemType[]>([])
+const totalComputed = computed<number>({
   get: () => {
-    return props.total || totalInner.value;
+    return props.total || totalInner.value
   },
   set: (val: number) => {
-    totalInner.value = val;
-  }
-});
-const extra = ref();
+    totalInner.value = val
+  },
+})
+const extra = ref<{ [key: string]: Primitive }>({})
 const dataListComputed = computed({
   get: () => {
-    return props.dataList || dataListInner.value;
+    return props.dataList || dataListInner.value
   },
   set: (val) => {
-    dataListInner.value = val;
-  }
-});
+    dataListInner.value = val
+  },
+})
 const proxyProps = ref<{
-  [key: string]: boolean;
+  [key: string]: boolean
 }>({
   onAdd: false,
   onUpdate: false,
@@ -555,10 +606,10 @@ const proxyProps = ref<{
   onRemove: false,
   onAddSon: false,
   onDataLoadCompleted: false,
-  'onUpdate:showSearch': false
-});
+  'onUpdate:showSearch': false,
+})
 const proxyPropsParamsInfo = ref<{
-  [key: string]: boolean;
+  [key: string]: boolean
 }>({
   onAdd: false,
   onUpdate: false,
@@ -566,81 +617,92 @@ const proxyPropsParamsInfo = ref<{
   onRemove: false,
   onAddSon: false,
   onDataLoadCompleted: false,
-  'onUpdate:showSearch': false
-});
+  'onUpdate:showSearch': false,
+})
 onMounted(() => {
-  const internal = getCurrentInstance();
-  const onEmit = (internal?.vnode.props || {}) as Record<string, any>;
+  const internal = getCurrentInstance()
+  const onEmit = (internal?.vnode.props || {}) as Record<string, Primitive>
   for (const emit in onEmit) {
-    proxyProps.value[emit] = typeof onEmit[emit] === 'function';
+    proxyProps.value[emit] = typeof onEmit[emit] === 'function'
     if (proxyProps.value[emit]) {
-      const funInfo = FunctionAnalyzer.analyzeParameters(onEmit[emit]);
+      const funInfo = FunctionAnalyzer.analyzeParameters(onEmit[emit])
       // console.log(funInfo.parameters.find((item) => item.name === 'cb' || item.name === 'callback'));
-      if (funInfo.parameterCount > 0 && funInfo.parameters.find((item) => item.name === 'cb' || item.name === 'callback')) {
-        proxyPropsParamsInfo.value[emit] = true;
+      if (
+        funInfo.parameterCount > 0 &&
+        funInfo.parameters.find(
+          (item: { name: string }) => item.name === 'cb' || item.name === 'callback',
+        )
+      ) {
+        proxyPropsParamsInfo.value[emit] = true
       }
     }
   }
-  autoHeight();
-});
+  autoHeight()
+})
 const operationWidthComputed = computed(() => {
-  let width = props.operationWidth ?? 100;
+  let width = props.operationWidth ?? 100
   if (typeof props.operationWidth === 'undefined') {
-    let i = 0;
+    let i = 0
     for (const proxyProp of ['onAddSon', 'onUpdate', 'onRemove', 'onDetail']) {
       if (proxyProps.value[proxyProp]) {
-        width += props.oneOperationWidth;
-        i++;
+        width += props.oneOperationWidth
+        i++
       }
     }
     if (i === 0) {
-      width = 70;
+      width = 70
     } else if (i >= 1) {
-      width -= 80;
+      width -= 80
     }
   }
-  return width;
-});
+  return width
+})
 const listenDoc = useListenDomChange(() => {
-  setTimeout(autoHeight, 100);
-});
+  setTimeout(autoHeight, 100)
+})
 const getOperationLabel = (
   hasXXX: typeof props.hasDetail,
   scope: {
-    row: any;
+    row: ObjectType
   },
-  defaultLabel: string
+  defaultLabel: string,
 ) => {
-  const hasOperationName = props.hasOperationName;
+  const hasOperationName = props.hasOperationName
   if (typeof hasXXX === 'boolean') {
-    return defaultLabel;
+    return defaultLabel
   }
 
   if (typeof hasXXX === 'function') {
-    if (!hasOperationName) return '';
+    if (!hasOperationName) return ''
 
-    const result = hasXXX(scope.row);
-    return typeof result === 'boolean' ? defaultLabel : result;
+    const result = (hasXXX as FunctionType)(scope.row)
+    return typeof result === 'boolean' ? defaultLabel : result
   }
 
-  return hasXXX ?? defaultLabel;
-};
+  return hasXXX ?? defaultLabel
+}
 const autoHeight = () => {
   // console.log('重建dom', props.baseClass, new Date().getTime());
   nextTick(() => {
-    if (props.baseClass && typeof props.height == 'undefined' && typeof props.maxHeight === 'undefined') {
-      const tableHeaderHeight = getHeight('.el-card__header'); //+ getHeight('.el-table__header-wrapper');
-      const pageHeight = getHeight('.pagination-container');
+    if (props.baseClass && typeof props.height == 'undefined') {
+      const tableHeaderHeight = getHeight('.el-card__header') //+ getHeight('.el-table__header-wrapper');
+      const pageHeight = getHeight('.pagination-container')
       const {
         paddingTop: bodyPaddingTop,
         paddingRight: bodyPaddingRight,
         paddingLeft: bodyPaddingLeft,
-        paddingBottom: bodyPaddingBottom
-      } = getComputedStyle('.table-plus .el-card__body');
-      const { borderTopWidth, borderBottomWidth } = getComputedStyle('.table-plus .el-card__header');
-      const { width } = getComputedStyle('.table-plus');
-      widthInner.value = Number(width.replace('px', '')) - Number(bodyPaddingRight.replace('px', '')) - Number(bodyPaddingLeft.replace('px', ''));
-      const { height, dom } = getRemainingHeight(props.baseClass, ['.table-plus', ...props.authHeightExcludeClassName]);
+        paddingBottom: bodyPaddingBottom,
+      } = getComputedStyle('.table-plus .el-card__body')
+      const { borderTopWidth, borderBottomWidth } = getComputedStyle('.table-plus .el-card__header')
+      const { width } = getComputedStyle('.table-plus')
+      widthInner.value =
+        Number(width.replace('px', '')) -
+        Number(bodyPaddingRight.replace('px', '')) -
+        Number(bodyPaddingLeft.replace('px', ''))
+      const { height, dom } = getRemainingHeight(props.baseClass, [
+        '.table-plus',
+        ...props.autoHeightExcludeClassName,
+      ])
       heightInner.value =
         height -
         tableHeaderHeight -
@@ -648,50 +710,61 @@ const autoHeight = () => {
         parseFloat(bodyPaddingBottom) -
         parseFloat(bodyPaddingTop) -
         parseFloat(borderTopWidth) -
-        parseFloat(borderBottomWidth);
-      maxHeightInner.value = heightInner.value;
+        parseFloat(borderBottomWidth)
+      maxHeightInner.value = heightInner.value
       // console.log(heightInner.value);
       dom.forEach((item) => {
-        listenDoc.listen(item);
-      });
-      if (props.hasPage) listenDoc.listen('.pagination-container');
+        listenDoc.listen(item)
+      })
+      if (props.hasPage) listenDoc.listen('.pagination-container')
       // listenDoc.listen('.el-table__header-wrapper');
     }
-  });
-};
+  })
+}
 //需要隐藏的表格列
 const canHiddenColumns = computed({
   get() {
     return deepClone(tableColumn.value)
-      .filter((item: { isTable: any }) => item.isTable || typeof item.isTable === 'undefined')
-      .map((item: { prop: any; label: any; visible: any; hidden: any; width: any; maxWidth: any }, index: number) => {
-        return {
-          key: item.prop,
-          label: item.label,
-          visible: item.visible ?? true,
-          hidden: item.hidden,
-          index: index,
-          maxWidth: item.width ? false : (item.maxWidth ?? props.maxWidth)
-        };
-      })
-      .filter((item: { hidden: any }) => item.hidden);
+      .filter((item: { isTable: Primitive }) => item.isTable || typeof item.isTable === 'undefined')
+      .map(
+        (
+          item: {
+            prop: string
+            label: string
+            visible: boolean
+            hidden: boolean
+            width: number
+            maxWidth: number
+          },
+          index: number,
+        ) => {
+          return {
+            key: item.prop,
+            label: item.label,
+            visible: item.visible ?? true,
+            hidden: item.hidden,
+            index: index,
+            maxWidth: item.width ? false : (item.maxWidth ?? props.maxWidth),
+          }
+        },
+      )
+      .filter((item: { hidden: true }) => item.hidden)
   },
   set(data) {
     data.forEach((item: { index: number; visible: boolean | undefined }) => {
-      tableColumn.value[item.index].visible = item.visible;
-    });
-  }
-});
-const selectedRows = ref(new Set());
+      tableColumn.value[item.index].visible = item.visible
+    })
+  },
+})
+const selectedRows = ref(new Set())
 // 切换行选择状态
-const toggleRowSelection = (rowId, checked) => {
-  if (selectedRows.value.has(rowId)) {
-    selectedRows.value.delete(rowId);
+const toggleRowSelection = (row:string) => {
+  if (selectedRows.value.has(row)) {
+    selectedRows.value.delete(row)
   } else {
-    selectedRows.value.add(rowId);
+    selectedRows.value.add(row)
   }
-  
-};
+}
 const allSelected = computed(() => {
   return (
     dataListComputed.value.length > 0 &&
@@ -700,68 +773,68 @@ const allSelected = computed(() => {
         ...selectedRows.value,
         ...dataListComputed.value
           .map((item, index) => {
-            if (hasSelection.value(item, index)) return JSON.stringify(item);
+            if (hasSelection.value(item, index)) return JSON.stringify(item)
           })
-          .filter((item) => item)
+          .filter((item) => item),
       ]).size
-  );
-});
+  )
+})
 const indeterminate = computed(() => {
-  return selectedRows.value.size > 0 && !allSelected.value;
-});
+  return selectedRows.value.size > 0 && !allSelected.value
+})
 // 全选/取消全选
 const toggleSelectAll = () => {
   if (allSelected.value) {
-    selectedRows.value.clear();
+    selectedRows.value.clear()
   } else {
     dataListComputed.value.forEach((row, index) => {
-      if (hasSelection.value(row, index)) selectedRows.value.add(JSON.stringify(row));
-    });
+      if (hasSelection.value(row, index)) selectedRows.value.add(JSON.stringify(row))
+    })
   }
-
-};
+}
 // 清空选择
 const clearSelection = () => {
-  selectedRows.value.clear();
-};
+  selectedRows.value.clear()
+}
 
 // 创建省略单元格渲染器
 const createEllipsisCellRenderer = (
   { showTooltip = true, tooltipPlacement = 'top', fun, classFun } = {
     fun: () => String,
     classFun: () => String,
-    showTooltip: Boolean
-  }
+    showTooltip: Boolean,
+  },
 ) => {
-  return ({ cellData, rowIndex, column, rowData }: { rowData; rowIndex; cellValue; column }) => {
+  return ({ cellValue:cellData, rowIndex, column, rowData }: { rowData:ObjectType; rowIndex:number; cellValue:Primitive; column:ObjectType }) => {
     const content = fun(rowData, column['dataKey'], {
-      renderTxt: (context) => context ?? props.defaultBlock,
-      ...useAttrs(),
-      index: rowIndex
-    });
-    const style: { width: string; overflow?: string; textOverflow?: string; whiteSpace?: string } = {
-      width: `auto` // 减去 padding
-    };
+      renderTxt: (context:string) => context ?? props.defaultBlock,
+      ...attrs,
+      index: rowIndex,
+    })
+    const style: { width: string; overflow?: string; textOverflow?: string; whiteSpace?: string } =
+      {
+        width: `auto`, // 减去 padding
+      }
     if (showTooltip) {
-      style.overflow = 'hidden';
-      style.textOverflow = 'ellipsis';
-      style.whiteSpace = 'nowrap';
+      style.overflow = 'hidden'
+      style.textOverflow = 'ellipsis'
+      style.whiteSpace = 'nowrap'
     }
     // 创建单元格内容容器
     const cellContent = h(
       'div',
       {
-        class: `span span_${column['dataKey']} span_${column['dataKey']}_${cellData} ${typeof cellData} ellipsis-content ${classFun(rowData, column['dataKey'])} key_${column['dataKey']}_prop`,
-        style
+        class: `span span_${column['dataKey'] as string} span_${column['dataKey']}_${cellData} ${typeof cellData} ellipsis-content ${classFun(rowData, column['dataKey'])} key_${column['dataKey']}_prop`,
+        style,
       },
       {
-        default: () => [content]
-      }
-    );
+        default: () => [content],
+      },
+    )
 
     // 如果不需要 tooltip，直接返回
     if (!showTooltip || typeof content == 'object' || content == props.defaultBlock) {
-      return cellContent;
+      return cellContent
     }
 
     // 需要 tooltip 的情况
@@ -770,7 +843,7 @@ const createEllipsisCellRenderer = (
       {
         placement: tooltipPlacement,
         content: content,
-        showOverflowTooltip: true
+        showOverflowTooltip: true,
         // onBeforeShow: (instance) => {
         //   // const { fromElement } = instance;
         //   // console.log('Tooltip 即将显示', instance, cellContent.props.class?.split(' '), fromElement.clientWidth, fromElement.scrollWidth);
@@ -781,39 +854,43 @@ const createEllipsisCellRenderer = (
         // }
       },
       {
-        default: () => [cellContent]
-      }
-    );
-  };
-};
+        default: () => [cellContent],
+      },
+    )
+  }
+}
 
-const tableColumn = ref<TableColumn[]>([]);
+const tableColumn = ref<typeof props.tableColumn>(props.tableColumn)
 
-const hasSelection = ref(typeof props.hasSelection === 'function' ? props.hasSelection : (row, rowIndex) => true);
+const hasSelection = ref(
+  typeof props.hasSelection === 'function' ? props.hasSelection : () => true,
+)
 // 生成操作列的函数
-function generateOperationColumn(slots) {
-  return ({ rowData: row, rowIndex: $index }) => {
-    const ElTooltip = resolveComponent('ElTooltip');
-    const ElButton = resolveComponent('ElButton');
-    const template = (slot: (...args) => {}) => {
-      if (!slot) return undefined;
+function generateOperationColumn() {
+  return ({ rowData: row, rowIndex: $index }:{rowData:ObjectType,rowIndex:number}) => {
+    const ElTooltip = resolveComponent('ElTooltip')
+    const ElButton = resolveComponent('ElButton')
+    const template = (slot: (...args:Primitive[]) => void) => {
+      if (!slot) return undefined
       return slot({
         data: row,
         index: $index,
         text: props.hasOperationText,
         link: props.hasOperationLink,
-        loading: operationLoading.value
-      });
-    };
+        loading: operationLoading.value,
+      })
+    }
     // 生成工具提示按钮的函数
     const generateTooltipButton = (condition = '', label, handler, icon, type) => {
       // 判断是否显示
       const shouldShow =
-        typeof props[condition] === 'function' ? props[condition](row) : props[condition] && proxyProps.value[`on${condition.replace('has', '')}`];
+        typeof props[condition] === 'function'
+          ? props[condition](row)
+          : props[condition] && proxyProps.value[`on${condition.replace('has', '')}`]
 
-      if (!shouldShow) return null;
+      if (!shouldShow) return null
 
-      const buttonContent = getOperationLabel(props[condition], { row, $index }, label);
+      const buttonContent = getOperationLabel(props[condition], { row, $index }, label)
 
       // 创建按钮
       const button = h(
@@ -824,10 +901,10 @@ function generateOperationColumn(slots) {
           type: type,
           loading: operationLoading.value,
           icon: icon,
-          onClick: () => handler(row)
+          onClick: () => handler(row),
         },
-        () => buttonContent
-      );
+        () => buttonContent,
+      )
 
       // 包装在 Tooltip 中
       return h(
@@ -835,63 +912,87 @@ function generateOperationColumn(slots) {
         {
           disabled: props.hasOperationName,
           content: `${buttonContent}`,
-          placement: 'top'
+          placement: 'top',
         },
         {
-          default: () => button
-        }
-      );
-    };
-// 收集所有要渲染的子节点
-    const children = [];
+          default: () => button,
+        },
+      )
+    }
+    // 收集所有要渲染的子节点
+    const children = []
     // 1. operationBefore 插槽
     if (slots.operationBefore) {
-      children.push(template(slots.operationBefore));
+      children.push(template(slots.operationBefore))
     }
 
     // 2. addSon 插槽和按钮
-    const addSonSlot = template(slots.addSon);
+    const addSonSlot = template(slots.addSon)
 
-    const addSonButton = generateTooltipButton('hasAddSon', '新增', handleAddSon, props.hasAddSonIcon, props.hasAddSonType);
-    children.push(addSonSlot ?? addSonButton);
+    const addSonButton = generateTooltipButton(
+      'hasAddSon',
+      '新增',
+      handleAddSon,
+      props.hasAddSonIcon,
+      props.hasAddSonType,
+    )
+    children.push(addSonSlot ?? addSonButton)
 
     // 3. operationAfterAddSon 插槽
     if (slots.operationAfterAddSon) {
-      children.push(template(slots.operationAfterAddSon));
+      children.push(template(slots.operationAfterAddSon))
     }
 
     // 4. detail 插槽和按钮
-    const detailSlot = template(slots.detail);
+    const detailSlot = template(slots.detail)
 
-    const detailButton = generateTooltipButton('hasDetail', '详情', handleDetail, props.hasDetailIcon, props.hasDetailType);
-    children.push(detailSlot ?? detailButton);
+    const detailButton = generateTooltipButton(
+      'hasDetail',
+      '详情',
+      handleDetail,
+      props.hasDetailIcon,
+      props.hasDetailType,
+    )
+    children.push(detailSlot ?? detailButton)
 
     // 5. operationAfterDetail 插槽
     if (slots.operationAfterDetail) {
-      children.push(template(slots.operationAfterDetail));
+      children.push(template(slots.operationAfterDetail))
     }
 
     // 6. update 插槽和按钮
-    const updateSlot = template(slots.update);
+    const updateSlot = template(slots.update)
 
-    const updateButton = generateTooltipButton('hasUpdate', '修改', handleUpdate, props.hasUpdateIcon, props.hasUpdateType);
+    const updateButton = generateTooltipButton(
+      'hasUpdate',
+      '修改',
+      handleUpdate,
+      props.hasUpdateIcon,
+      props.hasUpdateType,
+    )
 
-    children.push(updateSlot ?? updateButton);
+    children.push(updateSlot ?? updateButton)
 
     // 7. operationAfterUpdate 插槽
     if (slots.operationAfterUpdate) {
-      children.push(template(slots.operationAfterUpdate));
+      children.push(template(slots.operationAfterUpdate))
     }
 
     // 8. remove 插槽和按钮
-    const removeSlot = template(slots.remove);
+    const removeSlot = template(slots.remove)
 
-    const removeButton = generateTooltipButton('hasRemove', '删除', handleRemove, props.hasRemoveIcon, props.hasRemoveType);
-    children.push(removeSlot ?? removeButton);
+    const removeButton = generateTooltipButton(
+      'hasRemove',
+      '删除',
+      handleRemove,
+      props.hasRemoveIcon,
+      props.hasRemoveType,
+    )
+    children.push(removeSlot ?? removeButton)
 
     // 9. operationAfter 插槽
     if (slots.operationAfter) {
-      children.push(template(slots.operationAfter));
+      children.push(template(slots.operationAfter))
     }
     // console.log(children);
     // 返回包裹容器
@@ -904,84 +1005,100 @@ function generateOperationColumn(slots) {
           alignItems: 'center',
           gap: '8px',
           flexWrap: 'wrap',
-          justifyContent: 'center'
-        }
+          justifyContent: 'center',
+        },
       },
       {
-        default: () => [...children.filter((item) => item)]
-      }
-    );
-  };
+        default: () => [...children.filter((item) => item)],
+      },
+    )
+  }
 }
-
-const tableColumnFinal = computed({
-  get() {
-    tableColumn.value = [];
+const cellProps = ({ columnIndex }) => {
+  const key = `hovering-col-${columnIndex}`
+  return {
+    ['data-key']: key,
+    onMouseenter: () => {
+      kls.value = key
+    },
+    onMouseleave: () => {
+      kls.value = ''
+    },
+  }
+}
+const kls=ref<string>('')
+const tableColumnFinal = computed(()=>{
+    const TableColumn:TableColumn[]=[]
     // if (tableColumn.value.length === 0) {
     if (hasSelectionComputed.value) {
-      tableColumn.value.push({
+      TableColumn.push({
         dataKey: 'index',
         key: 'index',
         title: '',
         width: Number(55),
         fixed: 'left',
         cellRenderer: (props: CellRenderProps) => {
-          const { rowData, rowIndex, cellValue, column } = props;
+          const { rowData, rowIndex } = props
           return h(ElCheckbox, {
             modelValue: selectedRows.value.has(JSON.stringify(rowData)),
             onChange: (checked) => toggleRowSelection(JSON.stringify(rowData), checked),
             onClick: (e) => e.stopPropagation(),
-            disabled: !hasSelection.value(rowData, rowIndex)
-          });
+            disabled: !hasSelection.value(rowData, rowIndex),
+            value: JSON.stringify(rowData),
+          })
         },
-        headerCellRenderer: (props: HeaderRenderProps) => {
+        headerCellRenderer: () => {
           return h(ElCheckbox, {
             modelValue: allSelected.value,
             indeterminate: indeterminate.value,
             onChange: toggleSelectAll,
-            onClick: (e) => e.stopPropagation()
-          });
-        }
-      });
+            onClick: (e) => e.stopPropagation(),
+          })
+        },
+      })
     }
     if (hasIndexComputed.value) {
-      tableColumn.value.push({
+      TableColumn.push({
         dataKey: 'index',
         key: 'index',
         title: typeof props.hasIndex === 'boolean' ? '序号' : props.hasIndex,
         width: Number(60),
         fixed: 'left',
         cellRenderer: (props: CellRenderProps) => {
-          const { rowData, rowIndex, cellValue, column } = props;
-          return h('span', {}, queryParams.value.pageSize * (queryParams.value.pageNum - 1) + rowIndex + 1);
+          const {  rowIndex } = props
+          return h(
+            'span',
+            {},
+            queryParams.value.pageSize * (queryParams.value.pageNum - 1) + rowIndex + 1,
+          )
         },
         headerCellRenderer: (props: HeaderRenderProps) => {
-          const { rowData, rowIndex, cellValue, column } = props;
-          return h('span', {}, column.title);
-        }
-      });
+          const { column } = props
+          return h('span', {}, column.title)
+        },
+      })
     }
-tableColumn.value.push(
+    TableColumn.push(
       ...deepClone(props.tableColumn)
-        .filter((item: { isTable: any }) => item.isTable || typeof item.isTable === 'undefined')
+        .filter((item: { isTable: boolean|undefined }) => item.isTable || typeof item.isTable === 'undefined')
         .map((data: tableColumnItem, index: number) => {
-          const item: TableColumn = {};
-          item.align = 'center';
+          const item: TableColumn = {}
+          item.align = 'center'
           if (props.isTree && index === 0 && !props.hasSelection) {
-            item.align = 'left';
+            item.align = 'left'
           }
           // item.visible = data.visible ?? true;
-          data.sortable = data.sort ?? data.sortable ?? false;
+          data.sortable = data.sort ?? data.sortable ?? false
           if (typeof data.sortable === 'string' && props.sortable) {
-            data.sortable = true;
+            data.sortable = true
           }
           if (typeof data.sortable === 'boolean' && !props.sortable) {
             // item.sortable = 'custom';
           }
           if (data.sortable) {
             // item.sortProp = data.sortProp ?? data.prop;
-            sortProp.value[data.prop] = data.sortProp;
-            sortState.value[data.prop] = undefined;
+            sortProp.value[data.prop] = data.sortProp
+            sortState.value[data.prop] = undefined
           }
           data.fun =
             data.funDom ??
@@ -990,28 +1107,28 @@ tableColumn.value.push(
               row: dataItemType,
               prop: string,
               other?: {
-                index?: number;
-                tableColumnFinal?: tableColumnItem[];
-                searchValue?: { [key: string]: any };
-                [key: string]: any;
-                renderTxt: any;
-              }
+                index?: number
+                [key: string]: string | number | boolean | null | undefined | symbol
+                renderTxt: (context:string) =>string
+              },
             ) =>
               String(row[prop] ?? props.defaultBlock) +
-              (typeof data.unit == 'string' ? data.unit : ((data.unit && data.unit(row, prop, other)) ?? '')));
-          data.classFun = data.classFun ?? (() => '');
-          item.dataKey = data.prop;
-          item.key = data.prop;
-          item.title = data.label;
-          item.width = Number(data.width ?? 100);
-          item.hidden = data.showFun;
+              (typeof data.unit == 'string'
+                ? data.unit
+                : ((data.unit && data.unit(row, prop, other)) ?? '')))
+          data.classFun = data.classFun ?? (() => '')
+          item.dataKey = data.prop
+          item.key = data.prop
+          item.title = data.label
+          item.width = Number(data.width ?? 100)
+          // item.hidden = typeof data.showFun=='boolean'?data.
           item.cellRenderer = createEllipsisCellRenderer({
             fun: data.fun,
             classFun: data.classFun,
-            showTooltip: data.showOverflow
-          });
+            showTooltip: data.showOverflow,
+          })
           item.headerCellRenderer = (props: HeaderRenderProps) => {
-            const { rowData, rowIndex, cellValue, column } = props;
+            const { column } = props
             // console.log(props, '11111111111111');
             return h(
               'div',
@@ -1020,35 +1137,35 @@ tableColumn.value.push(
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  cursor: data.sortable ? 'pointer' : 'default'
+                  cursor: data.sortable ? 'pointer' : 'default',
                 },
                 dataset: {
-                  sort: '123'
+                  sort: '123',
                 },
                 class: ``,
-                onClick: (e) => {
+                onClick: () => {
                   if (data.sortable) {
                     switch (sortState.value[data.prop]) {
                       case undefined:
-                        sortState.value[data.prop] = 'desc';
-                        break;
+                        sortState.value[data.prop] = 'desc'
+                        break
                       case 'desc':
-                        sortState.value[data.prop] = 'asc';
-                        break;
+                        sortState.value[data.prop] = 'asc'
+                        break
                       case 'asc':
-                        sortState.value[data.prop] = undefined;
-                        break;
+                        sortState.value[data.prop] = undefined
+                        break
                     }
-                    onSort({ column: item, key: item.dataKey, order: sortState.value[data.prop] });
+                    onSort({ column: item, key: item.dataKey, order: sortState.value[data.prop] })
                   }
-                }
+                },
               },
               [
                 (data.header &&
                   data.header({
                     ...column,
                     label: column.title,
-                    prop: column.prop
+                    prop: column.prop,
                   })) ||
                   h('span', {}, column.title),
                 data.sortable &&
@@ -1057,96 +1174,95 @@ tableColumn.value.push(
                     {},
                     {
                       default: () =>
-                        typeof sortState.value[data.prop] == 'undefined' ? h(Sort) : sortState.value[data.prop] == 'desc' ? h(SortUp) : h(SortDown)
-                    }
-                  )
-              ]
-            );
-          };
+                        typeof sortState.value[data.prop] == 'undefined'
+                          ? h(Sort)
+                          : sortState.value[data.prop] == 'desc'
+                            ? h(SortUp)
+                            : h(SortDown),
+                    },
+                  ),
+              ],
+            )
+          }
 
-          return item;
-        })
-    );
-if (hasOperationComputed.value) {
-      tableColumn.value.push({
+          return item
+        }),
+    )
+    if (hasOperationComputed.value) {
+      TableColumn.push({
         dataKey: 'operation',
         key: 'operation',
         title: typeof props.hasOperation === 'boolean' ? '操作' : props.hasOperation,
         width: operationWidthComputed.value,
         fixed: 'right',
         align: props.operationAlign,
-        cellRenderer: generateOperationColumn(slots),
+        cellRenderer: generateOperationColumn(),
         headerCellRenderer: (props: HeaderRenderProps) => {
-          const { rowData, rowIndex, cellValue, column } = props;
-          return h('span', {}, column.title);
-        }
-      });
+          const { column } = props
+          return h('span', {}, column.title)
+        },
+      })
     }
-// }
+    // }
 
-    // console.log(JSON.stringify(tableColumn.value));
+    // console.log(JSON.stringify(TableColumn));
 
-    return tableColumn.value;
-  },
-  set(data) {
-    // tableColumn.value = [...data];
-  }
-});
-const sortState = ref<SortState>({});
+    return TableColumn
+
+})
+const sortState = ref<ObjectType>({})
 
 const onSort = ({ column, key, order }: SortBy) => {
-  sortState.value[key] = order;
+  sortState.value[key] = order
   if (typeof order !== 'undefined') {
-    sortPropData.value[column.dataKey] = props.sortableConfig[order];
+    sortPropData.value[column.dataKey] = props.sortableConfig[order]
   } else {
-    delete sortPropData.value[column.dataKey];
+    delete sortPropData.value[column.dataKey]
   }
 
-  handleQuery();
-};
-const loading = ref<boolean>(true);
-const showSearchInner = ref(true);
+  handleQuery()
+}
+const loading = ref<boolean>(true)
+const showSearchInner = ref(true)
 const showSearch = computed({
   get() {
-    return showSearchInner.value;
+    return showSearchInner.value
   },
   set(value) {
-    showSearchInner.value = value;
-    autoHeight();
-    if (proxyProps.value[`onUpdate:showSearch`]) emits('update:showSearch', showSearchInner.value);
-  }
-});
+    showSearchInner.value = value
+    autoHeight()
+    if (proxyProps.value[`onUpdate:showSearch`]) emits('update:showSearch', showSearchInner.value)
+  },
+})
 
-const queryParams = ref<query>({ pageSize: 10, pageNum: 1, ...props.queryParam });
+const queryParams = ref<query>({ pageSize: 10, pageNum: 1, ...props.queryParam })
 watch(
   () => props.queryParam,
   () => {
-    queryParams.value = { ...queryParams.value, ...props.queryParam };
+    queryParams.value = { ...queryParams.value, ...props.queryParam }
   },
   {
     deep: true,
-    immediate: true
-  }
-);
+    immediate: true,
+  },
+)
 // ======================== 新增：Emit 相关核心类型定义 ========================
 // 1. 表格行数据类型（与 props.dataList 结构对齐）
-type TableRowData = dataItemType; // 复用组件内已定义的 dataItemType
+type TableRowData = dataItemType // 复用组件内已定义的 dataItemType
 
 // 2. 表格查询参数类型（与 queryParams 结构对齐，含分页信息）
-type TableQueryParams = query; // 复用组件内已定义的 query 类型
+type TableQueryParams = query // 复用组件内已定义的 query 类型
 
 // 3. 导出操作的回调函数类型（用于控制导出加载状态）
 type ExportCallback = (
   url?: string,
-  params?: {
-    [key: string]: any;
-  },
+  params?: ObjectType,
   fileName?: string,
-  methods?: 'get' | 'post'
-) => void;
+  methods?: 'get' | 'post',
+) => void
 
 // 4. 删除操作的回调函数类型（用于控制删除结果和加载状态）
-type RemoveCallback = (flag: boolean | string | Promise<any>) => void;
+type RemoveCallback = (flag: boolean | string | Promise<ObjectType>) => void
 
 // 7. 所有 Emit 事件接口（覆盖组件所有触发场景）
 interface MyTableEmits {
@@ -1155,14 +1271,14 @@ interface MyTableEmits {
    * @param eventName 事件名：固定为 'query'
    * @param params 查询参数（含分页信息）
    */
-  (eventName: 'query', params: TableQueryParams): void;
+  (eventName: 'query', params: TableQueryParams): void
 
   /**
    * 新增按钮点击事件
    * @param eventName 事件名：固定为 'add'
    * @param callback
    */
-  (eventName: 'add', callback?: RemoveCallback): void;
+  (eventName: 'add', callback?: RemoveCallback): void
 
   /**
    * 行内修改按钮点击事件
@@ -1170,7 +1286,7 @@ interface MyTableEmits {
    * @param row 当前行数据
    * @param callback
    */
-  (eventName: 'update', row: TableRowData, callback: RemoveCallback): void;
+  (eventName: 'update', row: TableRowData, callback: RemoveCallback): void
 
   /**
    * 行内详情按钮点击事件
@@ -1178,7 +1294,7 @@ interface MyTableEmits {
    * @param row 当前行数据
    * @param callback
    */
-  (eventName: 'detail', row: TableRowData, callback: RemoveCallback): void;
+  (eventName: 'detail', row: TableRowData, callback: RemoveCallback): void
 
   /**
    * 行内删除按钮点击事件
@@ -1186,14 +1302,14 @@ interface MyTableEmits {
    * @param row 当前行数据
    * @param callback 删除结果回调（控制加载状态和提示）
    */
-  (eventName: 'remove', row: TableRowData, callback: RemoveCallback): void;
+  (eventName: 'remove', row: TableRowData, callback: RemoveCallback): void
 
   /**
    * 搜索区域显示/隐藏切换事件
    * @param eventName 事件名：固定为 'update:showSearch'
    * @param visible 搜索区域显示状态（true 显示，false 隐藏）
    */
-  (eventName: 'update:showSearch', visible: boolean): void;
+  (eventName: 'update:showSearch', visible: boolean): void
 
   /**
    * 批量删除按钮点击事件
@@ -1201,14 +1317,14 @@ interface MyTableEmits {
    * @param selectedRows 选中的行数据列表（从 multipleSelection 提取）
    * @param callback
    */
-  (eventName: 'batch-remove', selectedRows: TableRowData[], callback: RemoveCallback): void;
+  (eventName: 'batch-remove', selectedRows: TableRowData[], callback: RemoveCallback): void
 
   /**
    * 导入按钮点击事件
    * @param eventName 事件名：固定为 'import'
    * @param callback
    */
-  (eventName: 'import', callback: RemoveCallback): void;
+  (eventName: 'import', callback: RemoveCallback): void
 
   /**
    * 导出按钮点击事件（含选中行筛选）
@@ -1219,11 +1335,11 @@ interface MyTableEmits {
   (
     eventName: 'export',
     exportData: {
-      [key: string]: any; // 扩展字段（如查询条件）
-      multipleSelection: TableRowData[]; // 选中的行数据（用于批量导出）
+      [key: string]: Primitive // 扩展字段（如查询条件）
+      multipleSelection: ObjectType[] // 选中的行数据（用于批量导出）
     },
-    callback: ExportCallback
-  ): void;
+    callback: ExportCallback,
+  ): void
 
   /**
    * 数据加载完成事件（通过 dataListFun 加载数据后触发）
@@ -1231,7 +1347,7 @@ interface MyTableEmits {
    * @param datas 加载完成的数据列表
    * @param total 数据总数（用于分页）
    */
-  (eventName: 'dataLoadCompleted', datas: TableRowData[], total: number): void;
+  (eventName: 'dataLoadCompleted', datas: TableRowData[], total: number): void
 
   /**
    * 树形表格展开/折叠事件
@@ -1239,7 +1355,7 @@ interface MyTableEmits {
    * @param row 被展开/折叠的行数据
    * @param expanded 展开状态（布尔值或展开的子行列表）
    */
-  (eventName: 'expand-change', row: TableRowData, expanded: boolean | TableRowData[]): void;
+  (eventName: 'expand-change', row: TableRowData, expanded: boolean | TableRowData[]): void
 
   /**
    * 行内新增子节点按钮点击事件（树形表格专用）
@@ -1247,14 +1363,14 @@ interface MyTableEmits {
    * @param parentRow 父行数据（新增子节点的上级）
    * @param callback
    */
-  (eventName: 'add-son', parentRow: TableRowData, callback: RemoveCallback): void;
+  (eventName: 'add-son', parentRow: TableRowData, callback: RemoveCallback): void
 
   /**
    * 行内新增子节点按钮点击事件（树形表格专用）
    * @param eventName 事件名：固定为 'current-change'
    * @param val 被选中的行数据
    */
-  (eventName: 'current-change', val: TableRowData): void;
+  (eventName: 'current-change', val: TableRowData): void
 
   /**
    * 行内自定义按钮点击事件
@@ -1265,168 +1381,180 @@ interface MyTableEmits {
   (
     eventName: 'custom-event',
     row: {
-      eventName: string;
-      data: any;
+      eventName: string
+      data: ObjectType
     },
-    callback: RemoveCallback
-  ): void;
+    callback: RemoveCallback,
+  ): void
 }
 // ========================================================================
-const emits = defineEmits<MyTableEmits>();
+const emits = defineEmits<MyTableEmits>()
 
 watch(
   () => props.dataList,
   () => {
-    loading.value = false;
+    loading.value = false
   },
   {
     deep: true,
-    immediate: true
-  }
-);
+    immediate: true,
+  },
+)
 const startQuery = () => {
-  loading.value = true;
-};
+  loading.value = true
+}
 //树形表格存储原始数据
-const originalData = ref<any[]>();
+const originalData = ref<Primitive[]>()
 //树形表格存储子数据
-const dataChildrenListMap = ref<{ [key: string]: any[] }>({});
+const dataChildrenListMap = ref<{ [key: string]: Primitive[] }>({})
 //树形表格存储展开子数据
-const dataExpandMap = ref<{ [key: string]: { row: any; treeNode: any; resolve: any } }>({});
-const treeConfig = ref<IsTreeConfig>(undefined);
+const dataExpandMap = ref<{ [key: string]: { row: ObjectType; treeNode: ObjectType; resolve: FunctionType } }>({})
+const treeConfig = ref<IsTreeConfig>(undefined)
 
 //多选数据
 const multipleSelection = computed(() => {
-  return Array.from(selectedRows.value).map((item) => JSON.parse(item));
-});
+  return Array.from(selectedRows.value).map((item) => JSON.parse(item))
+})
 //多选
 const toggleSelection = (rows?: tableColumnItem[], ignoreSelectable?: boolean) => {
   if (rows) {
     rows.forEach((row) => {
-      tableRef.value?.toggleRowSelection(row, undefined, ignoreSelectable);
-    });
+      tableRef.value?.toggleRowSelection(row, undefined, ignoreSelectable)
+    })
   } else {
-    tableRef.value?.clearSelection();
+    tableRef.value?.clearSelection()
   }
-};
-
-      //行展开
-const tableRowStatusChange = (row: any, expandedRows: any[] | boolean): void => {
-  console.log(expandedRows, '行展开');
-  if (proxyProps.value['onExpandChange']) emits('expand-change', row, expandedRows);
+}
+const expandColumnKey=ref('')
+const expandedRowKeys = ref<string[]>([])
+//行展开
+const tableRowStatusChange = (row: ObjectType, expandedRows: ObjectType[] | boolean): void => {
+  // console.log(expandedRows, '行展开')
+  if (proxyProps.value['onExpandChange']) emits('expand-change', row, expandedRows)
   else if (!expandedRows) {
-    delete dataExpandMap.value[String(row[treeConfig.value.id])];
+    delete dataExpandMap.value[String(row[treeConfig.value.id])]
   }
-};
-const handleCurrentChange = (val: any) => {
-  if (proxyProps.value['onCurrentChange']) emits('current-change', val);
-};
-const setCurrentRow = (val: any) => {
-  tableRef.value?.setCurrentRow(val);
-};
+}
+const handleCurrentChange = (val: ObjectType) => {
+  if (proxyProps.value['onCurrentChange']) emits('current-change', val)
+}
+const setCurrentRow = (val: ObjectType) => {
+  tableRef.value?.setCurrentRow(val)
+}
 //排序参数键名对照
-const sortProp = ref<{ [key: string]: any }>({});
+const sortProp = ref<ObjectType>({})
 //排序数据
-const sortPropData = ref<{ [key: string]: any }>({});
+const sortPropData = ref<ObjectType>({})
 const sortPropDataComputed = computed(() => {
   const queryParam = {
     [props.searchSortableConfig.fieId]: '',
-    [props.searchSortableConfig.fieVal]: ''
-  };
+    [props.searchSortableConfig.fieVal]: '',
+  }
   for (const sortPropDatum in sortPropData.value) {
-    if (typeof sortPropData.value[sortPropDatum] == 'undefined') continue;
-    queryParam[props.searchSortableConfig.fieId] += ',' + sortPropDatum;
-    queryParam[props.searchSortableConfig.fieVal] += ',' + sortPropData.value[sortPropDatum];
+    if (typeof sortPropData.value[sortPropDatum] == 'undefined') continue
+    queryParam[props.searchSortableConfig.fieId] += ',' + sortPropDatum
+    queryParam[props.searchSortableConfig.fieVal] += ',' + sortPropData.value[sortPropDatum]
   }
   if (queryParam[props.searchSortableConfig.fieId].length > 0) {
-    queryParam[props.searchSortableConfig.fieId] = queryParam[props.searchSortableConfig.fieId].slice(1);
-    queryParam[props.searchSortableConfig.fieVal] = queryParam[props.searchSortableConfig.fieVal].slice(1);
+    queryParam[props.searchSortableConfig.fieId] =
+      queryParam[props.searchSortableConfig.fieId].slice(1)
+    queryParam[props.searchSortableConfig.fieVal] =
+      queryParam[props.searchSortableConfig.fieVal].slice(1)
   }
-  return queryParam;
-});
+  return queryParam
+})
 // 树结构懒加载
 const loadFunComputed = computed(() => {
-  return props.loadFun ?? getChildrenList;
-});
+  return props.loadFun ?? getChildrenList
+})
 /** 获取子菜单列表 */
-const getChildrenList = async (row: any, treeNode: unknown, resolve: (data: any[]) => void) => {
-  console.log('获取子菜单列表');
-  dataExpandMap.value[String(row[treeConfig.value.id])] = { row, treeNode, resolve };
-  const children = dataChildrenListMap.value[String(row[treeConfig.value.id])] || [];
+const getChildrenList = async (row: ObjectType, treeNode: unknown, resolve: (data: ObjectType[]) => void) => {
+  console.log('获取子菜单列表')
+  dataExpandMap.value[String(row[treeConfig.value.id])] = { row, treeNode, resolve }
+  const children = dataChildrenListMap.value[String(row[treeConfig.value.id])] || []
   // 菜单的子菜单清空后关闭展开
   if (children.length == 0) {
     // fix: 处理当菜单只有一个子菜单并被删除，需要将父菜单的展开状态关闭
-    tableRef.value?.updateKeyChildren(row[treeConfig.value.id], children);
+    tableRef.value?.updateKeyChildren(row[treeConfig.value.id], children)
   }
-  resolve(children);
-};
+  resolve(children)
+}
 /** 刷新展开的菜单数据 */
 const refreshLoadTree = (parentId: string | number) => {
   if (dataExpandMap.value[String(parentId)]) {
-    const { row, treeNode, resolve } = dataExpandMap.value[String(parentId)];
+    const { row, treeNode, resolve } = dataExpandMap.value[String(parentId)]
     if (row) {
-      loadFunComputed.value(row, treeNode, resolve);
-      if (row[treeConfig.value.parentId] && dataExpandMap.value[String(row[treeConfig.value.parentId])]) {
-        const grandpaMenu = dataExpandMap.value[String(row[treeConfig.value.parentId])];
-        loadFunComputed.value(grandpaMenu.row, grandpaMenu.treeNode, grandpaMenu.resolve);
+      loadFunComputed.value(row, treeNode, resolve)
+      if (
+        row[treeConfig.value.parentId] &&
+        dataExpandMap.value[String(row[treeConfig.value.parentId])]
+      ) {
+        const grandpaMenu = dataExpandMap.value[String(row[treeConfig.value.parentId])]
+        loadFunComputed.value(grandpaMenu.row, grandpaMenu.treeNode, grandpaMenu.resolve)
       }
     }
   }
-};
+}
 /** 重新加载所有已展开的菜单的数据 */
 const refreshAllExpandMenuData = () => {
   for (const dataId in dataExpandMap.value) {
     // console.log(dataId, 'refreshAllExpandMenuData', dataExpandMap.value);
-    refreshLoadTree(String(dataId));
+    refreshLoadTree(String(dataId))
   }
-};
+}
 const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = false) => {
-  loading.value = true;
+  loading.value = true
   if (typeof queryParam == 'undefined') {
-    queryParam = { ...queryParams.value };
+    queryParam = { ...queryParams.value }
   }
-  queryParam = { ...queryParams.value, ...queryParam, ...sortPropDataComputed.value };
-  if (typeof isFirst === 'boolean' && isFirst) {
-    queryParam.pageNum = 1;
+  queryParam = { ...queryParams.value, ...queryParam, ...sortPropDataComputed.value }
+  if (isFirst) {
+    queryParam.pageNum = 1
   }
-  queryParams.value = { ...queryParam, ...sortPropDataComputed.value };
+  queryParams.value = { ...queryParam, ...sortPropDataComputed.value }
+  clearSelection()
   // console.log(1);
   // queryParam = { ...queryParam, ...sortPropDataComputed.value };
   if (!props.dataListFun) {
-    emits('query', queryParam);
+    emits('query', queryParam)
   } else {
-    props.dataListFun(queryParam, async (res: string | Promise<any> | any[], ...obj: any[]) => {
+    props.dataListFun(queryParam, async (res: string | Promise<ObjectType> | Primitive[], ...obj: any[]) => {
+      let requestData:ObjectType={
+        [props.dataConfig.rows]: [],
+        [props.dataConfig.total]: 0,
+        [props.dataConfig.extra]: {},
+      }
       try {
         if (res instanceof Promise) {
-          res = await (res as Promise<any>);
+          requestData = await (res as Promise<ObjectType>)
         } else if (typeof res == 'string' && props.dataLoadFun) {
           const query = {
             url: res,
             method: obj[1] ?? 'GET',
             params: obj[0],
-            data: obj[0]
-          };
-          if (query.method.toLowerCase() === 'get') {
-            delete query.data;
-          } else {
-            delete query.params;
+            data: obj[0],
           }
-          res = await props.dataLoadFun(query);
+          if (query.method.toLowerCase() === 'get') {
+            delete query.data
+          } else {
+            delete query.params
+          }
+          requestData = await (props.dataLoadFun(query)as Promise<ObjectType>)
           //console.log(res, query);
         } else {
-          res = {
+          requestData = {
             [props.dataConfig.rows]: res,
             [props.dataConfig.total]: obj[0],
-            [props.dataConfig.extra]: obj[1]
-          };
+            [props.dataConfig.extra]: obj[1],
+          }
         }
         // console.log(res)
-        const datas = res[props.dataConfig.rows];
-        const extras = res[props.dataConfig.extra];
-        let treeDatas = [];
-        const isTree = props.isTree;
+        const datas = requestData[props.dataConfig.rows]
+        const extras = requestData[props.dataConfig.extra]
+        let treeDatas = []
+        const isTree = props.isTree
         if (isTree) {
-          originalData.value = datas;
+          originalData.value = datas
         }
 
         if (typeof isTree === 'boolean' && isTree) {
@@ -1434,133 +1562,137 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
             id: 'id',
             parentId: 'parentId',
             children: 'children',
-            firstParentId: '0'
-          };
+            firstParentId: '0',
+          }
         } else if (isTree as IsTreeConfig) {
-          treeConfig.value = isTree as IsTreeConfig;
+          treeConfig.value = isTree as IsTreeConfig
         }
         if (treeConfig.value) {
-          const tempMap: { [key: string]: any } = {};
+          const tempMap: { [key: string]: Primitive } = {}
           // 存储 父菜单:子菜单列表
           for (const dataItem of datas) {
-            const parentId = String(dataItem[treeConfig.value.parentId]);
+            const parentId = String(dataItem[treeConfig.value.parentId])
             if (!tempMap[parentId]) {
-              tempMap[parentId] = [];
+              tempMap[parentId] = []
             }
-            tempMap[parentId].push(dataItem);
+            tempMap[parentId].push(dataItem)
           }
           // 设置有没有子菜单
           for (const dataItem of datas) {
-            dataItem[props.treeProps.hasChildren] = tempMap[dataItem[treeConfig.value.id]]?.length > 0;
+            dataItem[props.treeProps.hasChildren] =
+              tempMap[dataItem[treeConfig.value.id]]?.length > 0
           }
-          dataChildrenListMap.value = tempMap;
-          treeDatas = tempMap[treeConfig.value.firstParentId] || [];
-          if (proxyProps.value['onDataLoadCompleted']) emits('dataLoadCompleted', treeDatas, 0);
-          dataListComputed.value = treeDatas;
-          totalComputed.value = 0;
-          refreshAllExpandMenuData();
-          return;
+          dataChildrenListMap.value = tempMap
+          treeDatas = tempMap[treeConfig.value.firstParentId] || []
+          if (proxyProps.value['onDataLoadCompleted']) emits('dataLoadCompleted', treeDatas, 0)
+          dataListComputed.value = treeDatas
+          totalComputed.value = 0
+          refreshAllExpandMenuData()
+          return
         }
         // console.log(datas);
-        const total = props.hasPage ? res[props.dataConfig.total] : 0;
-        if (proxyProps.value['onDataLoadCompleted']) emits('dataLoadCompleted', datas, total);
-        dataListComputed.value = datas;
-        totalComputed.value = total;
-        extra.value = extras;
+        const total = props.hasPage ? requestData[props.dataConfig.total] : 0
+        if (proxyProps.value['onDataLoadCompleted']) emits('dataLoadCompleted', datas, total)
+        dataListComputed.value = datas
+        totalComputed.value = total
+        extra.value = extras
         nextTick(() => {
-          rowHeightInner.value = Math.max(props.rowHeight, getHeight('.operation-column') + 20);
-          console.log(rowHeightInner.value, getHeight('.operation-column'));
-        });
-      } catch (e) {
+          rowHeightInner.value = Math.max(props.rowHeight, getHeight('.operation-column') + 20)
+          })
       } finally {
-        loading.value = false;
+        loading.value = false
       }
-    });
+    })
   }
-  setCurrentRow(undefined);
-};
+  setCurrentRow(undefined)
+}
 const handleAdd = () => {
   if (proxyPropsParamsInfo.value['onAdd']) {
-    operationLoading.value = true;
+    operationLoading.value = true
     emits('add', undefined, () => {
-      operationLoading.value = false;
-    });
+      operationLoading.value = false
+    })
   } else {
-    emits('add');
+    emits('add')
   }
-};
+}
 const handleImport = () => {
   if (proxyPropsParamsInfo.value['onImport']) {
-    operationLoading.value = true;
+    operationLoading.value = true
     emits('import', () => {
-      operationLoading.value = false;
-    });
+      operationLoading.value = false
+    })
   } else {
-    emits('import');
+    emits('import')
   }
-};
+}
 const operationData = computed(() => {
   return {
     ...queryParams.value,
-    multipleSelection: multipleSelection.value
-  };
-});
+    multipleSelection: multipleSelection.value,
+  }
+})
 const downloadInnerFun = (url: string | URL, params = {}) => {
   request('GET', url, params, true).then((res) => {
-    handleFileDownload(res);
-  });
-};
+    handleFileDownload(res)
+  })
+}
 const downloadFun = computed(() => {
-  return props.downFun ?? downloadInnerFun;
-});
+  return props.downFun ?? downloadInnerFun
+})
 const handleExport = () => {
   const data = {
     ...queryParams.value,
-    multipleSelection: multipleSelection.value
-  };
-  const cb = (url: any, params = {}, fileName: string | undefined = undefined, methods: 'get' | 'post' = 'get') => {
+    multipleSelection: multipleSelection.value,
+  }
+  const cb = (
+    url: any,
+    params = {},
+    fileName: string | undefined = undefined,
+    methods: 'get' | 'post' = 'get',
+  ) => {
     if (typeof url !== 'undefined') {
       downloadFun.value(url, params, fileName, methods).finally(() => {
-        operationLoading.value = false;
-      });
-    } else operationLoading.value = false;
-  };
-  operationLoading.value = true;
+        operationLoading.value = false
+      })
+    } else operationLoading.value = false
+  }
+  operationLoading.value = true
   if (typeof props.exportMessage === 'boolean' && !props.exportMessage) {
-    emits('export', data, cb);
+    emits('export', data, cb)
   } else {
     ElMessageBox.confirm(props.exportMessage as string, props.exportType, {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       title: props.exportMessageTitle,
-      type: props.exportType
+      type: props.exportType,
     })
       .then(() => {
-        emits('export', data, cb);
+        emits('export', data, cb)
       })
       .catch(() => {
-        operationLoading.value = false;
-      });
+        operationLoading.value = false
+      })
   }
-};
+}
 const handleUpdate = (row: dataItemType) => {
   if (proxyPropsParamsInfo.value['onUpdate']) {
-    operationLoading.value = true;
+    operationLoading.value = true
     emits('update', row, () => {
-      operationLoading.value = false;
-    });
+      operationLoading.value = false
+    })
   } else {
-    emits('update', row);
+    emits('update', row)
   }
-};
-const operationLoading = ref(false);
-const removeCallback = async (flag: string | boolean | Promise<any> = true, ...obj: any[]) => {
+}
+const operationLoading = ref(false)
+const removeCallback = async (flag: string | boolean | Promise<ObjectType> = true, ...obj: any[]) => {
   if (flag instanceof Promise) {
     try {
-      const res = await (flag as Promise<any>);
-      flag = res[props.code] == props.status;
+      const res = await (flag as Promise<ObjectType>)
+      flag = res[props.code] == props.status
     } catch (e) {
-      flag = false;
+      flag = false
     }
   } else if (typeof flag == 'string' && props.dataLoadFun) {
     try {
@@ -1568,17 +1700,17 @@ const removeCallback = async (flag: string | boolean | Promise<any> = true, ...o
         url: flag,
         method: obj[1] ?? 'POST',
         params: obj[0],
-        data: obj[0]
-      };
-      if (query.method.toLowerCase() === 'get') {
-        delete query.data;
-      } else {
-        delete query.params;
+        data: obj[0],
       }
-      const res = await props.dataLoadFun(query);
-      flag = res[props.code] == props.status;
+      if (query.method.toLowerCase() === 'get') {
+        delete query.data
+      } else {
+        delete query.params
+      }
+      const res = await (props.dataLoadFun as Promise<ObjectType>)(query)
+      flag = res[props.code] == props.status
     } catch (e) {
-      flag = false;
+      flag = false
     }
   }
   if (flag) {
@@ -1589,76 +1721,80 @@ const removeCallback = async (flag: string | boolean | Promise<any> = true, ...o
       type: 'success',
       showClose: props.duration! > 0,
       onClose: () => {
-        operationLoading.value = false;
-        handleQuery();
-      }
-    });
+        operationLoading.value = false
+        handleQuery()
+      },
+    })
   } else {
-    operationLoading.value = false;
+    operationLoading.value = false
   }
-};
+}
 const handleRemove = (row: dataItemType) => {
-  operationLoading.value = true;
+  operationLoading.value = true
   ElMessageBox.confirm(props.removeMessage, props.removeType, {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     title: props.removeMessageTitle,
-    type: props.removeType
+    type: props.removeType,
   })
     .then(() => {
-      emits('remove', row, async (flag: string | boolean | Promise<any> = true, ...obj: any[]) => {
-        await removeCallback(flag, ...obj);
-      });
+      emits('remove', row, async (flag: string | boolean | Promise<ObjectType> = true, ...obj: any[]) => {
+        await removeCallback(flag, ...obj)
+      })
     })
     .catch(() => {
-      operationLoading.value = false;
-    });
-};
+      operationLoading.value = false
+    })
+}
 const handleBatchRemove = () => {
-  operationLoading.value = true;
+  operationLoading.value = true
   ElMessageBox.confirm(props.removeMessage, props.removeType, {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     title: props.removeMessageTitle,
-    type: props.removeType
+    type: props.removeType,
   })
     .then(() => {
-      emits('batch-remove', multipleSelection.value, async (flag: string | boolean | Promise<any> = true, ...obj: any[]) => {
-        await removeCallback(flag, ...obj);
-      });
+      emits(
+        'batch-remove',
+        multipleSelection.value,
+        async (flag: string | boolean | Promise<ObjectType> = true, ...obj: Primitive[]) => {
+          await removeCallback(flag, ...obj)
+        },
+      )
     })
     .catch(() => {
-      operationLoading.value = false;
-    });
-};
+      operationLoading.value = false
+    })
+}
 const handleDetail = (row: dataItemType) => {
   if (proxyPropsParamsInfo.value['onDetail']) {
-    operationLoading.value = true;
+    operationLoading.value = true
     emits('detail', row, () => {
-      operationLoading.value = false;
-    });
+      operationLoading.value = false
+    })
   } else {
-    emits('detail', row);
+    emits('detail', row)
   }
-};
+}
 const handleAddSon = (row: dataItemType) => {
   // emits('add-son', row);
   if (proxyPropsParamsInfo.value['onAddSon']) {
-    operationLoading.value = true;
+    operationLoading.value = true
     emits('add-son', row, () => {
-      operationLoading.value = false;
-    });
+      operationLoading.value = false
+    })
   } else {
-    emits('add-son', row);
+    emits('add-son', row)
   }
-};
+}
 /**
  * 插槽按钮事件
  * @param cb 调用的接口
  * @param refresh 刷新模式
  */
-const updateLoading = (cb: Promise<any>, refresh: 'now' | 'first' | '' = 'now') => {
-  operationLoading.value = true;
+const updateLoading = (cb: Promise<ObjectType>, refresh: 'now' | 'first' | '' = 'now') => {
+  operationLoading.value = true
   cb.then((res) => {
     if (res[props.code] == props.status) {
       ElMessage({
@@ -1668,21 +1804,21 @@ const updateLoading = (cb: Promise<any>, refresh: 'now' | 'first' | '' = 'now') 
         type: 'success',
         showClose: props.duration! > 0,
         onClose: () => {
-          operationLoading.value = false;
+          operationLoading.value = false
           if (refresh === 'now') {
-            handleQuery();
+            handleQuery()
           } else if (refresh === 'first') {
-            handleQuery(undefined, true);
+            handleQuery(undefined, true)
           }
-        }
-      });
+        },
+      })
     } else {
-      operationLoading.value = false;
+      operationLoading.value = false
     }
   }).catch(() => {
-    operationLoading.value = false;
-  });
-};
+    operationLoading.value = false
+  })
+}
 const handleNeedConfirmEvent = ({
   data,
   eventName,
@@ -1690,42 +1826,42 @@ const handleNeedConfirmEvent = ({
   iconType = 'warning',
   confirmText = '确定',
   cancelText = '取消',
-  title = '提示'
+  title = '提示',
 }: {
-  data: any;
-  eventName: string;
-  message: string;
-  iconType: typeof props.removeType;
-  confirmText: string;
-  cancelText: string;
-  title: string;
+  data: ObjectType[]|ObjectType
+  eventName: string
+  message: string
+  iconType: typeof props.removeType
+  confirmText: string
+  cancelText: string
+  title: string
 }) => {
   if (!message || !data || !eventName) {
-    console.error('提示消息/数据/事件名称不能为空');
+    console.error('提示消息/数据/事件名称不能为空')
   }
-  operationLoading.value = true;
+  operationLoading.value = true
   ElMessageBox.confirm(message, iconType, {
     confirmButtonText: confirmText,
     cancelButtonText: cancelText,
     title: title,
-    type: iconType
+    type: iconType,
   })
     .then(() => {
       emits(
         'custom-event',
         {
           eventName,
-          data
+          data,
         },
-        async (flag: string | boolean | Promise<any> = true, ...obj: any[]) => {
-          await removeCallback(flag, ...obj);
-        }
-      );
+        async (flag: string | boolean | Promise<ObjectType> = true, ...obj: Primitive[]) => {
+          await removeCallback(flag, ...obj)
+        },
+      )
     })
     .catch(() => {
-      operationLoading.value = false;
-    });
-};
+      operationLoading.value = false
+    })
+}
 defineExpose({
   multipleSelection: multipleSelection.value,
   toggleSelection,
@@ -1734,12 +1870,9 @@ defineExpose({
   handleNeedConfirmEvent,
   slots,
   originalData: originalData.value,
-  updateLoading
-});
+  updateLoading,
+})
 </script>
-
-
-
 
 <style scoped lang="scss">
 /* 创建通用隐藏类 hidden-columns*/
