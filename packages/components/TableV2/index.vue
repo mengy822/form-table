@@ -140,7 +140,10 @@ import {
   useSlots,
   useTemplateRef,
   type VNode,
-  watch,useAttrs,resolveComponent,h
+  watch,
+  useAttrs,
+  resolveComponent,
+  h,
 } from 'vue'
 import pagination from '../components/Pagination/index.vue'
 import RightToolbar from '../components/RightToolbar/index.vue'
@@ -158,8 +161,10 @@ import {
 import {
   Column,
   ElCheckbox,
+  ElIcon,
   ElMessage,
   ElMessageBox,
+  ElTooltip,
   SortBy,
   SortState,
   TableV2Instance,
@@ -170,22 +175,17 @@ import { deepClone, getComputedStyle, getHeight, getRemainingHeight } from '../j
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { useListenDomChange } from '../utils/hooks'
 import { handleFileDownload, request } from '../js'
+import {
+  Primitive,
+  TableButtonType,
+  ObjectType,
+  FunType,
+  FunctionType,
+  ObjectBaseType,
+} from '../js/types'
 import FunctionAnalyzer from '../utils/FunctionAnalyzer'
 import { CellRenderProps, HeaderRenderProps, TableColumn } from '../TableV2/types'
 
-type Primitive = string | number | boolean | null | undefined | symbol | bigint | object
-type PrimitiveFun = Primitive | FunctionType
-type FunctionType = (((...args: Primitive[]) => Primitive))
-type ObjectType = {[key:string]:Primitive}
-type TableButtonType = boolean | string | ((data: dataItemType) => boolean | string)
-type FunType = (
-  row: dataItemType,
-  prop: string,
-  other?: {
-    index?: number
-    [key: string]: Primitive
-  },
-) => string | VNode | Component
 interface IsTreeConfig {
   id: string
   parentId: string
@@ -216,7 +216,7 @@ export interface TableProps {
   /** 是否显示序号列（布尔值或自定义列名） */
   hasIndex: boolean | string
   /** 是否显示选择列（支持函数动态控制） */
-  hasSelection: boolean | ((row: {[key:string]:Primitive}, index: number) => boolean)
+  hasSelection: boolean | ((row: { [key: string]: Primitive }, index: number) => boolean)
   /** 是否显示操作列（布尔值或自定义列名） */
   hasOperation: boolean | string
   /** 操作列总宽度 */
@@ -304,7 +304,7 @@ export interface TableProps {
   /** 导出确认弹窗标题 */
   exportMessageTitle: string
   /** 表格数据源（树形结构数据） */
-  dataList: Array<dataItemType> | undefined
+  dataList: Array<ObjectType> | undefined
   /** 数据源加载函数 */
   dataListFun?: (
     query: {
@@ -328,11 +328,21 @@ export interface TableProps {
   /** 单元格 className 配置（支持固定字符串或回调函数） */
   cellClassName:
     | string
-    | ((data: { row: ObjectType; column: ObjectType; rowIndex: number; columnIndex: number }) => string)
+    | ((data: {
+        row: ObjectType
+        column: ObjectType
+        rowIndex: number
+        columnIndex: number
+      }) => string)
   /** 单元格样式配置（支持固定对象或回调函数） */
   cellStyle:
     | CSSProperties
-    | ((data: { row: ObjectType; column: ObjectType; rowIndex: number; columnIndex: number }) => CSSProperties)
+    | ((data: {
+        row: ObjectType
+        column: ObjectType
+        rowIndex: number
+        columnIndex: number
+      }) => CSSProperties)
   /** 表头行 className 配置（支持固定字符串或回调函数） */
   headerRowClassName: string | ((data: { row: Primitive; rowIndex: number }) => string)
   /** 表头行样式配置（支持固定对象或回调函数） */
@@ -340,11 +350,21 @@ export interface TableProps {
   /** 表头单元格 className 配置（支持固定字符串或回调函数） */
   headerCellClassName:
     | string
-    | ((data: { row: ObjectType; column: ObjectType; rowIndex: number; columnIndex: number }) => string)
+    | ((data: {
+        row: ObjectType
+        column: ObjectType
+        rowIndex: number
+        columnIndex: number
+      }) => string)
   /** 表头单元格样式配置（支持固定对象或回调函数） */
   headerCellStyle:
     | CSSProperties
-    | ((data: { row: ObjectType; column: ObjectType; rowIndex: number; columnIndex: number }) => CSSProperties)
+    | ((data: {
+        row: ObjectType
+        column: ObjectType
+        rowIndex: number
+        columnIndex: number
+      }) => CSSProperties)
   /** 行 Key 配置（用于优化渲染和树形/选择功能） */
   rowKey: string | ((row: ObjectType) => string)
   /** 空数据提示文本 */
@@ -375,11 +395,6 @@ export interface queryParamType {
   [key: string]: string | number | undefined | boolean
 }
 
-export interface dataItemType {
-  [key: string]: string | number | undefined | boolean
-}
-
-export type ButtonType = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info' | ''
 export interface tableColumnItem {
   prop: string
   label: string
@@ -387,7 +402,7 @@ export interface tableColumnItem {
   isForm?: boolean
   showOverflow?: boolean
   width?: number
-  unit?: string | ((row:object, prop:string, other:object) => string) //单位
+  unit?: string | ((row: object, prop: string, other: object) => string) //单位
   sortFun?: FunctionType
   sort?: boolean | 'custom'
   sortable?: boolean | 'custom'
@@ -401,7 +416,7 @@ export interface tableColumnItem {
   fun?: FunType
   funDom?: FunType
   classFun?: (
-    row: dataItemType,
+    row: ObjectType,
     prop: string,
     other?: {
       index?: number
@@ -420,7 +435,7 @@ export interface tableColumnItem {
   header?:
     | string
     | ((
-        row: dataItemType,
+        row: ObjectType,
         prop: string,
         other?: {
           index?: number
@@ -469,7 +484,7 @@ const props = withDefaults(defineProps<TableProps>(), {
   hasPage: true,
   hasTableTopPlain: true,
   isTree: false,
-  downFun: (()=>''),
+  downFun: () => '',
   //删除成功的状态码
   status: 0,
   //删除成功的状态码字段
@@ -477,7 +492,7 @@ const props = withDefaults(defineProps<TableProps>(), {
   lazy: true,
   defaultExpandAll: false,
   loadFun: undefined,
-  dataLoadFun: (()=>''),
+  dataLoadFun: () => '',
   treeProps: () => ({ children: 'children', hasChildren: 'hasChildren' }),
   language: () => zhCn,
   hasIndex: true,
@@ -579,7 +594,7 @@ const rowHeightInner = ref<number>(props.rowHeight)
 const maxHeightInner = ref<number>(0)
 
 const totalInner = ref<number>(0)
-const dataListInner = ref<dataItemType[]>([])
+const dataListInner = ref<ObjectType[]>([])
 const totalComputed = computed<number>({
   get: () => {
     return props.total || totalInner.value
@@ -664,6 +679,7 @@ const getOperationLabel = (
   hasXXX: typeof props.hasDetail,
   scope: {
     row: ObjectType
+    $index: number
   },
   defaultLabel: string,
 ) => {
@@ -758,7 +774,7 @@ const canHiddenColumns = computed({
 })
 const selectedRows = ref(new Set())
 // 切换行选择状态
-const toggleRowSelection = (row:string) => {
+const toggleRowSelection = (row: string) => {
   if (selectedRows.value.has(row)) {
     selectedRows.value.delete(row)
   } else {
@@ -798,16 +814,30 @@ const clearSelection = () => {
 }
 
 // 创建省略单元格渲染器
-const createEllipsisCellRenderer = (
-  { showTooltip = true, tooltipPlacement = 'top', fun, classFun } = {
-    fun: () => String,
-    classFun: () => String,
-    showTooltip: Boolean,
-  },
-) => {
-  return ({ cellValue:cellData, rowIndex, column, rowData }: { rowData:ObjectType; rowIndex:number; cellValue:Primitive; column:ObjectType }) => {
-    const content = fun(rowData, column['dataKey'], {
-      renderTxt: (context:string) => context ?? props.defaultBlock,
+const createEllipsisCellRenderer = ({
+  showTooltip = true,
+  tooltipPlacement = 'top',
+  fun,
+  classFun,
+}: {
+  fun: (row: ObjectType, prop: string, other: ObjectType) => string
+  classFun: (row: ObjectType, prop: string, other: ObjectType) => string
+  tooltipPlacement: string
+  showTooltip: boolean
+}) => {
+  return ({
+    cellValue: cellData,
+    rowIndex,
+    column,
+    rowData,
+  }: {
+    rowData: ObjectType
+    rowIndex: number
+    cellValue: Primitive
+    column: ObjectType
+  }) => {
+    const content = fun(rowData, column['dataKey'] as string, {
+      renderTxt: (context: string) => context ?? props.defaultBlock,
       ...attrs,
       index: rowIndex,
     })
@@ -824,7 +854,7 @@ const createEllipsisCellRenderer = (
     const cellContent = h(
       'div',
       {
-        class: `span span_${column['dataKey'] as string} span_${column['dataKey']}_${cellData} ${typeof cellData} ellipsis-content ${classFun(rowData, column['dataKey'])} key_${column['dataKey']}_prop`,
+        class: `span span_${column['dataKey'] as string} span_${column['dataKey'] as string}_${cellData as string} ${typeof cellData} ellipsis-content ${classFun(rowData, column['dataKey'])} key_${column['dataKey']}_prop`,
         style,
       },
       {
@@ -833,7 +863,7 @@ const createEllipsisCellRenderer = (
     )
 
     // 如果不需要 tooltip，直接返回
-    if (!showTooltip || typeof content == 'object' || content == props.defaultBlock) {
+    if (!showTooltip || typeof content == 'object' || (content as string) == props.defaultBlock) {
       return cellContent
     }
 
@@ -842,7 +872,7 @@ const createEllipsisCellRenderer = (
       ElTooltip,
       {
         placement: tooltipPlacement,
-        content: content,
+        content: content as string,
         showOverflowTooltip: true,
         // onBeforeShow: (instance) => {
         //   // const { fromElement } = instance;
@@ -862,15 +892,13 @@ const createEllipsisCellRenderer = (
 
 const tableColumn = ref<typeof props.tableColumn>(props.tableColumn)
 
-const hasSelection = ref(
-  typeof props.hasSelection === 'function' ? props.hasSelection : () => true,
-)
+const hasSelection = ref(typeof props.hasSelection === 'function' ? props.hasSelection : () => true)
 // 生成操作列的函数
 function generateOperationColumn() {
-  return ({ rowData: row, rowIndex: $index }:{rowData:ObjectType,rowIndex:number}) => {
+  return ({ rowData: row, rowIndex: $index }: { rowData: ObjectType; rowIndex: number }) => {
     const ElTooltip = resolveComponent('ElTooltip')
     const ElButton = resolveComponent('ElButton')
-    const template = (slot: (...args:Primitive[]) => void) => {
+    const template = (slot: (...args: Primitive[]) => VNode | Component) => {
       if (!slot) return undefined
       return slot({
         data: row,
@@ -881,7 +909,13 @@ function generateOperationColumn() {
       })
     }
     // 生成工具提示按钮的函数
-    const generateTooltipButton = (condition = '', label, handler, icon, type) => {
+    const generateTooltipButton = (
+      condition: 'hasDetail' | 'hasAdd' | 'hasAddSon' | 'hasUpdate' | 'hasRemove' = 'hasDetail',
+      label: string,
+      handler: (row: ObjectType) => void,
+      icon: object,
+      type: string,
+    ) => {
       // 判断是否显示
       const shouldShow =
         typeof props[condition] === 'function'
@@ -911,7 +945,7 @@ function generateOperationColumn() {
         ElTooltip,
         {
           disabled: props.hasOperationName,
-          content: `${buttonContent}`,
+          content: `${buttonContent as string}`,
           placement: 'top',
         },
         {
@@ -920,7 +954,7 @@ function generateOperationColumn() {
       )
     }
     // 收集所有要渲染的子节点
-    const children = []
+    const children: (VNode | Component | undefined | null)[] = []
     // 1. operationBefore 插槽
     if (slots.operationBefore) {
       children.push(template(slots.operationBefore))
@@ -1014,7 +1048,7 @@ function generateOperationColumn() {
     )
   }
 }
-const cellProps = ({ columnIndex }) => {
+const cellProps = ({ columnIndex }: { columnIndex: number }) => {
   const key = `hovering-col-${columnIndex}`
   return {
     ['data-key']: key,
@@ -1026,194 +1060,204 @@ const cellProps = ({ columnIndex }) => {
     },
   }
 }
-const kls=ref<string>('')
-const tableColumnFinal = computed(()=>{
-    const TableColumn:TableColumn[]=[]
-    // if (tableColumn.value.length === 0) {
-    if (hasSelectionComputed.value) {
-      TableColumn.push({
-        dataKey: 'index',
-        key: 'index',
-        title: '',
-        width: Number(55),
-        fixed: 'left',
-        cellRenderer: (props: CellRenderProps) => {
-          const { rowData, rowIndex } = props
-          return h(ElCheckbox, {
-            modelValue: selectedRows.value.has(JSON.stringify(rowData)),
-            onChange: (checked) => toggleRowSelection(JSON.stringify(rowData), checked),
-            onClick: (e) => e.stopPropagation(),
-            disabled: !hasSelection.value(rowData, rowIndex),
-            value: JSON.stringify(rowData),
-          })
-        },
-        headerCellRenderer: () => {
-          return h(ElCheckbox, {
-            modelValue: allSelected.value,
-            indeterminate: indeterminate.value,
-            onChange: toggleSelectAll,
-            onClick: (e) => e.stopPropagation(),
-          })
-        },
-      })
-    }
-    if (hasIndexComputed.value) {
-      TableColumn.push({
-        dataKey: 'index',
-        key: 'index',
-        title: typeof props.hasIndex === 'boolean' ? '序号' : props.hasIndex,
-        width: Number(60),
-        fixed: 'left',
-        cellRenderer: (props: CellRenderProps) => {
-          const {  rowIndex } = props
+const kls = ref<string>('')
+const tableColumnFinal = computed(() => {
+  const TableColumn: TableColumn[] = []
+  // if (tableColumn.value.length === 0) {
+  if (hasSelectionComputed.value) {
+    TableColumn.push({
+      dataKey: 'index',
+      key: 'index',
+      title: '',
+      width: Number(55),
+      fixed: 'left',
+      cellRenderer: (props: CellRenderProps) => {
+        const { rowData, rowIndex } = props
+        return h(ElCheckbox, {
+          modelValue: selectedRows.value.has(JSON.stringify(rowData)),
+          onChange: (checked) => toggleRowSelection(JSON.stringify(rowData), checked),
+          onClick: (e) => e.stopPropagation(),
+          disabled: !hasSelection.value(rowData, rowIndex),
+          value: JSON.stringify(rowData),
+        })
+      },
+      headerCellRenderer: () => {
+        return h(ElCheckbox, {
+          modelValue: allSelected.value,
+          indeterminate: indeterminate.value,
+          onChange: toggleSelectAll,
+          onClick: (e) => e.stopPropagation(),
+        })
+      },
+    })
+  }
+  if (hasIndexComputed.value) {
+    TableColumn.push({
+      dataKey: 'index',
+      key: 'index',
+      title: typeof props.hasIndex === 'boolean' ? '序号' : props.hasIndex,
+      width: Number(60),
+      fixed: 'left',
+      cellRenderer: (props: CellRenderProps) => {
+        const { rowIndex } = props
+        return h(
+          'span',
+          {},
+          queryParams.value.pageSize * (queryParams.value.pageNum - 1) + rowIndex + 1,
+        )
+      },
+      headerCellRenderer: (props: HeaderRenderProps) => {
+        const { column } = props
+        return h('span', {}, column.title)
+      },
+    })
+  }
+  TableColumn.push(
+    ...deepClone(props.tableColumn)
+      .filter(
+        (item: { isTable: boolean | undefined }) =>
+          item.isTable || typeof item.isTable === 'undefined',
+      )
+      .map((data: tableColumnItem, index: number) => {
+        const item: TableColumn = {}
+        item.align = 'center'
+        if (props.isTree && index === 0 && !props.hasSelection) {
+          item.align = 'left'
+        }
+        // item.visible = data.visible ?? true;
+        data.sortable = data.sort ?? data.sortable ?? false
+        if (typeof data.sortable === 'string' && props.sortable) {
+          data.sortable = true
+        }
+        if (typeof data.sortable === 'boolean' && !props.sortable) {
+          // item.sortable = 'custom';
+        }
+        if (data.sortable) {
+          // item.sortProp = data.sortProp ?? data.prop;
+          sortProp.value[data.prop] = data.sortProp
+          sortState.value[data.prop] = undefined
+        }
+        data.fun =
+          data.funDom ??
+          data.fun ??
+          ((
+            row: ObjectType,
+            prop: string,
+            other?: {
+              index?: number
+              [key: string]: string | number | boolean | null | undefined | symbol
+              renderTxt: (context: string) => string
+            },
+          ) =>
+            String(row[prop] ?? props.defaultBlock) +
+            (typeof data.unit == 'string'
+              ? data.unit
+              : ((data.unit && data.unit(row, prop, other || {})) ?? '')))
+        data.classFun = data.classFun ?? (() => '')
+        item.dataKey = data.prop
+        item.key = data.prop
+        item.title = data.label
+        item.width = Number(data.width ?? 100)
+        // item.hidden = typeof data.showFun=='boolean'?data.
+        item.cellRenderer = createEllipsisCellRenderer({
+          fun: data.fun!,
+          classFun: data.classFun,
+          showTooltip: data.showOverflow as boolean,
+        })
+        item.headerCellRenderer = (props: HeaderRenderProps) => {
+          const { column } = props
+          // console.log(props, '11111111111111');
           return h(
-            'span',
-            {},
-            queryParams.value.pageSize * (queryParams.value.pageNum - 1) + rowIndex + 1,
-          )
-        },
-        headerCellRenderer: (props: HeaderRenderProps) => {
-          const { column } = props
-          return h('span', {}, column.title)
-        },
-      })
-    }
-    TableColumn.push(
-      ...deepClone(props.tableColumn)
-        .filter((item: { isTable: boolean|undefined }) => item.isTable || typeof item.isTable === 'undefined')
-        .map((data: tableColumnItem, index: number) => {
-          const item: TableColumn = {}
-          item.align = 'center'
-          if (props.isTree && index === 0 && !props.hasSelection) {
-            item.align = 'left'
-          }
-          // item.visible = data.visible ?? true;
-          data.sortable = data.sort ?? data.sortable ?? false
-          if (typeof data.sortable === 'string' && props.sortable) {
-            data.sortable = true
-          }
-          if (typeof data.sortable === 'boolean' && !props.sortable) {
-            // item.sortable = 'custom';
-          }
-          if (data.sortable) {
-            // item.sortProp = data.sortProp ?? data.prop;
-            sortProp.value[data.prop] = data.sortProp
-            sortState.value[data.prop] = undefined
-          }
-          data.fun =
-            data.funDom ??
-            data.fun ??
-            ((
-              row: dataItemType,
-              prop: string,
-              other?: {
-                index?: number
-                [key: string]: string | number | boolean | null | undefined | symbol
-                renderTxt: (context:string) =>string
+            'div',
+            {
+              style: {
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                cursor: data.sortable ? 'pointer' : 'default',
               },
-            ) =>
-              String(row[prop] ?? props.defaultBlock) +
-              (typeof data.unit == 'string'
-                ? data.unit
-                : ((data.unit && data.unit(row, prop, other)) ?? '')))
-          data.classFun = data.classFun ?? (() => '')
-          item.dataKey = data.prop
-          item.key = data.prop
-          item.title = data.label
-          item.width = Number(data.width ?? 100)
-          // item.hidden = typeof data.showFun=='boolean'?data.
-          item.cellRenderer = createEllipsisCellRenderer({
-            fun: data.fun,
-            classFun: data.classFun,
-            showTooltip: data.showOverflow,
-          })
-          item.headerCellRenderer = (props: HeaderRenderProps) => {
-            const { column } = props
-            // console.log(props, '11111111111111');
-            return h(
-              'div',
-              {
-                style: {
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  cursor: data.sortable ? 'pointer' : 'default',
-                },
-                dataset: {
-                  sort: '123',
-                },
-                class: ``,
-                onClick: () => {
-                  if (data.sortable) {
-                    switch (sortState.value[data.prop]) {
-                      case undefined:
-                        sortState.value[data.prop] = 'desc'
-                        break
-                      case 'desc':
-                        sortState.value[data.prop] = 'asc'
-                        break
-                      case 'asc':
-                        sortState.value[data.prop] = undefined
-                        break
-                    }
-                    onSort({ column: item, key: item.dataKey, order: sortState.value[data.prop] })
+              dataset: {
+                sort: '123',
+              },
+              class: ``,
+              onClick: () => {
+                if (data.sortable) {
+                  switch (sortState.value[data.prop]) {
+                    case undefined:
+                      sortState.value[data.prop] = 'desc'
+                      break
+                    case 'desc':
+                      sortState.value[data.prop] = 'asc'
+                      break
+                    case 'asc':
+                      sortState.value[data.prop] = undefined
+                      break
                   }
-                },
+                  onSort({ column: item, key: item.dataKey, order: sortState.value[data.prop] })
+                }
               },
-              [
-                (data.header &&
-                  data.header({
-                    ...column,
-                    label: column.title,
-                    prop: column.prop,
-                  })) ||
-                  h('span', {}, column.title),
-                data.sortable &&
-                  h(
-                    ElIcon,
-                    {},
-                    {
-                      default: () =>
-                        typeof sortState.value[data.prop] == 'undefined'
-                          ? h(Sort)
-                          : sortState.value[data.prop] == 'desc'
-                            ? h(SortUp)
-                            : h(SortDown),
-                    },
-                  ),
-              ],
-            )
-          }
+            },
+            [
+              (data.header &&
+                data.header({
+                  ...column,
+                  label: column.title,
+                  prop: column.dataKey,
+                })) ||
+                h('span', {}, column.title),
+              data.sortable &&
+                h(
+                  ElIcon,
+                  {},
+                  {
+                    default: () =>
+                      typeof sortState.value[data.prop] == 'undefined'
+                        ? h(Sort)
+                        : sortState.value[data.prop] == 'desc'
+                          ? h(SortUp)
+                          : h(SortDown),
+                  },
+                ),
+            ],
+          )
+        }
 
-          return item
-        }),
-    )
-    if (hasOperationComputed.value) {
-      TableColumn.push({
-        dataKey: 'operation',
-        key: 'operation',
-        title: typeof props.hasOperation === 'boolean' ? '操作' : props.hasOperation,
-        width: operationWidthComputed.value,
-        fixed: 'right',
-        align: props.operationAlign,
-        cellRenderer: generateOperationColumn(),
-        headerCellRenderer: (props: HeaderRenderProps) => {
-          const { column } = props
-          return h('span', {}, column.title)
-        },
-      })
-    }
-    // }
+        return item
+      }),
+  )
+  if (hasOperationComputed.value) {
+    TableColumn.push({
+      dataKey: 'operation',
+      key: 'operation',
+      title: typeof props.hasOperation === 'boolean' ? '操作' : props.hasOperation,
+      width: operationWidthComputed.value,
+      fixed: 'right',
+      align: props.operationAlign,
+      cellRenderer: generateOperationColumn(),
+      headerCellRenderer: (props: HeaderRenderProps) => {
+        const { column } = props
+        return h('span', {}, column.title)
+      },
+    })
+  }
+  // }
 
-    // console.log(JSON.stringify(TableColumn));
+  // console.log(JSON.stringify(TableColumn));
 
-    return TableColumn
-
+  return TableColumn
 })
 const sortState = ref<ObjectType>({})
 
-const onSort = ({ column, key, order }: SortBy) => {
-  sortState.value[key] = order
+const onSort = ({
+  column,
+  key,
+  order,
+}: {
+  column: TableColumn
+  key: string
+  order: 'desc' | 'asc' | undefined
+}) => {
+  sortState.value[key as string] = order
   if (typeof order !== 'undefined') {
     sortPropData.value[column.dataKey] = props.sortableConfig[order]
   } else {
@@ -1248,7 +1292,7 @@ watch(
 )
 // ======================== 新增：Emit 相关核心类型定义 ========================
 // 1. 表格行数据类型（与 props.dataList 结构对齐）
-type TableRowData = dataItemType // 复用组件内已定义的 dataItemType
+type TableRowData = ObjectType // 复用组件内已定义的 ObjectType
 
 // 2. 表格查询参数类型（与 queryParams 结构对齐，含分页信息）
 type TableQueryParams = query // 复用组件内已定义的 query 类型
@@ -1286,7 +1330,7 @@ interface MyTableEmits {
    * @param row 当前行数据
    * @param callback
    */
-  (eventName: 'update', row: TableRowData, callback: RemoveCallback): void
+  (eventName: 'update', row: TableRowData, callback?: RemoveCallback): void
 
   /**
    * 行内详情按钮点击事件
@@ -1294,7 +1338,7 @@ interface MyTableEmits {
    * @param row 当前行数据
    * @param callback
    */
-  (eventName: 'detail', row: TableRowData, callback: RemoveCallback): void
+  (eventName: 'detail', row: TableRowData, callback?: RemoveCallback): void
 
   /**
    * 行内删除按钮点击事件
@@ -1302,7 +1346,7 @@ interface MyTableEmits {
    * @param row 当前行数据
    * @param callback 删除结果回调（控制加载状态和提示）
    */
-  (eventName: 'remove', row: TableRowData, callback: RemoveCallback): void
+  (eventName: 'remove', row: TableRowData, callback?: RemoveCallback): void
 
   /**
    * 搜索区域显示/隐藏切换事件
@@ -1317,14 +1361,14 @@ interface MyTableEmits {
    * @param selectedRows 选中的行数据列表（从 multipleSelection 提取）
    * @param callback
    */
-  (eventName: 'batch-remove', selectedRows: TableRowData[], callback: RemoveCallback): void
+  (eventName: 'batch-remove', selectedRows: TableRowData[], callback?: RemoveCallback): void
 
   /**
    * 导入按钮点击事件
    * @param eventName 事件名：固定为 'import'
    * @param callback
    */
-  (eventName: 'import', callback: RemoveCallback): void
+  (eventName: 'import', callback?: RemoveCallback): void
 
   /**
    * 导出按钮点击事件（含选中行筛选）
@@ -1338,7 +1382,7 @@ interface MyTableEmits {
       [key: string]: Primitive // 扩展字段（如查询条件）
       multipleSelection: ObjectType[] // 选中的行数据（用于批量导出）
     },
-    callback: ExportCallback,
+    callback?: ExportCallback,
   ): void
 
   /**
@@ -1363,7 +1407,7 @@ interface MyTableEmits {
    * @param parentRow 父行数据（新增子节点的上级）
    * @param callback
    */
-  (eventName: 'add-son', parentRow: TableRowData, callback: RemoveCallback): void
+  (eventName: 'add-son', parentRow: TableRowData, callback?: RemoveCallback): void
 
   /**
    * 行内新增子节点按钮点击事件（树形表格专用）
@@ -1408,7 +1452,9 @@ const originalData = ref<Primitive[]>()
 //树形表格存储子数据
 const dataChildrenListMap = ref<{ [key: string]: Primitive[] }>({})
 //树形表格存储展开子数据
-const dataExpandMap = ref<{ [key: string]: { row: ObjectType; treeNode: ObjectType; resolve: FunctionType } }>({})
+const dataExpandMap = ref<{
+  [key: string]: { row: ObjectType; treeNode: ObjectType; resolve: FunctionType }
+}>({})
 const treeConfig = ref<IsTreeConfig>(undefined)
 
 //多选数据
@@ -1425,7 +1471,7 @@ const toggleSelection = (rows?: tableColumnItem[], ignoreSelectable?: boolean) =
     tableRef.value?.clearSelection()
   }
 }
-const expandColumnKey=ref('')
+const expandColumnKey = ref('')
 const expandedRowKeys = ref<string[]>([])
 //行展开
 const tableRowStatusChange = (row: ObjectType, expandedRows: ObjectType[] | boolean): void => {
@@ -1442,9 +1488,9 @@ const setCurrentRow = (val: ObjectType) => {
   tableRef.value?.setCurrentRow(val)
 }
 //排序参数键名对照
-const sortProp = ref<ObjectType>({})
+const sortProp = ref<ObjectBaseType>({})
 //排序数据
-const sortPropData = ref<ObjectType>({})
+const sortPropData = ref<ObjectBaseType>({})
 const sortPropDataComputed = computed(() => {
   const queryParam = {
     [props.searchSortableConfig.fieId]: '',
@@ -1468,7 +1514,11 @@ const loadFunComputed = computed(() => {
   return props.loadFun ?? getChildrenList
 })
 /** 获取子菜单列表 */
-const getChildrenList = async (row: ObjectType, treeNode: unknown, resolve: (data: ObjectType[]) => void) => {
+const getChildrenList = async (
+  row: ObjectType,
+  treeNode: unknown,
+  resolve: (data: ObjectType[]) => void,
+) => {
   console.log('获取子菜单列表')
   dataExpandMap.value[String(row[treeConfig.value.id])] = { row, treeNode, resolve }
   const children = dataChildrenListMap.value[String(row[treeConfig.value.id])] || []
@@ -1518,91 +1568,94 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
   if (!props.dataListFun) {
     emits('query', queryParam)
   } else {
-    props.dataListFun(queryParam, async (res: string | Promise<ObjectType> | Primitive[], ...obj: any[]) => {
-      let requestData:ObjectType={
-        [props.dataConfig.rows]: [],
-        [props.dataConfig.total]: 0,
-        [props.dataConfig.extra]: {},
-      }
-      try {
-        if (res instanceof Promise) {
-          requestData = await (res as Promise<ObjectType>)
-        } else if (typeof res == 'string' && props.dataLoadFun) {
-          const query = {
-            url: res,
-            method: obj[1] ?? 'GET',
-            params: obj[0],
-            data: obj[0],
-          }
-          if (query.method.toLowerCase() === 'get') {
-            delete query.data
-          } else {
-            delete query.params
-          }
-          requestData = await (props.dataLoadFun(query)as Promise<ObjectType>)
-          //console.log(res, query);
-        } else {
-          requestData = {
-            [props.dataConfig.rows]: res,
-            [props.dataConfig.total]: obj[0],
-            [props.dataConfig.extra]: obj[1],
-          }
+    props.dataListFun(
+      queryParam,
+      async (res: string | Promise<ObjectType> | Primitive[], ...obj: Primitive[]) => {
+        let requestData: ObjectType = {
+          [props.dataConfig.rows]: [],
+          [props.dataConfig.total]: 0,
+          [props.dataConfig.extra]: {},
         }
-        // console.log(res)
-        const datas = requestData[props.dataConfig.rows]
-        const extras = requestData[props.dataConfig.extra]
-        let treeDatas = []
-        const isTree = props.isTree
-        if (isTree) {
-          originalData.value = datas
-        }
-
-        if (typeof isTree === 'boolean' && isTree) {
-          treeConfig.value = {
-            id: 'id',
-            parentId: 'parentId',
-            children: 'children',
-            firstParentId: '0',
-          }
-        } else if (isTree as IsTreeConfig) {
-          treeConfig.value = isTree as IsTreeConfig
-        }
-        if (treeConfig.value) {
-          const tempMap: { [key: string]: Primitive } = {}
-          // 存储 父菜单:子菜单列表
-          for (const dataItem of datas) {
-            const parentId = String(dataItem[treeConfig.value.parentId])
-            if (!tempMap[parentId]) {
-              tempMap[parentId] = []
+        try {
+          if (res instanceof Promise) {
+            requestData = await (res as Promise<ObjectType>)
+          } else if (typeof res == 'string' && props.dataLoadFun) {
+            const query = {
+              url: res,
+              method: obj[1] ?? 'GET',
+              params: obj[0],
+              data: obj[0],
             }
-            tempMap[parentId].push(dataItem)
+            if ((query.method as string).toLowerCase() === 'get') {
+              delete query.data
+            } else {
+              delete query.params
+            }
+            requestData = await (props.dataLoadFun(query) as Promise<ObjectType>)
+            //console.log(res, query);
+          } else {
+            requestData = {
+              [props.dataConfig.rows]: res,
+              [props.dataConfig.total]: obj[0],
+              [props.dataConfig.extra]: obj[1],
+            }
           }
-          // 设置有没有子菜单
-          for (const dataItem of datas) {
-            dataItem[props.treeProps.hasChildren] =
-              tempMap[dataItem[treeConfig.value.id]]?.length > 0
+          // console.log(res)
+          const datas = requestData[props.dataConfig.rows]
+          const extras = requestData[props.dataConfig.extra]
+          let treeDatas = []
+          const isTree = props.isTree
+          if (isTree) {
+            originalData.value = datas
           }
-          dataChildrenListMap.value = tempMap
-          treeDatas = tempMap[treeConfig.value.firstParentId] || []
-          if (proxyProps.value['onDataLoadCompleted']) emits('dataLoadCompleted', treeDatas, 0)
-          dataListComputed.value = treeDatas
-          totalComputed.value = 0
-          refreshAllExpandMenuData()
-          return
-        }
-        // console.log(datas);
-        const total = props.hasPage ? requestData[props.dataConfig.total] : 0
-        if (proxyProps.value['onDataLoadCompleted']) emits('dataLoadCompleted', datas, total)
-        dataListComputed.value = datas
-        totalComputed.value = total
-        extra.value = extras
-        nextTick(() => {
-          rowHeightInner.value = Math.max(props.rowHeight, getHeight('.operation-column') + 20)
+
+          if (typeof isTree === 'boolean' && isTree) {
+            treeConfig.value = {
+              id: 'id',
+              parentId: 'parentId',
+              children: 'children',
+              firstParentId: '0',
+            }
+          } else if (isTree as IsTreeConfig) {
+            treeConfig.value = isTree as IsTreeConfig
+          }
+          if (treeConfig.value) {
+            const tempMap: { [key: string]: Primitive } = {}
+            // 存储 父菜单:子菜单列表
+            for (const dataItem of datas) {
+              const parentId = String(dataItem[treeConfig.value.parentId])
+              if (!tempMap[parentId]) {
+                tempMap[parentId] = []
+              }
+              tempMap[parentId].push(dataItem)
+            }
+            // 设置有没有子菜单
+            for (const dataItem of datas) {
+              dataItem[props.treeProps.hasChildren] =
+                tempMap[dataItem[treeConfig.value.id]]?.length > 0
+            }
+            dataChildrenListMap.value = tempMap
+            treeDatas = tempMap[treeConfig.value.firstParentId] || []
+            if (proxyProps.value['onDataLoadCompleted']) emits('dataLoadCompleted', treeDatas, 0)
+            dataListComputed.value = treeDatas
+            totalComputed.value = 0
+            refreshAllExpandMenuData()
+            return
+          }
+          // console.log(datas);
+          const total = props.hasPage ? requestData[props.dataConfig.total] : 0
+          if (proxyProps.value['onDataLoadCompleted']) emits('dataLoadCompleted', datas, total)
+          dataListComputed.value = datas
+          totalComputed.value = total
+          extra.value = extras
+          nextTick(() => {
+            rowHeightInner.value = Math.max(props.rowHeight, getHeight('.operation-column') + 20)
           })
-      } finally {
-        loading.value = false
-      }
-    })
+        } finally {
+          loading.value = false
+        }
+      },
+    )
   }
   setCurrentRow(undefined)
 }
@@ -1646,7 +1699,7 @@ const handleExport = () => {
     multipleSelection: multipleSelection.value,
   }
   const cb = (
-    url: any,
+    url: string,
     params = {},
     fileName: string | undefined = undefined,
     methods: 'get' | 'post' = 'get',
@@ -1675,7 +1728,7 @@ const handleExport = () => {
       })
   }
 }
-const handleUpdate = (row: dataItemType) => {
+const handleUpdate = (row: ObjectType) => {
   if (proxyPropsParamsInfo.value['onUpdate']) {
     operationLoading.value = true
     emits('update', row, () => {
@@ -1686,7 +1739,10 @@ const handleUpdate = (row: dataItemType) => {
   }
 }
 const operationLoading = ref(false)
-const removeCallback = async (flag: string | boolean | Promise<ObjectType> = true, ...obj: any[]) => {
+const removeCallback = async (
+  flag: string | boolean | Promise<ObjectType> = true,
+  ...obj: Primitive[]
+) => {
   if (flag instanceof Promise) {
     try {
       const res = await (flag as Promise<ObjectType>)
@@ -1729,7 +1785,7 @@ const removeCallback = async (flag: string | boolean | Promise<ObjectType> = tru
     operationLoading.value = false
   }
 }
-const handleRemove = (row: dataItemType) => {
+const handleRemove = (row: ObjectType) => {
   operationLoading.value = true
   ElMessageBox.confirm(props.removeMessage, props.removeType, {
     confirmButtonText: '确定',
@@ -1738,9 +1794,13 @@ const handleRemove = (row: dataItemType) => {
     type: props.removeType,
   })
     .then(() => {
-      emits('remove', row, async (flag: string | boolean | Promise<ObjectType> = true, ...obj: any[]) => {
-        await removeCallback(flag, ...obj)
-      })
+      emits(
+        'remove',
+        row,
+        async (flag: string | boolean | Promise<ObjectType> = true, ...obj: any[]) => {
+          await removeCallback(flag, ...obj)
+        },
+      )
     })
     .catch(() => {
       operationLoading.value = false
@@ -1767,7 +1827,7 @@ const handleBatchRemove = () => {
       operationLoading.value = false
     })
 }
-const handleDetail = (row: dataItemType) => {
+const handleDetail = (row: ObjectType) => {
   if (proxyPropsParamsInfo.value['onDetail']) {
     operationLoading.value = true
     emits('detail', row, () => {
@@ -1777,7 +1837,7 @@ const handleDetail = (row: dataItemType) => {
     emits('detail', row)
   }
 }
-const handleAddSon = (row: dataItemType) => {
+const handleAddSon = (row: ObjectType) => {
   // emits('add-son', row);
   if (proxyPropsParamsInfo.value['onAddSon']) {
     operationLoading.value = true
@@ -1828,7 +1888,7 @@ const handleNeedConfirmEvent = ({
   cancelText = '取消',
   title = '提示',
 }: {
-  data: ObjectType[]|ObjectType
+  data: ObjectType[] | ObjectType
   eventName: string
   message: string
   iconType: typeof props.removeType

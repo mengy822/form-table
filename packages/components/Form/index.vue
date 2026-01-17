@@ -292,7 +292,7 @@ const props = withDefaults(defineProps<SearchFormProps>(), {
 //父组件写的插槽
 const slots = defineSlots()
 //组件内部搜索条件
-const searchValue = ref<queryInnerType>({ pageNum: 1, pageSize: 10 })
+const searchValue = ref<queryInnerType>({ pageNum: 1 })
 //搜索条件框ref对象 ps:数组
 const formRef = ref()
 //搜索条件框多行折叠

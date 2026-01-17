@@ -1,3 +1,5 @@
+import { Component, VNode } from 'vue'
+
 export type FormItemType =
   'input'
   | 'autocomplete'
@@ -36,7 +38,6 @@ export interface FormItem {
 }
 
 export interface queryInnerType extends queryParamType {
-  pageSize: number;
   pageNum: number;
 }
 export interface dataItemType {
@@ -111,3 +112,20 @@ export interface searchItemType {
   //是否是表单
   isForm?: boolean;
 }
+
+export type Primitive = BasePrimitive | symbol
+export type BasePrimitive = string | number | boolean | null | undefined | bigint | object
+export type PrimitiveFun = Primitive | FunctionType
+export type FunctionType = (((...args: Primitive[]) => Primitive))
+export type ObjectType = {[key:string]:Primitive}
+export type ObjectBaseType = {[key:string]:BasePrimitive}
+export type TableButtonType = boolean | string | ((data: dataItemType) => boolean | string)
+export type FunType = (
+  row: dataItemType,
+  prop: string,
+  other?: {
+    index?: number
+    [key: string]: Primitive
+  },
+) => string | VNode | Component
+export type ButtonType = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info' | ''
