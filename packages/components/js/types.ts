@@ -121,7 +121,7 @@ export type ObjectType = {[key:string]:Primitive}
 export type ObjectBaseType = {[key:string]:BasePrimitive}
 export type TableButtonType = boolean | string | ((data: dataItemType) => boolean | string)
 export type FunType = (
-  row: dataItemType,
+  row: ObjectType,
   prop: string,
   other?: {
     index?: number

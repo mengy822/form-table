@@ -310,7 +310,7 @@ export interface TableProps {
     query: {
       [key: string]: Primitive
     },
-    cb: (res: string | Promise<ObjectType> | Primitive[], ...obj: Primitive[]) => void,
+    cb: (res: string | Promise<ObjectType> | Primitive[], ...obj: Primitive[]) => void
   ) => void
   dataLoadFun?: FunctionType
   /** 数据源格式配置（数据列表字段、总数字段） */
@@ -421,14 +421,14 @@ export interface tableColumnItem {
     other?: {
       index?: number
       [key: string]: Primitive
-    },
+    }
   ) => string
   showFun?: (
     row?: queryParamType | Primitive,
     other?: {
       index?: number
       [key: string]: Primitive
-    },
+    }
   ) => boolean
   slot?: string
   // render?: any
@@ -441,7 +441,7 @@ export interface tableColumnItem {
           index?: number
 
           [key: string]: Primitive
-        },
+        }
       ) => string | VNode | Component)
 
   list?: tableColumnItem[]
@@ -645,7 +645,7 @@ onMounted(() => {
       if (
         funInfo.parameterCount > 0 &&
         funInfo.parameters.find(
-          (item: { name: string }) => item.name === 'cb' || item.name === 'callback',
+          (item: { name: string }) => item.name === 'cb' || item.name === 'callback'
         )
       ) {
         proxyPropsParamsInfo.value[emit] = true
@@ -681,7 +681,7 @@ const getOperationLabel = (
     row: ObjectType
     $index: number
   },
-  defaultLabel: string,
+  defaultLabel: string
 ) => {
   const hasOperationName = props.hasOperationName
   if (typeof hasXXX === 'boolean') {
@@ -752,7 +752,7 @@ const canHiddenColumns = computed({
             width: number
             maxWidth: number
           },
-          index: number,
+          index: number
         ) => {
           return {
             key: item.prop,
@@ -760,9 +760,9 @@ const canHiddenColumns = computed({
             visible: item.visible ?? true,
             hidden: item.hidden,
             index: index,
-            maxWidth: item.width ? false : (item.maxWidth ?? props.maxWidth),
+            maxWidth: item.width ? false : item.maxWidth ?? props.maxWidth,
           }
-        },
+        }
       )
       .filter((item: { hidden: true }) => item.hidden)
   },
@@ -820,7 +820,11 @@ const createEllipsisCellRenderer = ({
   fun,
   classFun,
 }: {
-  fun: (row: ObjectType, prop: string, other: ObjectType) => string
+  fun: (
+    row: ObjectType,
+    prop: string,
+    other: ObjectType & { renderTxt: (context: string) => string }
+  ) => string | VNode | Component
   classFun: (row: ObjectType, prop: string, other: ObjectType) => string
   tooltipPlacement: string
   showTooltip: boolean
@@ -854,12 +858,16 @@ const createEllipsisCellRenderer = ({
     const cellContent = h(
       'div',
       {
-        class: `span span_${column['dataKey'] as string} span_${column['dataKey'] as string}_${cellData as string} ${typeof cellData} ellipsis-content ${classFun(rowData, column['dataKey'])} key_${column['dataKey']}_prop`,
+        class: `span span_${column['dataKey'] as string} span_${column['dataKey'] as string}_${
+          cellData as string
+        } ${typeof cellData} ellipsis-content ${classFun(rowData, column['dataKey'])} key_${
+          column['dataKey']
+        }_prop`,
         style,
       },
       {
         default: () => [content],
-      },
+      }
     )
 
     // 如果不需要 tooltip，直接返回
@@ -885,7 +893,7 @@ const createEllipsisCellRenderer = ({
       },
       {
         default: () => [cellContent],
-      },
+      }
     )
   }
 }
@@ -914,7 +922,7 @@ function generateOperationColumn() {
       label: string,
       handler: (row: ObjectType) => void,
       icon: object,
-      type: string,
+      type: string
     ) => {
       // 判断是否显示
       const shouldShow =
@@ -937,7 +945,7 @@ function generateOperationColumn() {
           icon: icon,
           onClick: () => handler(row),
         },
-        () => buttonContent,
+        () => buttonContent
       )
 
       // 包装在 Tooltip 中
@@ -950,7 +958,7 @@ function generateOperationColumn() {
         },
         {
           default: () => button,
-        },
+        }
       )
     }
     // 收集所有要渲染的子节点
@@ -968,7 +976,7 @@ function generateOperationColumn() {
       '新增',
       handleAddSon,
       props.hasAddSonIcon,
-      props.hasAddSonType,
+      props.hasAddSonType
     )
     children.push(addSonSlot ?? addSonButton)
 
@@ -985,7 +993,7 @@ function generateOperationColumn() {
       '详情',
       handleDetail,
       props.hasDetailIcon,
-      props.hasDetailType,
+      props.hasDetailType
     )
     children.push(detailSlot ?? detailButton)
 
@@ -1002,7 +1010,7 @@ function generateOperationColumn() {
       '修改',
       handleUpdate,
       props.hasUpdateIcon,
-      props.hasUpdateType,
+      props.hasUpdateType
     )
 
     children.push(updateSlot ?? updateButton)
@@ -1020,7 +1028,7 @@ function generateOperationColumn() {
       '删除',
       handleRemove,
       props.hasRemoveIcon,
-      props.hasRemoveType,
+      props.hasRemoveType
     )
     children.push(removeSlot ?? removeButton)
 
@@ -1044,7 +1052,7 @@ function generateOperationColumn() {
       },
       {
         default: () => [...children.filter((item) => item)],
-      },
+      }
     )
   }
 }
@@ -1103,7 +1111,7 @@ const tableColumnFinal = computed(() => {
         return h(
           'span',
           {},
-          queryParams.value.pageSize * (queryParams.value.pageNum - 1) + rowIndex + 1,
+          queryParams.value.pageSize * (queryParams.value.pageNum - 1) + rowIndex + 1
         )
       },
       headerCellRenderer: (props: HeaderRenderProps) => {
@@ -1116,7 +1124,7 @@ const tableColumnFinal = computed(() => {
     ...deepClone(props.tableColumn)
       .filter(
         (item: { isTable: boolean | undefined }) =>
-          item.isTable || typeof item.isTable === 'undefined',
+          item.isTable || typeof item.isTable === 'undefined'
       )
       .map((data: tableColumnItem, index: number) => {
         const item: TableColumn = {}
@@ -1137,22 +1145,22 @@ const tableColumnFinal = computed(() => {
           sortProp.value[data.prop] = data.sortProp
           sortState.value[data.prop] = undefined
         }
-        data.fun =
+        const fun =
           data.funDom ??
           data.fun ??
           ((
             row: ObjectType,
             prop: string,
-            other?: {
-              index?: number
-              [key: string]: string | number | boolean | null | undefined | symbol
+            other: {
+              index?: Primitive
+              [key: string]: Primitive
               renderTxt: (context: string) => string
-            },
+            }
           ) =>
             String(row[prop] ?? props.defaultBlock) +
             (typeof data.unit == 'string'
               ? data.unit
-              : ((data.unit && data.unit(row, prop, other || {})) ?? '')))
+              : (data.unit && data.unit(row, prop, other || {})) ?? ''))
         data.classFun = data.classFun ?? (() => '')
         item.dataKey = data.prop
         item.key = data.prop
@@ -1160,10 +1168,22 @@ const tableColumnFinal = computed(() => {
         item.width = Number(data.width ?? 100)
         // item.hidden = typeof data.showFun=='boolean'?data.
         item.cellRenderer = createEllipsisCellRenderer({
-          fun: data.fun!,
+          fun: fun,
           classFun: data.classFun,
           showTooltip: data.showOverflow as boolean,
+          tooltipPlacement: 'top',
         })
+        const header = data.header ?? (()=>item.title!)
+        let headerDom:VNode|string|Component=h('span', {}, header as string)
+        if (typeof header != 'string') {
+          headerDom = (header!)(
+            { ...item, label: item.title },
+            item.dataKey,
+          )
+        }
+        if (typeof headerDom=='string'){
+          headerDom=h('span', {}, headerDom)
+        }
         item.headerCellRenderer = (props: HeaderRenderProps) => {
           const { column } = props
           // console.log(props, '11111111111111');
@@ -1193,18 +1213,16 @@ const tableColumnFinal = computed(() => {
                       sortState.value[data.prop] = undefined
                       break
                   }
-                  onSort({ column: item, key: item.dataKey, order: sortState.value[data.prop] })
+                  onSort({
+                    column: item,
+                    key: item.dataKey! as string,
+                    order: sortState.value[data.prop],
+                  })
                 }
               },
             },
             [
-              (data.header &&
-                data.header({
-                  ...column,
-                  label: column.title,
-                  prop: column.dataKey,
-                })) ||
-                h('span', {}, column.title),
+              headerDom as VNode,
               data.sortable &&
                 h(
                   ElIcon,
@@ -1214,16 +1232,16 @@ const tableColumnFinal = computed(() => {
                       typeof sortState.value[data.prop] == 'undefined'
                         ? h(Sort)
                         : sortState.value[data.prop] == 'desc'
-                          ? h(SortUp)
-                          : h(SortDown),
-                  },
+                        ? h(SortUp)
+                        : h(SortDown),
+                  }
                 ),
-            ],
+            ]
           )
         }
 
         return item
-      }),
+      })
   )
   if (hasOperationComputed.value) {
     TableColumn.push({
@@ -1246,7 +1264,7 @@ const tableColumnFinal = computed(() => {
 
   return TableColumn
 })
-const sortState = ref<ObjectType>({})
+const sortState = ref<{ [key: string]: 'asc' | 'desc' | undefined }>({})
 
 const onSort = ({
   column,
@@ -1259,9 +1277,9 @@ const onSort = ({
 }) => {
   sortState.value[key as string] = order
   if (typeof order !== 'undefined') {
-    sortPropData.value[column.dataKey] = props.sortableConfig[order]
+    sortPropData.value[column.dataKey! as string] = props.sortableConfig[order]
   } else {
-    delete sortPropData.value[column.dataKey]
+    delete sortPropData.value[column.dataKey! as string]
   }
 
   handleQuery()
@@ -1288,7 +1306,7 @@ watch(
   {
     deep: true,
     immediate: true,
-  },
+  }
 )
 // ======================== 新增：Emit 相关核心类型定义 ========================
 // 1. 表格行数据类型（与 props.dataList 结构对齐）
@@ -1302,7 +1320,7 @@ type ExportCallback = (
   url?: string,
   params?: ObjectType,
   fileName?: string,
-  methods?: 'get' | 'post',
+  methods?: 'get' | 'post'
 ) => void
 
 // 4. 删除操作的回调函数类型（用于控制删除结果和加载状态）
@@ -1382,7 +1400,7 @@ interface MyTableEmits {
       [key: string]: Primitive // 扩展字段（如查询条件）
       multipleSelection: ObjectType[] // 选中的行数据（用于批量导出）
     },
-    callback?: ExportCallback,
+    callback?: ExportCallback
   ): void
 
   /**
@@ -1428,7 +1446,7 @@ interface MyTableEmits {
       eventName: string
       data: ObjectType
     },
-    callback: RemoveCallback,
+    callback: RemoveCallback
   ): void
 }
 // ========================================================================
@@ -1442,7 +1460,7 @@ watch(
   {
     deep: true,
     immediate: true,
-  },
+  }
 )
 const startQuery = () => {
   loading.value = true
@@ -1517,7 +1535,7 @@ const loadFunComputed = computed(() => {
 const getChildrenList = async (
   row: ObjectType,
   treeNode: unknown,
-  resolve: (data: ObjectType[]) => void,
+  resolve: (data: ObjectType[]) => void
 ) => {
   console.log('获取子菜单列表')
   dataExpandMap.value[String(row[treeConfig.value.id])] = { row, treeNode, resolve }
@@ -1654,7 +1672,7 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
         } finally {
           loading.value = false
         }
-      },
+      }
     )
   }
   setCurrentRow(undefined)
@@ -1702,7 +1720,7 @@ const handleExport = () => {
     url: string,
     params = {},
     fileName: string | undefined = undefined,
-    methods: 'get' | 'post' = 'get',
+    methods: 'get' | 'post' = 'get'
   ) => {
     if (typeof url !== 'undefined') {
       downloadFun.value(url, params, fileName, methods).finally(() => {
@@ -1799,7 +1817,7 @@ const handleRemove = (row: ObjectType) => {
         row,
         async (flag: string | boolean | Promise<ObjectType> = true, ...obj: any[]) => {
           await removeCallback(flag, ...obj)
-        },
+        }
       )
     })
     .catch(() => {
@@ -1820,7 +1838,7 @@ const handleBatchRemove = () => {
         multipleSelection.value,
         async (flag: string | boolean | Promise<ObjectType> = true, ...obj: Primitive[]) => {
           await removeCallback(flag, ...obj)
-        },
+        }
       )
     })
     .catch(() => {
@@ -1915,7 +1933,7 @@ const handleNeedConfirmEvent = ({
         },
         async (flag: string | boolean | Promise<ObjectType> = true, ...obj: Primitive[]) => {
           await removeCallback(flag, ...obj)
-        },
+        }
       )
     })
     .catch(() => {
