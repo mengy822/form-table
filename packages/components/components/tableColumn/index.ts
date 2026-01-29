@@ -61,7 +61,7 @@ export default {
               column.type = column?.type || dataType;
               const fundata = column.fun && column.fun(row, column.prop, other);
               const data: string | number | undefined = column?.type === 'number' ? (fundata ?? other.defaultBlock) : fundata || other.defaultBlock;
-              const classs = column.classFun && column.classFun(row, column.prop, other)??'';
+              const classs = (column.classFun && column.classFun(row, column.prop, other))??'';
               return h(
                 'span',
                 {
