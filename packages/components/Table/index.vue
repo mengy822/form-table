@@ -566,6 +566,7 @@ export interface tableColumnItem {
       [key: string]: any
     }
   ) => VNode | Component
+  type?: 'number' | 'string';
   classFun?: (
     row: dataItemType,
     prop: string,

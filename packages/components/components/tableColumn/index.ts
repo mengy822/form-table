@@ -57,12 +57,15 @@ export default {
             } else if (column.prop) {
               delete other.tableColumnFinal;
               other.index = $index;
-              const data: string | undefined = (column.fun && column.fun(row, column.prop, other)) ?? other.defaultBlock;
-              const classs = column.classFun && column.classFun(row, column.prop, other);
+              const dataType = typeof row[column.prop]==='number'?'number':'string';
+              column.type = column?.type || dataType;
+              const fundata = column.fun && column.fun(row, column.prop, other);
+              const data: string | number | undefined = column?.type === 'number' ? (fundata ?? other.defaultBlock) : fundata || other.defaultBlock;
+              const classs = column.classFun && column.classFun(row, column.prop, other)??'';
               return h(
                 'span',
                 {
-                  class: `span span_${column.prop} span_${column.prop}_${row[column.prop]} span_other_${classs} ${classs} ${typeof data}`
+                  class: `span span_${column.prop} span_${column.prop}_${row[column.prop]} span_other_${classs} ${classs} ${dataType}`
                 },
                 data
               );

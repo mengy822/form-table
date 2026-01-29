@@ -46,7 +46,7 @@
                     v-if="!item.funDom||!item.useRander"
                     :class="`span span_${item.prop} span_${item.prop}_${dataFinal[item.prop]} span_other_${item.classFun && item.classFun(dataFinal, item.prop, attr)} ${item.classFun && item.classFun(dataFinal, item.prop, attr)} ${(item.fun && item.fun(dataFinal, item.prop, attr)) ?? defaultBlock}`"
                   >
-                    {{ (item.fun && item.fun(dataFinal, item.prop, attr)) ?? defaultBlock }}
+                    {{ getColumnData(item) }}
                   </span>
                   <component v-else :is="createMarkRaw(item.funDom, dataFinal, item.prop)"></component>
                 </slot>
@@ -91,7 +91,10 @@ const createMarkRaw = (myRender:tableColumnItem['funDom'], data:dataItemType, pr
     }
   });
 };
-
+const getColumnData = (columnColumn:tableColumnItem) => {
+  const funData = columnColumn.fun && columnColumn.fun(dataFinal.value, columnColumn.prop, attr);
+  return columnColumn.type === 'number' ? (funData ?? props.defaultBlock) : funData || props.defaultBlock;
+};
 // 定义 Props 类型接口，清晰划分配置维度
 interface DesDialogProps {
   /** 语言配置（多语言支持） */

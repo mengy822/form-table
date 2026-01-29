@@ -182,6 +182,7 @@ import {
   FunType,
   FunctionType,
   ObjectBaseType,
+  ButtonType,
 } from '../js/types'
 import FunctionAnalyzer from '../utils/FunctionAnalyzer'
 import { CellRenderProps, HeaderRenderProps, TableColumn } from '../TableV2/types'
@@ -415,6 +416,7 @@ export interface tableColumnItem {
   maxWidth?: boolean
   fun?: FunType
   funDom?: FunType
+  type?: 'number' | 'string';
   classFun?: (
     row: ObjectType,
     prop: string,
@@ -840,11 +842,12 @@ const createEllipsisCellRenderer = ({
     cellValue: Primitive
     column: ObjectType
   }) => {
-    const content = fun(rowData, column['dataKey'] as string, {
-      renderTxt: (context: string) => context ?? props.defaultBlock,
+    const funData = fun(rowData, column['dataKey'] as string, {
+      renderTxt: (context: string) => (column.type === 'number' ? (context ?? props.defaultBlock) : context || props.defaultBlock),
       ...attrs,
-      index: rowIndex,
-    })
+      index: rowIndex
+    });
+    const content = column.type === 'number' ? (funData ?? props.defaultBlock) : funData || props.defaultBlock;
     const style: { width: string; overflow?: string; textOverflow?: string; whiteSpace?: string } =
       {
         width: `auto`, // 减去 padding
@@ -860,8 +863,8 @@ const createEllipsisCellRenderer = ({
       {
         class: `span span_${column['dataKey'] as string} span_${column['dataKey'] as string}_${
           cellData as string
-        } ${typeof cellData} ellipsis-content ${classFun(rowData, column['dataKey'])} key_${
-          column['dataKey']
+        } ${typeof cellData} ellipsis-content ${classFun(rowData, column['dataKey']! as string,{})} key_${
+          column['dataKey']! as string
         }_prop`,
         style,
       },
@@ -1127,7 +1130,9 @@ const tableColumnFinal = computed(() => {
           item.isTable || typeof item.isTable === 'undefined'
       )
       .map((data: tableColumnItem, index: number) => {
-        const item: TableColumn = {}
+        const item: TableColumn = {
+          width: 0
+        }
         item.align = 'center'
         if (props.isTree && index === 0 && !props.hasSelection) {
           item.align = 'left'
@@ -1157,10 +1162,9 @@ const tableColumnFinal = computed(() => {
               renderTxt: (context: string) => string
             }
           ) =>
-            String(row[prop] ?? props.defaultBlock) +
-            (typeof data.unit == 'string'
-              ? data.unit
-              : (data.unit && data.unit(row, prop, other || {})) ?? ''))
+            String(data.type === 'number' ? (row[prop] ?? props.defaultBlock) : row[prop] || props.defaultBlock) +
+            (typeof data.unit == 'string' ? data.unit : ((data.unit && data.unit(row, prop, other || {})) ?? '')));
+        
         data.classFun = data.classFun ?? (() => '')
         item.dataKey = data.prop
         item.key = data.prop
