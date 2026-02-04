@@ -101,6 +101,7 @@
           v-if="hasSelectionComputed"
           type="selection"
           fixed="left"
+          :reserve-selection="reserve"
           :selectable="typeof hasSelection === 'boolean' ? () => true : hasSelection"
           width="55"
         />
@@ -359,6 +360,8 @@ export interface TableProps {
   hasIndex: boolean | string
   /** 是否显示选择列（支持函数动态控制） */
   hasSelection: boolean | ((row: any, index: number) => boolean)
+  /** 跨页多选 */
+  reserve: boolean;
   /** 是否显示操作列（布尔值或自定义列名） */
   hasOperation: boolean | string
   /** 操作列总宽度 */
@@ -647,6 +650,7 @@ const props = withDefaults(defineProps<TableProps>(), {
   language: () => zhCn,
   hasIndex: true,
   hasSelection: false,
+  reserve: false,
   hasOperation: true,
   operationWidth: undefined,
   pagerCount: undefined,
