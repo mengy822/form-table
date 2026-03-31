@@ -269,3 +269,145 @@ export const getRemainingHeight = (
   // 返回结果（确保不会返回负数）
   return { height: Math.max(0, remainingHeight), dom: doms };
 };
+/**
+ * 解析时间函数，兼容多种输入格式和输出格式
+ * 支持两种格式：YYYY-MM-DD HH:mm:ss 和 {y}-{m}-{d} {h}:{i}:{s}
+ * @param time 时间参数，支持 Date、时间戳、字符串等
+ * @param pattern 输出格式，默认 'YYYY-MM-DD HH:mm:ss'
+ * @returns 格式化后的时间字符串或 null
+ */
+export function parseTime(time: any, pattern?: string): string | null {
+  // 如果没有传入时间参数或时间为空，返回 null
+  if (arguments.length === 0 || time == null || time === '') {
+    return null;
+  }
+
+  // 设置默认格式为 YYYY-MM-DD HH:mm:ss
+  const defaultFormat = 'YYYY-MM-DD HH:mm:ss';
+  const format = pattern || defaultFormat;
+
+  let date: Date;
+
+  // 处理不同类型的时间参数
+  if (time instanceof Date) {
+    // 已经是 Date 对象
+    date = time;
+  } else if (typeof time === 'number') {
+    // 时间戳
+    if (time.toString().length === 10) {
+      // 秒级时间戳
+      date = new Date(time * 1000);
+    } else if (time.toString().length === 13) {
+      // 毫秒级时间戳
+      date = new Date(time);
+    } else {
+      console.warn('无效的时间戳格式:', time);
+      return null;
+    }
+  } else if (typeof time === 'string') {
+    // 字符串类型
+    if (/^\d+$/.test(time)) {
+      // 纯数字字符串，当作时间戳处理
+      const timestamp = parseInt(time, 10);
+      return parseTime(timestamp, format);
+    } else {
+      // 日期字符串
+      try {
+        // 替换常见格式以兼容 Safari 和 iOS
+        let timeString = time
+          .replace(/-/g, '/') // 将 - 替换为 /
+          .replace('T', ' ') // ISO 格式中的 T 替换为空格
+          .replace(/\.\d{3}Z?$/g, '') // 移除毫秒和 Z
+          .replace('Z', ''); // 移除时区 Z
+
+        // 如果没有时间部分，添加默认时间
+        if (!/:/.test(timeString) && timeString.includes('/')) {
+          timeString += ' 00:00:00';
+        }
+
+        date = new Date(timeString);
+
+        // 检查日期是否有效
+        if (isNaN(date.getTime())) {
+          console.warn('无效的日期字符串:', time);
+          return null;
+        }
+      } catch (error) {
+        console.warn('日期解析错误:', error);
+        return null;
+      }
+    }
+  } else {
+    console.warn('不支持的时间格式:', typeof time, time);
+    return null;
+  }
+
+  // 创建格式化对象
+  const formatObj: Record<string, number> = {
+    y: date.getFullYear(),
+    m: date.getMonth() + 1, // 月份从 0 开始
+    d: date.getDate(),
+    h: date.getHours(),
+    i: date.getMinutes(),
+    s: date.getSeconds(),
+    a: date.getDay() // 星期几，0 表示星期日
+  };
+
+  // 判断使用哪种格式规则
+  if (format.includes('{')) {
+    // 使用 {y}-{m}-{d} {h}:{i}:{s} 格式
+    return format.replace(/{([ymdhisa])+}/g, (result: string, key: string) => {
+      let value = formatObj[key];
+
+      // 处理星期几
+      if (key === 'a') {
+        const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+        return weekDays[value];
+      }
+
+      // 补零处理：如果占位符长度大于1且值小于10，前面补0
+      // 例如：{yyyy} 需要4位，但这里我们只处理单字符占位符的补零
+      if (result.length > 0 && value < 10) {
+        return '0' + value;
+      }
+
+      return value !== undefined ? value.toString() : '';
+    });
+  } else {
+    // 使用 YYYY-MM-DD HH:mm:ss 格式
+    return format.replace(/(YYYY|YY|MM|M|DD|D|HH|H|mm|m|ss|s|a)/g, (match: string): string => {
+      switch (match) {
+        case 'YYYY':
+          return formatObj.y.toString();
+        case 'YY':
+          return formatObj.y.toString().slice(-2);
+        case 'MM':
+          return formatObj.m.toString().padStart(2, '0');
+        case 'M':
+          return formatObj.m.toString();
+        case 'DD':
+          return formatObj.d.toString().padStart(2, '0');
+        case 'D':
+          return formatObj.d.toString();
+        case 'HH':
+          return formatObj.h.toString().padStart(2, '0');
+        case 'H':
+          return formatObj.h.toString();
+        case 'mm':
+          return formatObj.i.toString().padStart(2, '0');
+        case 'm':
+          return formatObj.i.toString();
+        case 'ss':
+          return formatObj.s.toString().padStart(2, '0');
+        case 's':
+          return formatObj.s.toString();
+        case 'a':
+          // 星期几：0=日，1=一，...，6=六
+          const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+          return weekDays[formatObj.a];
+        default:
+          return match;
+      }
+    });
+  }
+}

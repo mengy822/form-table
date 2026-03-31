@@ -198,7 +198,7 @@
 
 <script setup lang="ts" name="MyForm">
 import { getName } from '../js/utils'
-import { ref, watch, computed, nextTick, onMounted, onUnmounted, provide } from 'vue'
+import { ref, watch, computed, nextTick, onMounted, onUnmounted, provide, onActivated, onDeactivated } from 'vue'
 // import { RefreshLeft, ArrowUp, ArrowDown, Search } from '@element-plus/icons-vue'
 import type { button, queryInnerType, refresh, search, searchRefresh } from '../js/types'
 import Input from '../components/input/index.vue'
@@ -457,7 +457,12 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('resize', formItemWidthComputedListenerHandler)
 })
-
+onActivated(() => {
+  window.addEventListener('resize', formItemWidthComputedListenerHandler);
+});
+onDeactivated(() => {
+  window.removeEventListener('resize', formItemWidthComputedListenerHandler);
+});
 //用于监听大小改变的回调
 const formItemWidthComputedListener = () => {
   console.log('大小改变')
@@ -479,7 +484,9 @@ const formItemWidthComputed = (search: typeof searchComputed.value, callback = (
     for (const key in dynamicRefMap.value) {
       const computedStyle = getComputedStyle(dynamicRefMap.value[key].$el)
       inputWidths[key] = getDomComputed(computedStyle, 'width') + 6 * 2
-      // console.log(dynamicRefMap.value[key].$el, key, inputWidths[key]);
+      if (isNaN(inputWidths[key])) {
+        inputWidths[key] = document.querySelector(`.my-form-item-${key.replace('Ref', '')}`)?.getBoundingClientRect()?.width || 312;
+      }
     }
     // console.log(inputWidths);
     let sum: number = formPlusMainWidth - buttonsWidth * 1.5

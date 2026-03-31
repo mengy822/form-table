@@ -8,6 +8,7 @@ export interface dateType {
   editable?: boolean;
   valueFormat?: string;//时间绑定格式
   format?: string;//时间显示格式
+  shortcuts?:any[];
   dateType?: 'year' | 'years' | 'yearrange' | 'month' | 'date' | 'dates' | 'datetime' | 'week' | 'datetimerange' | 'daterange' | 'monthrange'|'time'|'timerange';//类型
   change?: (val: any) => void;//用户确认选定的值时触发
 

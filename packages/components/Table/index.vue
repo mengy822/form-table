@@ -10,7 +10,7 @@
                 type="primary"
                 :plain="hasTableTopPlain"
                 :icon="hasAddIcon"
-                @click="handleAdd()"
+                @click.stop="handleAdd()"
               >
                 {{ typeof hasAdd !== 'boolean' ? hasAdd : '新增' }}
               </el-button>
@@ -25,7 +25,7 @@
                 :plain="hasTableTopPlain"
                 :disabled="multipleSelection.length == 0"
                 :icon="hasBatchRemoveIcon"
-                @click="handleBatchRemove()"
+                @click.stop="handleBatchRemove()"
               >
                 {{ typeof hasBatchRemove !== 'boolean' ? hasBatchRemove : '批量删除' }}
               </el-button>
@@ -36,7 +36,7 @@
                 type="warning"
                 :plain="hasTableTopPlain"
                 :icon="hasExportIcon"
-                @click="handleExport()"
+                @click.stop="handleExport()"
               >
                 {{ typeof hasExport !== 'boolean' ? hasExport : '导出' }}
               </el-button>
@@ -47,7 +47,7 @@
                 type="info"
                 :plain="hasTableTopPlain"
                 :icon="hasImportIcon"
-                @click="handleImport()"
+                @click.stop="handleImport()"
               >
                 {{ typeof hasImport !== 'boolean' ? hasImport : '导入' }}
               </el-button>
@@ -162,7 +162,7 @@
                   :type="hasAddSonType"
                   :loading="operationLoading"
                   :icon="hasAddSonIcon"
-                  @click="handleAddSon(scope.row)"
+                  @click.stop="handleAddSon(scope.row)"
                 >
                   {{ getOperationLabel(hasAddSon, scope, '新增') }}
                 </el-button>
@@ -194,7 +194,7 @@
                   :type="hasDetailType"
                   :loading="operationLoading"
                   :icon="hasDetailIcon"
-                  @click="handleDetail(scope.row)"
+                  @click.stop="handleDetail(scope.row)"
                 >
                   {{ getOperationLabel(hasDetail, scope, '详情') }}
                 </el-button>
@@ -226,7 +226,7 @@
                   :type="hasUpdateType"
                   :loading="operationLoading"
                   :icon="hasUpdateIcon"
-                  @click="handleUpdate(scope.row)"
+                  @click.stop="handleUpdate(scope.row)"
                 >
                   {{ getOperationLabel(hasUpdate, scope, '修改') }}
                 </el-button>
@@ -258,7 +258,7 @@
                   :type="hasRemoveType"
                   :loading="operationLoading"
                   :icon="hasRemoveIcon"
-                  @click="handleRemove(scope.row)"
+                  @click.stop="handleRemove(scope.row)"
                 >
                   {{ getOperationLabel(hasRemove, scope, '删除') }}
                 </el-button>
@@ -308,7 +308,10 @@ import {
   type CSSProperties,
   getCurrentInstance,
   nextTick,
+  onActivated,
+  onDeactivated,
   onMounted,
+  onUnmounted,
   ref,
   useSlots,
   type VNode,
@@ -337,7 +340,7 @@ interface IsTreeConfig {
 export interface TableProps {
   /** 是否显示分页 */
   hasPage: boolean
-  
+
   /** 表格顶部按钮Plain */
   hasTableTopPlain: boolean
 
@@ -786,6 +789,7 @@ const proxyPropsParamsInfo = ref<{
   'onUpdate:showSearch': false,
 })
 onMounted(() => {
+  needAutoHeight.value = true;
   const internal = getCurrentInstance()
   const onEmit = (internal?.vnode.props || {}) as Record<string, any>
   for (const emit in onEmit) {
@@ -804,7 +808,15 @@ onMounted(() => {
   // hasUpdateListener.value = typeof props.onUpdate === 'function'
   autoHeight()
 })
-
+onUnmounted(() => {
+  needAutoHeight.value = false;
+});
+onDeactivated(() => {
+  needAutoHeight.value = false;
+});
+onActivated(() => {
+  needAutoHeight.value = true;
+});
 const operationWidthComputed = computed(() => {
   let width = props.operationWidth ?? 100
   if (typeof props.operationWidth === 'undefined') {
@@ -849,7 +861,9 @@ if (import.meta.hot) {
     console.log('保存状态:', data.baseClass)
   })
 }
+const needAutoHeight = ref(true);
 const autoHeight = () => {
+  if (!needAutoHeight.value) return;
   // console.log('重建dom', new Date().getTime());
   nextTick(() => {
     if (
@@ -1274,9 +1288,10 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
     emits('query', queryParam)
   } else {
     props.dataListFun(queryParam, async (res: string | Promise<any> | any[], ...obj: any[]) => {
+      let computedData:{[key:string]:any}={}
       try {
         if (res instanceof Promise) {
-          res = await (res as Promise<any>)
+          computedData = await (res as Promise<any>)
         } else if (res instanceof String && props.dataLoadFun) {
           const query = {
             url: res,
@@ -1289,17 +1304,17 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
           } else {
             delete query.params
           }
-          res = await props.dataLoadFun(query)
+          computedData = await props.dataLoadFun(query)
         } else {
-          res = {
+          computedData = {
             [props.dataConfig.rows]: res,
             [props.dataConfig.total]: obj[0],
             [props.dataConfig.extra]: obj[1],
           }
         }
 
-        const datas = res[props.dataConfig.rows]
-        const extras = res[props.dataConfig.extra]
+        const datas = computedData[props.dataConfig.rows]
+        const extras = computedData[props.dataConfig.extra]
         let treeDatas = []
         const isTree = props.isTree
         if (isTree) {
@@ -1342,7 +1357,7 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
         }
 
         // console.log(datas);
-        const total = props.hasPage ? res[props.dataConfig.total] : 0
+        const total = props.hasPage ? computedData[props.dataConfig.total] : 0
         if (proxyProps.value['onDataLoadCompleted']) emits('dataLoadCompleted', datas, total)
         dataListComputed.value = datas
         totalComputed.value = total
@@ -1357,7 +1372,7 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
 const handleAdd = () => {
   if (proxyPropsParamsInfo.value['onAdd']) {
     operationLoading.value = true
-    emits('add', undefined, () => {
+    emits('add', () => {
       operationLoading.value = false
     })
   } else {

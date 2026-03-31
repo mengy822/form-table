@@ -5,7 +5,16 @@ import Edit from './Edit/index.vue';
 import Dialog from './Dialog/index.vue';
 import UploadFile from './components/File/index.vue';
 import type { inputInnerType, dateInnerType, selectInnerType } from '../form/types';
+import { parseTime } from './components/js/utils';
+String.prototype.formatDate = function (fmt) {
+  const date = new Date(this);
+  return date.format(fmt);
+};
+Date.prototype.format = function (fmt) {
+  const date = this;
 
+  return parseTime(date, fmt);
+};
 export type MyTableInstance = InstanceType<typeof Table>;
 export type MyFormInstance = InstanceType<typeof Form>;
 export type MyEditInstance = InstanceType<typeof Edit>;

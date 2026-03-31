@@ -10,7 +10,7 @@
                 type="primary"
                 :plain="hasTableTopPlain"
                 :icon="hasAddIcon"
-                @click="handleAdd()"
+                @click.stop="handleAdd()"
               >
                 {{ typeof hasAdd !== 'boolean' ? hasAdd : '新增' }}
               </el-button>
@@ -25,7 +25,7 @@
                 :type="hasBatchRemoveType"
                 :plain="hasTableTopPlain"
                 :icon="hasBatchRemoveIcon"
-                @click="handleBatchRemove()"
+                @click.stop="handleBatchRemove()"
               >
                 {{ typeof hasBatchRemove !== 'boolean' ? hasBatchRemove : '批量删除' }}
               </el-button>
@@ -36,7 +36,7 @@
                 type="warning"
                 :plain="hasTableTopPlain"
                 :icon="hasExportIcon"
-                @click="handleExport()"
+                @click.stop="handleExport()"
               >
                 {{ typeof hasExport !== 'boolean' ? hasExport : '导出' }}
               </el-button>
@@ -47,7 +47,7 @@
                 type="info"
                 :plain="hasTableTopPlain"
                 :icon="hasImportIcon"
-                @click="handleImport()"
+                @click.stop="handleImport()"
               >
                 {{ typeof hasImport !== 'boolean' ? hasImport : '导入' }}
               </el-button>
@@ -135,7 +135,10 @@ import {
   type CSSProperties,
   getCurrentInstance,
   nextTick,
+  onActivated,
+  onDeactivated,
   onMounted,
+  onUnmounted,
   ref,
   useSlots,
   useTemplateRef,
@@ -416,7 +419,7 @@ export interface tableColumnItem {
   maxWidth?: boolean
   fun?: FunType
   funDom?: FunType
-  type?: 'number' | 'string';
+  type?: 'number' | 'string'
   classFun?: (
     row: ObjectType,
     prop: string,
@@ -637,6 +640,7 @@ const proxyPropsParamsInfo = ref<{
   'onUpdate:showSearch': false,
 })
 onMounted(() => {
+  needAutoHeight.value = true;
   const internal = getCurrentInstance()
   const onEmit = (internal?.vnode.props || {}) as Record<string, Primitive>
   for (const emit in onEmit) {
@@ -656,6 +660,15 @@ onMounted(() => {
   }
   autoHeight()
 })
+onUnmounted(() => {
+  needAutoHeight.value = false;
+});
+onDeactivated(() => {
+  needAutoHeight.value = false;
+});
+onActivated(() => {
+  needAutoHeight.value = true;
+});
 const operationWidthComputed = computed(() => {
   let width = props.operationWidth ?? 100
   if (typeof props.operationWidth === 'undefined') {
@@ -699,7 +712,9 @@ const getOperationLabel = (
 
   return hasXXX ?? defaultLabel
 }
+const needAutoHeight = ref(true);
 const autoHeight = () => {
+  if (!needAutoHeight.value) return;
   // console.log('重建dom', props.baseClass, new Date().getTime());
   nextTick(() => {
     if (props.baseClass && typeof props.height == 'undefined') {
@@ -843,11 +858,13 @@ const createEllipsisCellRenderer = ({
     column: ObjectType
   }) => {
     const funData = fun(rowData, column['dataKey'] as string, {
-      renderTxt: (context: string) => (column.type === 'number' ? (context ?? props.defaultBlock) : context || props.defaultBlock),
+      renderTxt: (context: string) =>
+        column.type === 'number' ? context ?? props.defaultBlock : context || props.defaultBlock,
       ...attrs,
-      index: rowIndex
-    });
-    const content = column.type === 'number' ? (funData ?? props.defaultBlock) : funData || props.defaultBlock;
+      index: rowIndex,
+    })
+    const content =
+      column.type === 'number' ? funData ?? props.defaultBlock : funData || props.defaultBlock
     const style: { width: string; overflow?: string; textOverflow?: string; whiteSpace?: string } =
       {
         width: `auto`, // 减去 padding
@@ -863,9 +880,11 @@ const createEllipsisCellRenderer = ({
       {
         class: `span span_${column['dataKey'] as string} span_${column['dataKey'] as string}_${
           cellData as string
-        } ${typeof cellData} ellipsis-content ${classFun(rowData, column['dataKey']! as string,{})} key_${
-          column['dataKey']! as string
-        }_prop`,
+        } ${typeof cellData} ellipsis-content ${classFun(
+          rowData,
+          column['dataKey']! as string,
+          {}
+        )} key_${column['dataKey']! as string}_prop`,
         style,
       },
       {
@@ -946,7 +965,10 @@ function generateOperationColumn() {
           type: type,
           loading: operationLoading.value,
           icon: icon,
-          onClick: () => handler(row),
+          onClick: {
+            handler: handler(row),
+            stop: true, // 相当于 .stop 修饰符
+          },
         },
         () => buttonContent
       )
@@ -1131,7 +1153,7 @@ const tableColumnFinal = computed(() => {
       )
       .map((data: tableColumnItem, index: number) => {
         const item: TableColumn = {
-          width: 0
+          width: 0,
         }
         item.align = 'center'
         if (props.isTree && index === 0 && !props.hasSelection) {
@@ -1162,9 +1184,15 @@ const tableColumnFinal = computed(() => {
               renderTxt: (context: string) => string
             }
           ) =>
-            String(data.type === 'number' ? (row[prop] ?? props.defaultBlock) : row[prop] || props.defaultBlock) +
-            (typeof data.unit == 'string' ? data.unit : ((data.unit && data.unit(row, prop, other || {})) ?? '')));
-        
+            String(
+              data.type === 'number'
+                ? row[prop] ?? props.defaultBlock
+                : row[prop] || props.defaultBlock
+            ) +
+            (typeof data.unit == 'string'
+              ? data.unit
+              : (data.unit && data.unit(row, prop, other || {})) ?? ''))
+
         data.classFun = data.classFun ?? (() => '')
         item.dataKey = data.prop
         item.key = data.prop
@@ -1177,16 +1205,13 @@ const tableColumnFinal = computed(() => {
           showTooltip: data.showOverflow as boolean,
           tooltipPlacement: 'top',
         })
-        const header = data.header ?? (()=>item.title!)
-        let headerDom:VNode|string|Component=h('span', {}, header as string)
+        const header = data.header ?? (() => item.title!)
+        let headerDom: VNode | string | Component = h('span', {}, header as string)
         if (typeof header != 'string') {
-          headerDom = (header!)(
-            { ...item, label: item.title },
-            item.dataKey,
-          )
+          headerDom = header!({ ...item, label: item.title }, item.dataKey)
         }
-        if (typeof headerDom=='string'){
-          headerDom=h('span', {}, headerDom)
+        if (typeof headerDom == 'string') {
+          headerDom = h('span', {}, headerDom)
         }
         item.headerCellRenderer = (props: HeaderRenderProps) => {
           const { column } = props

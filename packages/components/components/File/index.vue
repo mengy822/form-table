@@ -20,7 +20,7 @@
         <span v-if="dataFinal.limitNum">只能上传{{ dataFinal.limitNum }}个</span>
       </div>
       <div class="el-upload__tip">
-        <span v-if="dataFinal.hasTemplate"
+        <span v-if="dataFinal.hasTemplate" style="display: flex"
           >上传文件
           <el-button type="text" @click="downloadFun(dataFinal.hasTemplate)"
             >模板文件下载</el-button
