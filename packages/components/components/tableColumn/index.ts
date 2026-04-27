@@ -57,11 +57,30 @@ export default {
             } else if (column.prop) {
               delete other.tableColumnFinal;
               other.index = $index;
-              const dataType = typeof row[column.prop]==='number'?'number':'string';
-              column.type = column?.type || dataType;
-              const fundata = column.fun && column.fun(row, column.prop, other);
-              const data: string | number | undefined = column?.type === 'number' ? (fundata ?? other.defaultBlock) : fundata || other.defaultBlock;
-              const classs = (column.classFun && column.classFun(row, column.prop, other))??'';
+              let dataType = typeof row[column.prop] == 'number' ? 'number' : 'string';
+              const separator = [',', '~', '-', '/'];
+              const nowSeparator = separator.find((item) => column.prop.indexOf(item) > -1);
+              let fundata: string | undefined = '';
+              let data: string | number | undefined = '';
+              let classs: string | undefined = '';
+              if (nowSeparator) {
+                const props = column.prop.split(nowSeparator);
+                const fundatas: string[] = [];
+                const classss: string[] = [];
+                props.forEach((item) => {
+                  fundatas.push(column.fun!(row, item, other)! as string);
+                  classss.push(column.classFun!(row, column.prop, other));
+                });
+                fundata = fundatas.join(nowSeparator);
+                classs = classss.join(nowSeparator);
+                data = fundata;
+                dataType = 'string';
+              } else {
+                column.type = column?.type || dataType;
+                fundata = column.fun && column.fun(row, column.prop, other);
+                data = column?.type === 'number' ? (fundata ?? other.defaultBlock) : fundata || other.defaultBlock;
+                classs = column.classFun && column.classFun(row, column.prop, other);
+              }
               return h(
                 'span',
                 {
@@ -103,6 +122,7 @@ export default {
     const $self = this;
     return renderColumnList.call($self, tableColumnFinal, align, {
       ...this.$attrs,
-      renderTxt: (context:string|number|boolean) => context ?? this.$attrs.defaultBlock }); // renderColumnList内部需借助当前this查找父组件
+      renderTxt: (context: string | number | boolean) => context ?? this.$attrs.defaultBlock
+    }); // renderColumnList内部需借助当前this查找父组件
   }
 };

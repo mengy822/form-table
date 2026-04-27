@@ -11,7 +11,7 @@ export interface selectType {
   allowCreate?: boolean;//	是否允许用户创建新条目， 只有当 filterable 设置为 true 时才会生效。	boolean false
   filterMethod?: () => void;//	自定义筛选方法
   remote?: boolean;//	其中的选项是否从服务器远程加载	 boolean false
-  remoteMethod?: () => void;//	自定义远程搜索方法
+  remoteMethod?: (query: string, cb: (data: selectOptionsGroupType[] | selectOptionsType[])=>void,extra:{[key:string]:string|number;}) => void;//	自定义远程搜索方法
   remoteShowSuffix?: boolean;//		远程搜索方法显示后缀图标	boolean false
   loading?: boolean;//		是否正在从远程获取数据	boolean false
   loadingText?: string;//	从服务器加载数据时显示的文本，默认为“Loading”
@@ -37,6 +37,7 @@ export interface selectType {
   emptyValues?: any[]//	组件的空值配置 参考config-providervalueOnClear?: string | number | boolean | Function;//	清空选项的值 参考 config-provider
   options: selectOptionsGroupType[] | selectOptionsType[] | number;
   valueType?: 'string' | 'array'
+  extraParams?: { [key: string]: string | number }; //	自定义后缀图标组件	ArrowDown
   focus?: (event: FocusEvent) => void;//当 input 获得焦点时触发
   blur?: (event: FocusEvent) => void;//当 input 失去焦点时触发
   clear?: () => void;//可清空的单选模式下用户点击清空按钮时触发

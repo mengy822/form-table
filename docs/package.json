@@ -6,7 +6,8 @@
   "description": "form-table-v3 文档站点",
   "license": "MIT",
   "scripts": {
-    "dev": "vitepress dev .",
+    "dev": "vite",
+    "dev1": "vitepress dev .",
     "build": "vitepress build .",
     "preview": "vitepress preview .",
     "clean": "rm -rf .vitepress/dist",
@@ -14,11 +15,12 @@
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "ftv3": "file:../../form-table"
+    "ftv3": "file:../packages",
+    "@chenglou/pretext": "^0.0.6"
   },
   "devDependencies": {
     "@element-plus/icons-vue": "^2.3.2",
-    "element-plus": "^2.11.2",
+    "element-plus": "^2.11.4",
     "typescript": "^5.8.3",
     "vite": "6.3.5",
     "vitepress": "1.6.4",

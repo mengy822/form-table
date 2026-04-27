@@ -8,16 +8,19 @@ export const getName = (name: string | number, other: string = '') => {
   name = String(name);
   return (name.indexOf('_') > -1 ? (name.split('_')[0] ?? name) : name).replace(other, '');
 };
-export const deepClone = (target:any[]) => {
+export const getZoomPercent = () => {
+  return window.devicePixelRatio || 1;
+};
+export const deepClone = (target: any[]) => {
   // WeakMap作为记录对象Hash表（用于防止循环引用）
   const map = new WeakMap();
 
   // 判断是否为object类型的辅助函数，减少重复代码
-  function isObject(target:any) {
+  function isObject(target: any) {
     return (typeof target === 'object' && target) || typeof target === 'function';
   }
 
-  function clone(data:any) {
+  function clone(data: any) {
     // 基础类型直接返回值
     if (!isObject(data)) {
       return data;
@@ -36,7 +39,7 @@ export const deepClone = (target:any[]) => {
 
     // 处理数组
     if (Array.isArray(data)) {
-      const result:any[] = [];
+      const result: any[] = [];
       map.set(data, result);
       data.forEach((val, index) => {
         if (isObject(val)) {
@@ -115,6 +118,7 @@ export const deepClone = (target:any[]) => {
  * @param dom dom对象
  */
 export const getComputedStyle = (dom: Element | string): CSSStyleDeclaration => {
+  if (!dom)return
   if (typeof dom === 'string') {
     const lsDom = document.querySelector(dom);
     if (lsDom) dom = lsDom;
@@ -201,7 +205,7 @@ export const getRemainingHeight = (
   dom: HTMLElement[];
 } => {
   // 获取容器元素
-  const dom: HTMLElement = document.querySelector(className);
+  const dom: HTMLElement = document.querySelector(className)!;
   if (!dom) {
     console.error(`元素 ${className} 未找到`);
     return { height: 0, dom: [] };
@@ -230,7 +234,7 @@ export const getRemainingHeight = (
     }
     // 获取计算样式
     const style = getComputedStyle(child);
-    if (style['position']) {
+    if (style['position']!='static') {
       continue;
     }
     doms.push(child);

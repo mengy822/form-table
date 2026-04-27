@@ -170,7 +170,7 @@
                         <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
                           <slot :name="name" v-bind="scopeData"></slot>
                         </template>
-                      
+
                       </MyFile>
                     </slot>
                   </template>
@@ -178,6 +178,7 @@
               </slot>
             </div>
           </div>
+          <slot name="errorData" :data="dynamicComputedMap"></slot>
         </el-form>
         <slot name="right" :data="dynamicComputedMap"></slot>
       </div>
@@ -624,14 +625,16 @@ const submitFun = async () => {
   formRef.value?.validate((valid: boolean, fields: any) => {
     if (valid) {
       loading.value = true
-      emits('submit', { ...dataFinal.value }, async (flag: boolean | Promise<any> = true) => {
+      emits('submit', { ...dataFinal.value }, async (flag: boolean | Promise<any> = true, cb:(flag:boolean,data:any[])=>void = () => {}) => {
         if (flag instanceof Promise) {
           try {
             const res = await (flag as Promise<any>)
             flag = res[props.code] == props.status
             // console.log(props.status);
+            cb && cb(true, res);
           } catch (e) {
             flag = false
+            cb && cb(false, e as any);
           }
         }
         if (flag) {

@@ -23,7 +23,7 @@
               :inline="true"
               :model="dynamicComputedMap"
               :label-width="labelWidth"
-              @submit.native.prevent="submitFun('search')"
+              @submit.native.prevent="searchFun('search')"
             >
               <slot
                 v-for="(item, index) in rowItem"
@@ -68,7 +68,7 @@
                   <template #default>
                     <slot :name="item.prop" :prop="item.prop" :data="dynamicComputedMap">
                       <Input
-                        :data="item as inputInnerType"
+                        :data="item"
                         v-if="item.type === 'input'"
                         v-model="dynamicComputedMap[item.prop]"
                       >
@@ -77,7 +77,7 @@
                         </template>
                       </Input>
                       <MyDate
-                        :data="item as dateInnerType"
+                        :data="item "
                         v-if="item.type === 'date'"
                         v-model="dynamicComputedMap[item.prop]"
                       >
@@ -87,7 +87,7 @@
                       </MyDate>
 
                       <Select
-                        :data="item as selectInnerType"
+                        :data="item "
                         v-if="item.type === 'select'"
                         v-model="dynamicComputedMap[item.prop]"
                       >
@@ -96,7 +96,7 @@
                         </template>
                       </Select>
                       <Switch
-                        :data="item as switchInnerType"
+                        :data="item "
                         v-if="item.type === 'switch'"
                         v-model="dynamicComputedMap[item.prop]"
                       >
@@ -105,7 +105,7 @@
                         </template>
                       </Switch>
                       <CheckBox
-                        :data="item as checkboxInnerType"
+                        :data="item "
                         v-if="item.type === 'checkbox'"
                         v-model="dynamicComputedMap[item.prop]"
                       >
@@ -114,7 +114,7 @@
                         </template>
                       </CheckBox>
                       <Radio
-                        :data="item as radioInnerType"
+                        :data="item "
                         v-if="item.type === 'radio'"
                         v-model="dynamicComputedMap[item.prop]"
                       >
@@ -353,8 +353,8 @@ const searchFun = (fun: (typeof searchButtonFinal.value)[number]['fun']) => {
     }
     if (fun === 'search') {
       let needCheck: any[] = formRef.value.map((item: { validate: any,fields:{prop:string}[] }) => {
-        const key = item.fields.map((item) => item.prop).join(',');
-        return { key, val: item.validate() };
+        const key = (item.fields||[]).map((item) => item.prop).join(',');
+        return { key, val: item.validate?.() };
       });
       if (fold.value) {
         needCheck = needCheck.filter((item) => item.key === searchFinal.value[0].map((item) => item.prop).join(','))
@@ -464,11 +464,11 @@ onDeactivated(() => {
   window.removeEventListener('resize', formItemWidthComputedListenerHandler);
 });
 //用于监听大小改变的回调
-const formItemWidthComputedListener = () => {
+const formItemWidthComputedListener = (event?: UIEvent) => {
   console.log('大小改变')
   formItemWidthComputed(searchComputed.value)
 }
-const formItemWidthComputedListenerHandler = useDebounceThrottle(formItemWidthComputedListener, 500)
+const formItemWidthComputedListenerHandler = useDebounceThrottle(formItemWidthComputedListener, 500) as EventListener
 /**
  * 计算表单项宽度
  * @param search 搜索条件
@@ -480,9 +480,11 @@ const formItemWidthComputed = (search: typeof searchComputed.value, callback = (
   nextTick(() => {
     const formPlusMainWidth = formPlusMain.value?.clientWidth
     const inputWidths: { [key: string]: number } = {}
-    const buttonsWidth = buttons.value[0]?.clientWidth ?? 0
+    const buttonsWidth = buttons.value![0]?.clientWidth ?? 0
+    console.log(1)
     for (const key in dynamicRefMap.value) {
       const computedStyle = getComputedStyle(dynamicRefMap.value[key].$el)
+
       inputWidths[key] = getDomComputed(computedStyle, 'width') + 6 * 2
       if (isNaN(inputWidths[key])) {
         inputWidths[key] = document.querySelector(`.my-form-item-${key.replace('Ref', '')}`)?.getBoundingClientRect()?.width || 312;

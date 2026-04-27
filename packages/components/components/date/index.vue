@@ -157,7 +157,7 @@ const bindValue = computed({
   },
 })
 const change = (e: typeof props.modelValue) => {
-  if (Array.isArray(e)) {
+  if (Array.isArray(e) && (dataFinal.value?.dateType as string)?.indexOf('time') > -1) {
     if (e[0] === e[1]) {
       e[1] = e[1].split(' ')[0] + ' 23:59:59'
     }

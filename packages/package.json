@@ -1,0 +1,17 @@
+{
+    "name": "ftv3",
+    "version": "1.0.0",
+    "type": "module",
+    "main": "./index.ts",
+    "module": "./index.ts",
+    "exports": {
+        ".": {
+            "import": "./index.ts",
+            "require": "./index.ts",
+            "types": "./index.ts"
+        }
+    },
+    "dependencies": {
+        "@chenglou/pretext": "^0.0.6"
+    }
+}

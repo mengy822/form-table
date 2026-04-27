@@ -106,14 +106,15 @@
           width="55"
         />
         <el-table-column
-          fixed="left"
+          :fixed="hasIndexFixed"
           v-if="hasIndexComputed"
           :min-width="60"
-          prop="index"
           :label="typeof hasIndex === 'boolean' ? '序号' : hasIndex"
         >
           <template #default="scope">
-            {{ queryParams.pageSize * (queryParams.pageNum - 1) + scope.$index + 1 }}
+            {{
+              queryParams.pageSize * (queryParams.pageNum - 1) + ((scope && scope.$index) || 0) + 1
+            }}
           </template>
         </el-table-column>
         <MyTableColumn
@@ -125,7 +126,7 @@
         ></MyTableColumn>
 
         <el-table-column
-          fixed="right"
+          :fixed="operationFixed"
           :align="operationAlign"
           :width="operationWidthComputed"
           v-if="hasOperationComputed"
@@ -136,7 +137,7 @@
             </slot>
           </template>
           <template #default="scope">
-            <slot
+            <!-- <slot
               v-if="slots['operationBefore']"
               name="operationBefore"
               :data="scope.row"
@@ -273,6 +274,49 @@
               :link="hasOperationLink"
               :loading="operationLoading"
             ></slot>
+          </template> -->
+
+            <TableOperations
+              :align="operationAlign"
+              :scope="scope"
+              :slots="slots"
+              :query-params="queryParams"
+              :has-operation-text="hasOperationText"
+              :has-operation-link="hasOperationLink"
+              :has-add-son="hasAddSon"
+              :has-detail="hasDetail"
+              :has-update="hasUpdate"
+              :has-remove="hasRemove"
+              :has-add-son-icon="hasAddSonIcon"
+              :has-detail-icon="hasDetailIcon"
+              :has-update-icon="hasUpdateIcon"
+              :has-remove-icon="hasRemoveIcon"
+              :has-add-son-type="hasAddSonType"
+              :has-detail-type="hasDetailType"
+              :has-update-type="hasUpdateType"
+              :has-remove-type="hasRemoveType"
+              :proxy-props="proxyProps"
+              :moreButton="moreButton"
+              :moreButtonType="moreButtonType"
+              :moreButtonTrigger="moreButtonTrigger"
+              :hasOperationName="!hasOperationName"
+              :operationLoading="operationLoading"
+              :get-slot-content="
+                getSlotContent({
+                  data: scope.row,
+                  index: queryParams.pageSize * (queryParams.pageNum - 1) + scope.$index + 1,
+                  text: hasOperationText,
+                  link: hasOperationLink,
+                  loading: operationLoading,
+                }).filter((item1) => item1)
+              "
+              :simpTransVar="simpTransVar"
+              @add-son="handleAddSon"
+              @detail="handleDetail"
+              @update="handleUpdate"
+              @remove="handleRemove"
+            >
+            </TableOperations>
           </template>
         </el-table-column>
         <template #empty v-if="slots['empty']">
@@ -320,10 +364,17 @@ import {
 import pagination from '../components/Pagination/index.vue'
 import RightToolbar from '../components/RightToolbar/index.vue'
 import MyTableColumn from '../components/tableColumn'
+import TableOperations, { ButtonType, dataItemType } from '../components/TableOperations/index.vue'
 import { Delete, Download, Edit, Plus, Upload, View } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, TableColumnCtx, TableInstance } from 'element-plus'
-import FunctionAnalyzer from '@/components/FormTable/utils/FunctionAnalyzer'
-import { deepClone, getComputedStyle, getHeight, getRemainingHeight } from '../js/utils'
+import FunctionAnalyzer from '../utils/FunctionAnalyzer'
+import {
+  deepClone,
+  getComputedStyle,
+  getHeight,
+  getRemainingHeight,
+  getZoomPercent,
+} from '../js/utils'
 
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { useListenDomChange } from '../utils/hooks'
@@ -335,6 +386,97 @@ interface IsTreeConfig {
   children: string
   firstParentId: string
 }
+const slotContentCache = new Map()
+// 获取 slot 的虚拟节点内容
+function getSlotContent(
+  scope_data: {
+    data: {[key:string]:string|number|boolean}
+    index: number
+    text: boolean
+    link: boolean
+    loading: boolean
+  } = {
+    data: {},
+    index: 0,
+    text: false,
+    link: false,
+    loading: false,
+  }
+) {
+  // 生成唯一缓存key（使用行数据的唯一标识）
+  const cacheKey = JSON.stringify({
+    rowId: scope_data.data, // 确保有唯一id
+    rowIndex: scope_data.index,
+    hasAddSon: typeof props.hasAddSon === 'function' ? 'func' : props.hasAddSon,
+    hasDetail: typeof props.hasDetail === 'function' ? 'func' : props.hasDetail,
+    hasUpdate: typeof props.hasUpdate === 'function' ? 'func' : props.hasUpdate,
+    hasRemove: typeof props.hasRemove === 'function' ? 'func' : props.hasRemove,
+    // isSimpTransVar: props.isSimpTransVar,
+  })
+
+  if (slotContentCache.has(cacheKey)) {
+    return slotContentCache.get(cacheKey)
+  }
+  // console.log(scope_data.index, 'scope_data.index')
+  // const slotKeys = Object.keys(slots).filter((item) => item.indexOf('operation') > -1);
+  const allSlotName = [
+    'operationBefore',
+    'addSon',
+    'operationAfterAddSon',
+    'detail',
+    'operationAfterDetail',
+    'update',
+    'operationAfterUpdate',
+    'remove',
+    'operationAfter',
+  ] as const;
+  const defaultButtonShowFun:{addSon:boolean|string;
+    detail:boolean|string;
+    update:boolean|string;
+    remove:boolean|string;
+  } = {
+    addSon:
+      typeof props.hasAddSon === 'function'
+        ? props.hasAddSon(scope_data.data)
+        : props.hasAddSon && proxyProps.value[`onAddSon`],
+    detail:
+      typeof props.hasDetail === 'function'
+        ? props.hasDetail(scope_data.data)
+        : props.hasDetail && proxyProps.value[`onDetail`],
+    update:
+      typeof props.hasUpdate === 'function'
+        ? props.hasUpdate(scope_data.data)
+        : props.hasUpdate && proxyProps.value[`onUpdate`],
+    remove:
+      typeof props.hasRemove === 'function'
+        ? props.hasRemove(scope_data.data)
+        : props.hasRemove && proxyProps.value[`onRemove`],
+  }
+  const defaultButtonShowFunKey:(keyof typeof defaultButtonShowFun)[] = Object.keys(defaultButtonShowFun) as Array<keyof typeof defaultButtonShowFun>
+  const vnodesArr = []
+  // console.log(allSlotName);
+  for (const slotName of allSlotName) {
+    const slot = slots[slotName]
+    if (defaultButtonShowFunKey.includes(slotName as keyof typeof defaultButtonShowFun) && defaultButtonShowFun[slotName as keyof typeof defaultButtonShowFun]) {
+      // if (nowUseSim < sim) {
+      //   nowUseSim++;
+      //   showTableButton.value.push(slotName);
+      //   // continue;
+      // }
+      vnodesArr.push(slotName)
+      continue
+    }
+    if (!slot) continue
+
+    // 调用 slot 函数获取虚拟节点
+    const vnodes = slot(scope_data)
+
+    vnodesArr.push(...vnodes)
+  }
+  slotContentCache.set(cacheKey, vnodesArr)
+  // console.log(146543634, vnodes);
+  return vnodesArr
+}
 
 // 定义 Props 类型（提取为独立接口，增强可读性和复用性）
 export interface TableProps {
@@ -343,10 +485,13 @@ export interface TableProps {
 
   /** 表格顶部按钮Plain */
   hasTableTopPlain: boolean
-
+  moreButton: string
+  moreButtonType?: ButtonType;
+  moreButtonTrigger?:'hover'|'click'
   /** 分页配置 **/
   pageLayout: string
   pagerCount: number
+  simpTransVar: number
   /**是树结构*/
   isTree?: boolean | IsTreeConfig
   /** 是否懒加载（树形结构） */
@@ -364,7 +509,7 @@ export interface TableProps {
   /** 是否显示选择列（支持函数动态控制） */
   hasSelection: boolean | ((row: any, index: number) => boolean)
   /** 跨页多选 */
-  reserve: boolean;
+  reserve: boolean
   /** 是否显示操作列（布尔值或自定义列名） */
   hasOperation: boolean | string
   /** 操作列总宽度 */
@@ -383,6 +528,8 @@ export interface TableProps {
   //默认对齐
   align: 'center' | 'left' | 'right'
   operationAlign: 'center' | 'left' | 'right'
+  operationFixed?: false | 'left' | 'right'
+  hasIndexFixed?: false | 'left' | 'right'
   /** 是否启用最大宽度限制 */
   maxWidth: boolean
   /** 是否显示【新增】按钮（支持布尔值、自定义文本、函数动态控制） */
@@ -518,11 +665,9 @@ export interface queryParamType {
   [key: string]: string | number | undefined | boolean
 }
 
-export interface dataItemType {
-  [key: string]: string | number | undefined | boolean
-}
 
-export type ButtonType = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info' | ''
+
+
 
 export interface tableColumnItem {
   prop: string
@@ -552,6 +697,7 @@ export interface tableColumnItem {
   fixed?: false | true | 'left' | 'right'
   selectable?: boolean
   maxWidth?: boolean
+  decimalPlaces?: number
   fun?: (
     row: dataItemType,
     prop: string,
@@ -572,7 +718,7 @@ export interface tableColumnItem {
       [key: string]: any
     }
   ) => VNode | Component
-  type?: 'number' | 'string';
+  type?: 'number' | 'string'
   classFun?: (
     row: dataItemType,
     prop: string,
@@ -640,6 +786,9 @@ const hasOperationComputed = computed(() => {
 const props = withDefaults(defineProps<TableProps>(), {
   // 基础配置
   hasPage: true,
+  moreButton: '更多',
+  moreButtonType:'primary',
+  moreButtonTrigger:'hover',
   isTree: false,
   downFun: undefined,
   //删除成功的状态码
@@ -657,6 +806,7 @@ const props = withDefaults(defineProps<TableProps>(), {
   hasOperation: true,
   operationWidth: undefined,
   pagerCount: undefined,
+  simpTransVar: 0,
   pageLayout: undefined,
   oneOperationWidth: 70,
   hasOperationName: true,
@@ -704,6 +854,8 @@ const props = withDefaults(defineProps<TableProps>(), {
   hasBatchRemoveType: () => 'danger',
   align: 'center',
   operationAlign: 'center',
+  hasIndexFixed: 'left',
+  operationFixed: 'right',
   // 表格核心配置
   tableColumn: undefined, // 注：原代码中为 required: true，此处需保留 undefined（TS 会强制校验必填）
   queryParam: undefined,
@@ -788,37 +940,77 @@ const proxyPropsParamsInfo = ref<{
   onDataLoadCompleted: false,
   'onUpdate:showSearch': false,
 })
+const handleResize = () => {
+  heightChange()
+}
+const needAutoHeight = ref(true)
+watch(
+  () => needAutoHeight.value,
+  (newVal) => {
+    if (needAutoHeight.value) {
+      window.addEventListener('resize', handleResize)
+    } else {
+      window.removeEventListener('resize', handleResize)
+    }
+  },
+  {
+    immediate: true,
+  }
+)
 onMounted(() => {
-  needAutoHeight.value = true;
+  needAutoHeight.value = true
   const internal = getCurrentInstance()
   const onEmit = (internal?.vnode.props || {}) as Record<string, any>
   for (const emit in onEmit) {
     proxyProps.value[emit] = typeof onEmit[emit] === 'function'
-  }
-  if (proxyProps.value[emit]) {
-    const funInfo = FunctionAnalyzer.analyzeParameters(onEmit[emit])
-    if (
-      funInfo.parameterCount > 0 &&
-      funInfo.parameters.find((item) => item.name === 'cb' || item.name === 'callback')
-    ) {
-      proxyPropsParamsInfo.value[emit] = true
+    if (proxyProps.value[emit]) {
+      const funInfo = FunctionAnalyzer.analyzeParameters(onEmit[emit])
+      if (
+        funInfo.parameterCount > 0 &&
+        funInfo.parameters.find(
+          (item: { name: string }) => item.name === 'cb' || item.name === 'callback'
+        )
+      ) {
+        proxyPropsParamsInfo.value[emit] = true
+      }
     }
   }
+
   // 事件处理器会被归一化为 onXxx
   // hasUpdateListener.value = typeof props.onUpdate === 'function'
-  autoHeight()
+  heightChange()
 })
 onUnmounted(() => {
-  needAutoHeight.value = false;
-});
+  needAutoHeight.value = false
+})
 onDeactivated(() => {
-  needAutoHeight.value = false;
-});
+  needAutoHeight.value = false
+})
 onActivated(() => {
-  needAutoHeight.value = true;
-});
+  needAutoHeight.value = true
+})
+let timer: any = null
+const heightChange = () => {
+  clearTimeout(timer)
+  const zoom = getZoomPercent()
+  const url = window.location.href
+  const width = window.innerWidth
+  const height = window.innerHeight
+  const key = `${zoom}${url}${width}${height}`
+  const oldheight = Number(localStorage.getItem(key) || 0)
+  if (oldheight && oldheight > 0) {
+    heightInner.value = Number(oldheight)
+    maxHeightInner.value = oldheight
+    // console.log('使用上次计算结果', heightInner.value)
+    // return;
+  }
+  timer = setTimeout(() => autoHeight(key), 500)
+}
 const operationWidthComputed = computed(() => {
   let width = props.operationWidth ?? 100
+  if (props.simpTransVar > 0) {
+    return props.operationWidth || props.oneOperationWidth * (props.simpTransVar + 1);
+  }
   if (typeof props.operationWidth === 'undefined') {
     let i = 0
     for (const proxyProp of ['onAddSon', 'onUpdate', 'onRemove', 'onDetail']) {
@@ -836,7 +1028,7 @@ const operationWidthComputed = computed(() => {
   return width
 })
 const listenDoc = useListenDomChange(() => {
-  setTimeout(autoHeight, 100)
+  heightChange()
 })
 const baseClass = ref(props.baseClass)
 // 热更新相关
@@ -861,9 +1053,9 @@ if (import.meta.hot) {
     console.log('保存状态:', data.baseClass)
   })
 }
-const needAutoHeight = ref(true);
-const autoHeight = () => {
-  if (!needAutoHeight.value) return;
+
+const autoHeight = (key: string) => {
+  if (!needAutoHeight.value) return
   // console.log('重建dom', new Date().getTime());
   nextTick(() => {
     if (
@@ -881,6 +1073,8 @@ const autoHeight = () => {
         '.table-plus',
         ...props.authHeightExcludeClassName,
       ])
+      console.log(dom)
+      // console.log(height)
       heightInner.value =
         height -
         tableHeaderHeight -
@@ -890,6 +1084,7 @@ const autoHeight = () => {
         parseFloat(borderTopWidth) -
         parseFloat(borderBottomWidth)
       maxHeightInner.value = heightInner.value
+      localStorage.setItem(key, String(heightInner.value))
       dom.forEach((item) => {
         listenDoc.listen(item)
       })
@@ -966,11 +1161,42 @@ const tableColumnFinal = computed({
                 tableColumnFinal?: tableColumnItem[]
                 [key: string]: any
               }
-            ) =>
-              String(row[prop] ?? props.defaultBlock) +
-              (typeof item.unit == 'string'
-                ? item.unit
-                : (item.unit && item.unit(row, prop, other)) ?? ''))
+            ) => {
+              const content = String(
+                typeof row[prop] == 'number'
+                  ? (row[prop] as number).toFixed(item.decimalPlaces)
+                  : row[prop] ?? props.defaultBlock
+              )
+              const unit =
+                typeof item.unit == 'string'
+                  ? item.unit
+                  : (item.unit && item.unit(row, prop, other)) ?? ''
+              return content != props.defaultBlock ? content + unit : content
+            })
+          if (item.list)
+            item.list = (item.list || []).map((listfun) => {
+              listfun.fun =
+                listfun.fun ??
+                ((
+                  row: dataItemType,
+                  prop: string,
+                  other?: {
+                    index?: number
+                    tableColumnFinal?: tableColumnItem[]
+                    searchValue?: { [key: string]: any }
+                    [key: string]: any
+                  }
+                ) =>
+                  String(
+                    typeof row[prop] == 'number'
+                      ? (row[prop] as number).toFixed(item.decimalPlaces)
+                      : row[prop] ?? props.defaultBlock
+                  ) +
+                  (typeof listfun.unit == 'string'
+                    ? listfun.unit
+                    : (listfun.unit && listfun.unit(row, prop, other)) ?? ''))
+              return listfun
+            })
           return item
         })
     }
@@ -990,7 +1216,6 @@ const showSearch = computed({
   },
   set(value) {
     showSearchInner.value = value
-    autoHeight()
     if (proxyProps.value[`onUpdate:showSearch`]) emits('update:showSearch', showSearchInner.value)
   },
 })
@@ -1288,7 +1513,7 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
     emits('query', queryParam)
   } else {
     props.dataListFun(queryParam, async (res: string | Promise<any> | any[], ...obj: any[]) => {
-      let computedData:{[key:string]:any}={}
+      let computedData: { [key: string]: any } = {}
       try {
         if (res instanceof Promise) {
           computedData = await (res as Promise<any>)
@@ -1314,7 +1539,7 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
         }
 
         const datas = computedData[props.dataConfig.rows]
-        const extras = computedData[props.dataConfig.extra]
+        const extras = computedData[props.dataConfig.extra] || {}
         let treeDatas = []
         const isTree = props.isTree
         if (isTree) {

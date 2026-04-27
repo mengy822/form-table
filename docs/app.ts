@@ -223,7 +223,7 @@ export default function useAppConfig(){
   const table = ref([
     { prop: 'no', label: 'no', hidden: true, visible: false },
     {
-      prop: 'text', label: '文本输入框', list: [
+      prop: 'no~text', label: '文本输入框', list: [
         // { prop: 'text', label: '文本输入框1' },
         // { prop: 'text', label: '文本输入框2' }
       ]

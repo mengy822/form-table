@@ -72,9 +72,10 @@ import { computed, markRaw, nextTick, ref, useAttrs, useSlots, useTemplateRef } 
 
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { deepClone } from '../js/utils'
-import { MyDialogInstance, MyDialog } from '../..'
+import MyDialog from '../Dialog/index.vue';
 import { dataItemType, tableColumnItem } from '../Table/index.vue'
 
+type MyDialogInstance = InstanceType<typeof MyDialog>;
 const attr = useAttrs()
 const slots = useSlots()
 const display = computed(() => {

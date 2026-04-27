@@ -69,21 +69,22 @@
           </el-row>
         </slot>
       </template>
+      <!-- :estimated-row-height="rowHeightInner" -->
       <el-table-v2
         ref="tableRef"
         class="table-plus-main"
         :height="height || heightInner"
         :columns="tableColumnFinal"
         :data="dataListComputed"
-        :estimated-row-height="rowHeightInner"
+        :row-height="rowHeightInner"
         :row-class="rowClassName"
         :header-class="headerRowClassName"
         :width="width || widthInner"
         :fixed="
-          (hasOperationComputed ||
-            hasIndexComputed ||
-            hasSelectionComputed ||
-            !!tableColumnFinal.find((item) => item.fixed)) as boolean
+          hasOperationComputed ||
+          hasIndexComputed ||
+          hasSelectionComputed ||
+          !!tableColumnFinal.find((item) => item.fixed)
         "
         :expand-column-key="expandColumnKey"
         :cell-props="cellProps"
@@ -106,10 +107,12 @@
           </slot>
         </template>
       </el-table-v2>
-      <pagination
-        v-if="hasPage && !isTree"
+      <div v-if="hasPage && !isTree" v-show="totalComputed > 0">
+
+        <pagination
+
         class="table-plus-pagination"
-        v-show="totalComputed > 0"
+
         :total="totalComputed"
         v-model:page="queryParams.pageNum"
         v-model:limit="queryParams.pageSize"
@@ -124,6 +127,8 @@
           </span>
         </template>
       </pagination>
+      </div>
+
     </el-card>
   </el-config-provider>
 </template>
@@ -173,8 +178,14 @@ import {
   TableV2Instance,
 } from 'element-plus'
 
-import { deepClone, getComputedStyle, getHeight, getRemainingHeight } from '../js/utils'
-
+import {
+  deepClone,
+  getComputedStyle,
+  getHeight,
+  getRemainingHeight,
+  getZoomPercent,
+} from '../js/utils'
+import TableOperations, { ButtonType, dataItemType } from '../components/TableOperations/index.vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { useListenDomChange } from '../utils/hooks'
 import { handleFileDownload, request } from '../js'
@@ -185,7 +196,6 @@ import {
   FunType,
   FunctionType,
   ObjectBaseType,
-  ButtonType,
 } from '../js/types'
 import FunctionAnalyzer from '../utils/FunctionAnalyzer'
 import { CellRenderProps, HeaderRenderProps, TableColumn } from '../TableV2/types'
@@ -201,6 +211,11 @@ interface IsTreeConfig {
 export interface TableProps {
   /** 是否显示分页 */
   hasPage: boolean
+
+  moreButton: string
+  moreButtonType?: ButtonType
+  moreButtonTrigger?: 'hover' | 'click'
+  simpTransVar: number
   /** 表格顶部按钮Plain */
   hasTableTopPlain: boolean
   pageLayout: string
@@ -243,6 +258,8 @@ export interface TableProps {
   align: 'center' | 'left' | 'right'
   // 操作列对齐方式
   operationAlign: 'center' | 'left' | 'right'
+  operationFixed?: false | 'left' | 'right'
+  hasIndexFixed?: false | 'left' | 'right'
   /** 是否启用最大宽度限制 */
   maxWidth: boolean
   /** 是否显示【新增】按钮（支持布尔值、自定义文本、函数动态控制） */
@@ -417,6 +434,7 @@ export interface tableColumnItem {
   fixed?: false | true | 'left' | 'right'
   selectable?: boolean
   maxWidth?: boolean
+  decimalPlaces?: number
   fun?: FunType
   funDom?: FunType
   type?: 'number' | 'string'
@@ -487,6 +505,11 @@ const hasOperationComputed = computed(() => {
 const props = withDefaults(defineProps<TableProps>(), {
   // 基础配置
   hasPage: true,
+  moreButton: '更多',
+  moreButtonType: 'primary',
+  moreButtonTrigger: 'hover',
+  simpTransVar: 0,
+
   hasTableTopPlain: true,
   isTree: false,
   downFun: () => '',
@@ -554,6 +577,8 @@ const props = withDefaults(defineProps<TableProps>(), {
   hasBatchRemoveType: () => 'danger',
   align: 'left',
   operationAlign: 'center',
+  hasIndexFixed: 'left',
+  operationFixed: 'right',
   // 表格核心配置
   tableColumn: undefined, // 注：原代码中为 required: true，此处需保留 undefined（TS 会强制校验必填）
   queryParam: undefined,
@@ -639,8 +664,25 @@ const proxyPropsParamsInfo = ref<{
   onDataLoadCompleted: false,
   'onUpdate:showSearch': false,
 })
+const handleResize = () => {
+  heightChange()
+}
+const needAutoHeight = ref(true)
+watch(
+  () => needAutoHeight.value,
+  (newVal) => {
+    if (needAutoHeight.value) {
+      window.addEventListener('resize', handleResize)
+    } else {
+      window.removeEventListener('resize', handleResize)
+    }
+  },
+  {
+    immediate: true,
+  }
+)
 onMounted(() => {
-  needAutoHeight.value = true;
+  needAutoHeight.value = true
   const internal = getCurrentInstance()
   const onEmit = (internal?.vnode.props || {}) as Record<string, Primitive>
   for (const emit in onEmit) {
@@ -658,19 +700,23 @@ onMounted(() => {
       }
     }
   }
-  autoHeight()
+  heightChange()
 })
+
 onUnmounted(() => {
-  needAutoHeight.value = false;
-});
+  needAutoHeight.value = false
+})
 onDeactivated(() => {
-  needAutoHeight.value = false;
-});
+  needAutoHeight.value = false
+})
 onActivated(() => {
-  needAutoHeight.value = true;
-});
+  needAutoHeight.value = true
+})
 const operationWidthComputed = computed(() => {
   let width = props.operationWidth ?? 100
+  if (props.simpTransVar > 0) {
+    return props.operationWidth || props.oneOperationWidth * (props.simpTransVar + 1)
+  }
   if (typeof props.operationWidth === 'undefined') {
     let i = 0
     for (const proxyProp of ['onAddSon', 'onUpdate', 'onRemove', 'onDetail']) {
@@ -688,7 +734,7 @@ const operationWidthComputed = computed(() => {
   return width
 })
 const listenDoc = useListenDomChange(() => {
-  setTimeout(autoHeight, 100)
+  heightChange()
 })
 const getOperationLabel = (
   hasXXX: typeof props.hasDetail,
@@ -712,9 +758,26 @@ const getOperationLabel = (
 
   return hasXXX ?? defaultLabel
 }
-const needAutoHeight = ref(true);
-const autoHeight = () => {
-  if (!needAutoHeight.value) return;
+let timer: any = null
+const heightChange = () => {
+  clearTimeout(timer)
+  const zoom = getZoomPercent()
+  const url = window.location.href
+  const width = window.innerWidth
+  const height = window.innerHeight
+  const key = `${zoom}${url}${width}${height}`
+  const oldheight = Number(localStorage.getItem(key) || 0)
+  if (oldheight && oldheight > 0) {
+    heightInner.value = Number(oldheight)
+    maxHeightInner.value = oldheight
+    console.log('使用上次计算结果', heightInner.value)
+    // return;
+  }
+  timer = setTimeout(() => autoHeight(key), 500)
+}
+
+const autoHeight = (key: string) => {
+  if (!needAutoHeight.value) return
   // console.log('重建dom', props.baseClass, new Date().getTime());
   nextTick(() => {
     if (props.baseClass && typeof props.height == 'undefined') {
@@ -745,6 +808,7 @@ const autoHeight = () => {
         parseFloat(borderTopWidth) -
         parseFloat(borderBottomWidth)
       maxHeightInner.value = heightInner.value
+      localStorage.setItem(key, String(heightInner.value))
       // console.log(heightInner.value);
       dom.forEach((item) => {
         listenDoc.listen(item)
@@ -836,12 +900,20 @@ const createEllipsisCellRenderer = ({
   tooltipPlacement = 'top',
   fun,
   classFun,
+  ofun
 }: {
-  fun: (
-    row: ObjectType,
-    prop: string,
-    other: ObjectType & { renderTxt: (context: string) => string }
-  ) => string | VNode | Component
+  ofun?:(
+        row: ObjectType,
+        prop: string,
+        other: ObjectType & { renderTxt: (context: string) => string }
+      ) => string,
+  fun:
+    | ((
+        row: ObjectType,
+        prop: string,
+        other: ObjectType & { renderTxt: (context: string) => string }
+      ) => string | VNode | Component)
+    | ((scope: ObjectType) => VNode | Component)
   classFun: (row: ObjectType, prop: string, other: ObjectType) => string
   tooltipPlacement: string
   showTooltip: boolean
@@ -857,6 +929,12 @@ const createEllipsisCellRenderer = ({
     cellValue: Primitive
     column: ObjectType
   }) => {
+    const separator = [',', '~', '-', '/']
+    const nowSeparator = separator.find((item) => (column['dataKey'] as string).indexOf(item) > -1)
+    if (fun.toString().indexOf('(...args)') > -1) {
+      const originFun=ofun||((row, prop) => row[prop])
+      return fun({ row: rowData, prop: column.dataKey, fun: originFun },null,null)
+    }
     const funData = fun(rowData, column['dataKey'] as string, {
       renderTxt: (context: string) =>
         column.type === 'number' ? context ?? props.defaultBlock : context || props.defaultBlock,
@@ -921,14 +999,151 @@ const createEllipsisCellRenderer = ({
 }
 
 const tableColumn = ref<typeof props.tableColumn>(props.tableColumn)
+const slotContentCache = new Map<string, VNode[]>()
+// 获取 slot 的虚拟节点内容
+function getSlotContent(
+  scope_data: {
+    data: ObjectType
+    index: number
+    text: boolean
+    link: boolean
+    loading: boolean
+  } = {
+    data: {},
+    index: 0,
+    text: false,
+    link: false,
+    loading: false,
+  }
+) {
+  // 生成唯一缓存key（使用行数据的唯一标识）
+  const cacheKey = JSON.stringify({
+    rowId: scope_data.data, // 确保有唯一id
+    rowIndex: scope_data.index,
+    hasAddSon: typeof props.hasAddSon === 'function' ? 'func' : props.hasAddSon,
+    hasDetail: typeof props.hasDetail === 'function' ? 'func' : props.hasDetail,
+    hasUpdate: typeof props.hasUpdate === 'function' ? 'func' : props.hasUpdate,
+    hasRemove: typeof props.hasRemove === 'function' ? 'func' : props.hasRemove,
+    // isSimpTransVar: props.isSimpTransVar,
+  })
 
-const hasSelection = ref(typeof props.hasSelection === 'function' ? props.hasSelection : () => true)
+  if (slotContentCache.has(cacheKey)) {
+    return slotContentCache.get(cacheKey)
+  }
+  // console.log(scope_data.index, 'scope_data.index')
+  // const slotKeys = Object.keys(slots).filter((item) => item.indexOf('operation') > -1);
+  const allSlotName = [
+    'operationBefore',
+    'addSon',
+    'operationAfterAddSon',
+    'detail',
+    'operationAfterDetail',
+    'update',
+    'operationAfterUpdate',
+    'remove',
+    'operationAfter',
+  ] as const
+  const defaultButtonShowFun: {
+    addSon: boolean | string
+    detail: boolean | string
+    update: boolean | string
+    remove: boolean | string
+  } = {
+    addSon:
+      typeof props.hasAddSon === 'function'
+        ? props.hasAddSon(scope_data.data)
+        : props.hasAddSon && proxyProps.value[`onAddSon`],
+    detail:
+      typeof props.hasDetail === 'function'
+        ? props.hasDetail(scope_data.data)
+        : props.hasDetail && proxyProps.value[`onDetail`],
+    update:
+      typeof props.hasUpdate === 'function'
+        ? props.hasUpdate(scope_data.data)
+        : props.hasUpdate && proxyProps.value[`onUpdate`],
+    remove:
+      typeof props.hasRemove === 'function'
+        ? props.hasRemove(scope_data.data)
+        : props.hasRemove && proxyProps.value[`onRemove`],
+  }
+  const defaultButtonShowFunKey: (keyof typeof defaultButtonShowFun)[] = Object.keys(
+    defaultButtonShowFun
+  ) as Array<keyof typeof defaultButtonShowFun>
+  const vnodesArr = []
+  // console.log(allSlotName);
+  for (const slotName of allSlotName) {
+    const slot = slots[slotName]
+    if (
+      defaultButtonShowFunKey.includes(slotName as keyof typeof defaultButtonShowFun) &&
+      defaultButtonShowFun[slotName as keyof typeof defaultButtonShowFun]
+    ) {
+      // if (nowUseSim < sim) {
+      //   nowUseSim++;
+      //   showTableButton.value.push(slotName);
+      //   // continue;
+      // }
+      vnodesArr.push(slotName)
+      continue
+    }
+    if (!slot) continue
+
+    // 调用 slot 函数获取虚拟节点
+    const vnodes = slot(scope_data)
+
+    vnodesArr.push(...vnodes)
+  }
+  slotContentCache.set(cacheKey, vnodesArr)
+  // console.log(146543634, vnodes);
+  return vnodesArr
+}
+const hasSelection = computed(() =>
+  typeof props.hasSelection === 'function' ? props.hasSelection : () => true
+)
 // 生成操作列的函数
 function generateOperationColumn() {
   return ({ rowData: row, rowIndex: $index }: { rowData: ObjectType; rowIndex: number }) => {
+    const slotContent = getSlotContent({
+      data: row,
+      index: queryParams.value.pageSize * (queryParams.value.pageNum - 1) + $index + 1,
+      text: props.hasOperationText,
+      link: props.hasOperationLink,
+      loading: operationLoading.value,
+    })!.filter((item: any) => item)
+    return h(TableOperations, {
+      align: props.operationAlign,
+      scope: { row, $index },
+      slots: slots,
+      queryParams: queryParams.value,
+      hasOperationText: props.hasOperationText,
+      hasOperationLink: props.hasOperationLink,
+      hasAddSon: props.hasAddSon,
+      hasDetail: props.hasDetail,
+      hasUpdate: props.hasUpdate,
+      hasRemove: props.hasRemove,
+      hasAddSonIcon: props.hasAddSonIcon,
+      hasDetailIcon: props.hasDetailIcon,
+      hasUpdateIcon: props.hasUpdateIcon,
+      hasRemoveIcon: props.hasRemoveIcon,
+      hasAddSonType: props.hasAddSonType,
+      hasDetailType: props.hasDetailType,
+      hasUpdateType: props.hasUpdateType,
+      hasRemoveType: props.hasRemoveType,
+      proxyProps: proxyProps.value,
+      moreButton: props.moreButton,
+      moreButtonType: props.moreButtonType,
+      moreButtonTrigger: props.moreButtonTrigger,
+      hasOperationName: !props.hasOperationName,
+      operationLoading: operationLoading.value,
+      getSlotContent: slotContent,
+      simpTransVar: props.simpTransVar,
+      onAddSon: handleAddSon,
+      onDetail: handleDetail,
+      onUpdate: handleUpdate,
+      onRemove: handleRemove,
+    })
     const ElTooltip = resolveComponent('ElTooltip')
     const ElButton = resolveComponent('ElButton')
-    const template = (slot: (...args: Primitive[]) => VNode | Component) => {
+    const template = (slot?: (...args: Primitive[]) => VNode | Component) => {
       if (!slot) return undefined
       return slot({
         data: row,
@@ -1108,8 +1323,8 @@ const tableColumnFinal = computed(() => {
         const { rowData, rowIndex } = props
         return h(ElCheckbox, {
           modelValue: selectedRows.value.has(JSON.stringify(rowData)),
-          onChange: (checked) => toggleRowSelection(JSON.stringify(rowData), checked),
-          onClick: (e) => e.stopPropagation(),
+          onChange: (checked) => toggleRowSelection(JSON.stringify(rowData)),
+          onClick: (e: { stopPropagation: () => any }) => e.stopPropagation(),
           disabled: !hasSelection.value(rowData, rowIndex),
           value: JSON.stringify(rowData),
         })
@@ -1119,7 +1334,7 @@ const tableColumnFinal = computed(() => {
           modelValue: allSelected.value,
           indeterminate: indeterminate.value,
           onChange: toggleSelectAll,
-          onClick: (e) => e.stopPropagation(),
+          onClick: (e: { stopPropagation: () => any }) => e.stopPropagation(),
         })
       },
     })
@@ -1130,11 +1345,11 @@ const tableColumnFinal = computed(() => {
       key: 'index',
       title: typeof props.hasIndex === 'boolean' ? '序号' : props.hasIndex,
       width: Number(60),
-      fixed: 'left',
+      fixed: props.hasIndexFixed,
       cellRenderer: (props: CellRenderProps) => {
         const { rowIndex } = props
         return h(
-          'span',
+          'div',
           {},
           queryParams.value.pageSize * (queryParams.value.pageNum - 1) + rowIndex + 1
         )
@@ -1172,8 +1387,13 @@ const tableColumnFinal = computed(() => {
           sortProp.value[data.prop] = data.sortProp
           sortState.value[data.prop] = undefined
         }
+        const separator = [',', '~', '-', '/']
+        const nowSeparator = separator.find((item) => data.prop.indexOf(item) > -1)
+        const vnodes = slots[data.prop]
+
         const fun =
-          data.funDom ??
+        data.funDom ??
+        vnodes ??
           data.fun ??
           ((
             row: ObjectType,
@@ -1183,17 +1403,47 @@ const tableColumnFinal = computed(() => {
               [key: string]: Primitive
               renderTxt: (context: string) => string
             }
-          ) =>
-            String(
-              data.type === 'number'
-                ? row[prop] ?? props.defaultBlock
-                : row[prop] || props.defaultBlock
-            ) +
-            (typeof data.unit == 'string'
-              ? data.unit
-              : (data.unit && data.unit(row, prop, other || {})) ?? ''))
+          ) => {
+            let content
+            if (nowSeparator) {
+              const propArr = data.prop.split(nowSeparator)
+              const fundatas: string[] = []
+              propArr.forEach((item) => {
+                const c =
+                  data.type === 'number'
+                    ? row[item] ?? props.defaultBlock
+                    : row[item] || props.defaultBlock
+                fundatas.push(String(c))
+              })
+              content = fundatas.join(nowSeparator)
+            } else {
+              content = String(
+                data.type === 'number'
+                  ? row[prop] ?? props.defaultBlock
+                  : row[prop] || props.defaultBlock
+              )
+            }
 
-        data.classFun = data.classFun ?? (() => '')
+            const unit =
+              typeof data.unit == 'string'
+                ? data.unit
+                : (data.unit && data.unit(row, prop, other || {})) ?? ''
+
+            return content != props.defaultBlock ? content + unit : content
+          })
+
+        data.classFun =
+          data.classFun ??
+          (() => {
+            let content
+            if (nowSeparator) {
+              const props = data.prop.split(nowSeparator)
+              content = props.join(' ')
+            } else {
+              content = data.prop
+            }
+            return content
+          })
         item.dataKey = data.prop
         item.key = data.prop
         item.title = data.label
@@ -1204,6 +1454,7 @@ const tableColumnFinal = computed(() => {
           classFun: data.classFun,
           showTooltip: data.showOverflow as boolean,
           tooltipPlacement: 'top',
+          ofun:data.fun
         })
         const header = data.header ?? (() => item.title!)
         let headerDom: VNode | string | Component = h('span', {}, header as string)
@@ -1225,9 +1476,10 @@ const tableColumnFinal = computed(() => {
                 alignItems: 'center',
                 cursor: data.sortable ? 'pointer' : 'default',
               },
-              dataset: {
-                sort: '123',
-              },
+              // dataset: {
+              //   sort: '123',
+              // },
+              'data-sort':'123',
               class: ``,
               onClick: () => {
                 if (data.sortable) {
@@ -1278,7 +1530,7 @@ const tableColumnFinal = computed(() => {
       key: 'operation',
       title: typeof props.hasOperation === 'boolean' ? '操作' : props.hasOperation,
       width: operationWidthComputed.value,
-      fixed: 'right',
+      fixed: props.operationFixed,
       align: props.operationAlign,
       cellRenderer: generateOperationColumn(),
       headerCellRenderer: (props: HeaderRenderProps) => {
@@ -1321,7 +1573,6 @@ const showSearch = computed({
   },
   set(value) {
     showSearchInner.value = value
-    autoHeight()
     if (proxyProps.value[`onUpdate:showSearch`]) emits('update:showSearch', showSearchInner.value)
   },
 })
@@ -1704,12 +1955,12 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
       }
     )
   }
-  setCurrentRow(undefined)
+  //setCurrentRow(undefined)
 }
 const handleAdd = () => {
   if (proxyPropsParamsInfo.value['onAdd']) {
     operationLoading.value = true
-    emits('add', undefined, () => {
+    emits('add', () => {
       operationLoading.value = false
     })
   } else {
@@ -2026,4 +2277,12 @@ defineExpose({
     }
   }
 }
+// :deep(.el-table-v2__left) {
+//   .el-table-v2__body {
+//     height: v-bind(--tableFixedHeightInner);
+//     > div {
+//       height: v-bind(--heightInner) !important;
+//     }
+//   }
+// }
 </style>

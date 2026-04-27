@@ -1,16 +1,17 @@
 <script setup lang="tsx">
-import { MyTable, MyForm, MyEdit, MyDetail,type MyTableInstance } from '@/index'
+import { MyTable,MyTableV2, MyForm, MyEdit, MyDetail,type MyTableInstance } from 'ftv3'
 import useAppConfig from './app'
 import type {inputInnerType , selectInnerType , dateInnerType} from './app'
 import { ElTable } from 'element-plus'
 import { ref, onMounted, computed } from 'vue'
+
 const tableRef=ref<MyTableInstance>()
 const data = ref([])
 const {search:searchList,editColumn,table,request}=useAppConfig()
 // const searchList = ref<(inputInnerType | selectInnerType | dateInnerType)[]>(search)
 onMounted(()=>{
   // setTimeout(()=>{
-(searchList.value[2] as selectInnerType).options=Number(dataForm.value.inputNumber)
+// (searchList.value[2] as selectInnerType).options=Number(dataForm.value.inputNumber)
   // },2000)
 })
 const detail = (e: unknown) => {
@@ -77,11 +78,12 @@ const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
       @search="query"
     ></MyForm>
     <!-- <MyTabelV2 ref="tableRef" :columns="table"> </MyTabelV2> -->
-    <MyTable
+    <MyTableV2
+      baseClass=".app1"
+      :simpTransVar="1"
       ref="tableRef"
       :table-column="table"
       :data-list-fun="tableQuery"
-      max-height="65vh"
       :has-detail="(data) => data['number'] % 2 === 0"
       @detail="detail"
       @update="update"
@@ -96,7 +98,7 @@ const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
           :inactive-value="'关闭'"
         ></el-switch>
       </template>
-    </MyTable>
+    </MyTableV2>
     <MyEdit ref="editRef" :column="editColumn" @submit="submitFun"></MyEdit>
     <MyDetail :des-column="3" ref="detailRef" :column="table"></MyDetail>
   </div>

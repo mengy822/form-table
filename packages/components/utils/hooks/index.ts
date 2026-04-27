@@ -1,26 +1,93 @@
-import { ref, watchEffect, onUnmounted, onMounted } from 'vue';
+import { ref, watchEffect, onUnmounted, onMounted, onActivated, onDeactivated } from 'vue';
 export function useListenDomChange(callback: Function, delay: number = 100) {
-  const debounceThrottle = useDebounceThrottle(callback, delay);
-  const observer = new MutationObserver((mutationList) => {
-    debounceThrottle();
-    // console.log(mutationList);
-  });
-  const listen = (contentRef: Element | string) => {
-    if (typeof contentRef === 'string') {
-      contentRef = document.querySelector(contentRef) as Element;
-    }
-    observer.observe(contentRef as Element, {
-      childList: true, // 子节点的变动（新增、删除或者更改）
-      attributes: true, // 属性的变动
-      characterData: true, // 节点内容或节点文本的变动
-      subtree: true // 是否将观察器应用于该节点的所有后代节点
-    });
+  let mutationObserver: MutationObserver | null = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let isActive = true;
+  let lastHeight = 0;
+  const targetArr: { target: string | Element }[] = [];
+  const getHeight = (element: Element) => {
+    return element.getBoundingClientRect().height;
   };
-  onUnmounted(() => {
-    observer.disconnect();
+
+  const checkHeightChange = (element: Element) => {
+    const newHeight = getHeight(element);
+    // console.log(1);
+    if (Math.abs(lastHeight - newHeight) > 0.5) {
+      console.log('高度变化:', lastHeight, '->', newHeight);
+      lastHeight = newHeight;
+      callback();
+      return true;
+    }
+    return false;
+  };
+
+  const debouncedCheck = (element: Element) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      checkHeightChange(element);
+      timer = null;
+    }, delay);
+  };
+
+  const listen = (target: Element | string) => {
+    // cleanup();
+    targetArr.push({ 'target': target });
+    let element: Element | null = null;
+    if (typeof target === 'string') {
+      element = document.querySelector(target);
+      if (!element) {
+        console.warn(`元素未找到: ${target}`);
+        return;
+      }
+    } else {
+      element = target;
+    }
+
+    lastHeight = getHeight(element);
+
+    mutationObserver = new MutationObserver(() => {
+      debouncedCheck(element!);
+    });
+
+    mutationObserver.observe(element, {
+      attributes: true,
+      attributeFilter: ['style', 'class'],
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+
+    isActive = true;
+  };
+
+  const cleanup = () => {
+    if (mutationObserver) {
+      mutationObserver.disconnect();
+      mutationObserver = null;
+    }
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    isActive = false;
+  };
+  onDeactivated(() => {
+    console.log('组件失活,取消监听');
+    cleanup();
   });
+  onActivated(() => {
+    console.log('组件活跃,重新监听');
+    targetArr.forEach((targetItem) => {
+      listen(targetItem.target);
+    });
+  });
+  onUnmounted(() => {
+    cleanup();
+  });
+
   return {
-    listen
+    listen,
+    cleanup
   };
 }
 
@@ -38,19 +105,19 @@ export function useDebounceThrottle(callback:Function, delay:number = 500, type:
   let lastExecuted: number;
 
   // 触发防抖或节流的函数
-  function trigger() {
+  function trigger(...args:any[]) {
     // 根据类型进行不同的处理
     if (type === 'debounce') {
       // 防抖：清除之前的定时器
       clearTimeout(timer);
       timer = setTimeout(() => {
-        callback();
+        callback(...args);
       }, delay);
     } else if (type === 'throttle') {
       // 节流：如果距离上次执行超过延迟时间，则执行回调
       const now = Date.now();
       if (!lastExecuted || now - lastExecuted >= delay) {
-        callback();
+        callback(...args);
         lastExecuted = now;
       }
     }

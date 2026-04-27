@@ -42,7 +42,7 @@ import {
 } from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { fileInnerType } from '../form/types'
-import { handleFileDownload, request } from '@/components/js'
+import { handleFileDownload, request } from '../../js'
 
 const props = defineProps({
   language: {

@@ -20,7 +20,7 @@
       :allow-create="dataFinal.allowCreate"
       :filter-method="dataFinal.filterMethod"
       :remote="dataFinal.remote"
-      :remote-method="dataFinal.remoteMethod"
+      :remote-method="remoteMethod"
       :remote-show-suffix="dataFinal.remoteShowSuffix"
       :loading="dataFinal.loading"
       :loading-text="dataFinal.loadingText"
@@ -51,7 +51,7 @@
       @clear="dataFinal.clear"
       @blur="blur"
       @focus="dataFinal.focus"
-      :options="dataFinal.options"
+      :options="selectOptions"
       v-bind="$attrs"
     >
       <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
@@ -71,6 +71,17 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import type { selectInnerType } from '../form/types'
 import type { selectOptionsGroupType, selectOptionsType } from './types'
 import { getName } from '../../js/utils'
+
+const remoteOptions = ref();
+const selectOptions = computed(() => {
+  return remoteOptions.value || dataFinal.value.options;
+});
+const remoteMethod = (e:string) => {
+  dataFinal.value?.remoteMethod?.(e, (data) => {
+    remoteOptions.value = data;
+  },dataFinal.value.extraParams || {});
+};
+
 const slots = useSlots()
 const props = defineProps({
   language: {
