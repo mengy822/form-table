@@ -219,9 +219,36 @@ const shouldShowMenuItem = (item: SlotContentItem): boolean => {
     }
   }
   // VNode 默认显示
-  return true;
+  return isVNodeVisible(item);
 };
+const isVNodeVisible=(vnode:VNode)=> {
+  // 1. 注释节点永远不会"显示"（语义上不可见）
+  if (vnode.type !== Symbol.for('v-cmt')) {
+    return true
+  }
 
+  // 2. 检查是否已挂载到 DOM
+  // @ts-ignore
+  if (vnode.el && document.contains(vnode.el)) {
+    // 检查真实可见性
+    const rect = vnode.el.getBoundingClientRect()
+    return rect.width > 0 || rect.height > 0
+  }
+
+  // 3. 对于组件节点，检查组件实例
+  const instance = vnode.component
+  if (instance && instance.isMounted && !instance.isDeactivated) {
+    // 组件已挂载且未失活，可以认为在页面上
+    return true
+  }
+
+  // 4. 对于块节点（v-if 产生的锚点），不算"显示"
+  if (vnode.shapeFlag === 8 && vnode.children === 'v-if') {
+    return false
+  }
+
+  return false
+}
 const displaySlotContent = computed(() => {
   if (!props.getSlotContent || props.getSlotContent.length === 0) {
     return [];
