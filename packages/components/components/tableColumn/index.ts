@@ -69,7 +69,7 @@ export default {
                 const classss: string[] = [];
                 props.forEach((item) => {
                   fundatas.push(column.fun!(row, item, other)! as string);
-                  classss.push(column.classFun!(row, column.prop, other));
+                  classss.push((column.classFun||((row,prop)=>row[prop]))!(row, column.prop, other) as string);
                 });
                 fundata = fundatas.join(nowSeparator);
                 classs = classss.join(nowSeparator);

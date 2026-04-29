@@ -1009,7 +1009,7 @@ const heightChange = () => {
 const operationWidthComputed = computed(() => {
   let width = props.operationWidth ?? 100
   if (props.simpTransVar > 0) {
-    return props.operationWidth || props.oneOperationWidth * (props.simpTransVar + 1);
+    return props.operationWidth || props.oneOperationWidth * (props.simpTransVar + 1)+20;
   }
   if (typeof props.operationWidth === 'undefined') {
     let i = 0
@@ -1750,8 +1750,8 @@ const handleRemove = (row: dataItemType) => {
     type: props.removeType,
   })
     .then(() => {
-      emits('remove', row, async (flag: string | boolean | Promise<any> = true, ...obj: any[]) => {
-        await removeCallback(flag, ...obj)
+       emits('remove', row,  (flag: string | boolean | Promise<any> = true, ...obj: any[]) => {
+         removeCallback(flag, ...obj)
       })
     })
     .catch(() => {

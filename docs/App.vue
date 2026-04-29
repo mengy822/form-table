@@ -78,7 +78,7 @@ const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
       @search="query"
     ></MyForm>
     <!-- <MyTabelV2 ref="tableRef" :columns="table"> </MyTabelV2> -->
-    <MyTableV2
+    <MyTable
       baseClass=".app1"
       :simpTransVar="1"
       ref="tableRef"
@@ -98,7 +98,7 @@ const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
           :inactive-value="'关闭'"
         ></el-switch>
       </template>
-    </MyTableV2>
+    </MyTable>
     <MyEdit ref="editRef" :column="editColumn" @submit="submitFun"></MyEdit>
     <MyDetail :des-column="3" ref="detailRef" :column="table"></MyDetail>
   </div>
