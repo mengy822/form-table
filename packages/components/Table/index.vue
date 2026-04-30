@@ -1163,7 +1163,7 @@ const tableColumnFinal = computed({
               }
             ) => {
               const content = String(
-                typeof row[prop] == 'number'
+                typeof row[prop] == 'number'&&item.decimalPlaces>0
                   ? (row[prop] as number).toFixed(item.decimalPlaces)
                   : row[prop] ?? props.defaultBlock
               )

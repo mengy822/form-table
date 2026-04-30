@@ -2,6 +2,7 @@ import { generateColumnSlot } from '../../utils/findSlots';
 import { h } from 'vue';
 import { ElTableColumn } from 'element-plus';
 import { tableColumnItem } from '../../Table/index.vue';
+import { dataItemType } from '../TableOperations/index.vue';
 
 export default {
   name: 'MyTableColumn',
@@ -25,62 +26,94 @@ export default {
           if (column.hidden && !column.visible) {
             return undefined;
           }
-          const slot: { header?: (scope: any) => Function; default?: (scope: any) => Function } = {}; // 插槽
+          const slot: { header?: (scope: any) => () => {}; default?: (scope: any) => () => {} } = {}; // 插槽
           if (column.header) {
             // generateColumnSlot 从自身往上找指定的插槽
             slot.header = (scope) => {
               if (typeof column.header === 'string') {
                 return generateColumnSlot.call($self, column.header as string, scope);
               }
-              return column.header!(column, other);
+              return column.header(column, other);
             }; // 自定义表头
           }
           slot.default = (scope) => {
+            // console.log(scope, column.label);
             const { row, $index } = scope;
             if (column.showFun && !column.showFun(row, other)) {
               return undefined;
             }
+            // console.log(column);
             // 顺序：multiHeader->render->slot->prop->default
             if (Array.isArray(column.list) && column.list.length) {
               // 多级表头,递归调用
-              return renderColumnList.call($self, column.list);
+              // console.log('多级表头深度:', column.label, getDepth(column), '返回:', column.list);
+              return null;
+              // return renderColumnList.call($self, column.list);
             } else if (column.slot) {
+              // console.log(other.loading);
               return generateColumnSlot.call($self, column.slot, {
                 row,
                 prop: column.prop,
                 index: $index,
                 fun: column.fun,
-                nowData: row[column.prop]
+                nowData: row[column.prop],
+                loading: other.loading
               });
             } else if (column.funDom) {
               return column.funDom(row, column.prop, other);
             } else if (column.prop) {
               delete other.tableColumnFinal;
               other.index = $index;
-              let dataType = typeof row[column.prop] == 'number' ? 'number' : 'string';
+              // if (scope.$index != -1) console.log(column.label, column.prop, scope.row[column.prop], scope.row, scope.$index);
+              // if (typeof column.fun === 'object' && Array.isArray(column.fun)) return hfun(column.fun);
+              if (!column.fun) {
+                column.fun = (
+                  row: dataItemType,
+                  prop: string,
+                  other?: {
+                    index?: number;
+                    tableColumnFinal?: tableColumnItem[];
+                    searchValue?: { [key: string]: any };
+                    [key: string]: any;
+                  }
+                ) => {
+                  const content = String(
+                    typeof row[prop] == 'number' && (column.decimalPlaces||0) > 0
+                      ? (row[prop] as number).toFixed(column.decimalPlaces)
+                      : (row[prop] ?? other?.defaultBlock)
+                  );
+                  const unit = typeof column.unit == 'string' ? column.unit : ((column.unit && column.unit(row, prop, other)) ?? '');
+                  return content != other?.defaultBlock ? content + unit : content;
+                };
+              }
+              let dataType = typeof row[column.prop];
               const separator = [',', '~', '-', '/'];
               const nowSeparator = separator.find((item) => column.prop.indexOf(item) > -1);
-              let fundata: string | undefined = '';
+              let fundata = '';
               let data: string | number | undefined = '';
-              let classs: string | undefined = '';
+              let classs = '';
               if (nowSeparator) {
+                // console.log(nowSeparator);
                 const props = column.prop.split(nowSeparator);
                 const fundatas: string[] = [];
                 const classss: string[] = [];
                 props.forEach((item) => {
-                  fundatas.push(column.fun!(row, item, other)! as string);
-                  classss.push((column.classFun||((row,prop)=>row[prop]))!(row, column.prop, other) as string);
+                  fundatas.push((column.fun && column.fun(row, item, other))!);
+                  classss.push(column.classFun && column.classFun(row, column.prop, other)||'');
                 });
                 fundata = fundatas.join(nowSeparator);
                 classs = classss.join(nowSeparator);
                 data = fundata;
                 dataType = 'string';
               } else {
-                column.type = column?.type || dataType;
+                column.type = column?.type || dataType as 'string'|'number'|undefined ||'string';
+
                 fundata = column.fun && column.fun(row, column.prop, other);
                 data = column?.type === 'number' ? (fundata ?? other.defaultBlock) : fundata || other.defaultBlock;
-                classs = column.classFun && column.classFun(row, column.prop, other);
+                // if (column.label == '播种故障') console.log(data, column.label);
+                classs = column.classFun && column.classFun(row, column.prop, other)||'';
               }
+
               return h(
                 'span',
                 {
@@ -92,6 +125,24 @@ export default {
               return generateColumnSlot.call($self, 'default', scope);
             }
           };
+          if (Array.isArray(column.list) && column.list.length) {
+            return h(
+              ElTableColumn,
+              {
+                prop: column.prop || column.label,
+                label: column.label,
+                fixed: column.fixed ?? false,
+                minWidth: column.width ?? 100,
+                align: column.align ?? 'center',
+                sortable: column.sortable,
+                showOverflowTooltip: column.showOverflow ?? true,
+                className: column.hidden && !column.visible ? 'table-column-hidden' : ''
+              },
+              {
+                default: () => renderColumnList.call($self, column.list, align, other)
+              }
+            );
+          }
           // 引用组件方式：h(resolveComponent("ElTableColumn")) 加载全局组件；也可h(ElTableColumn),但需在compoennts注册或在组合式API中导入
           // genColumnProps 生成当前列的参数对象
           return h(
@@ -110,6 +161,8 @@ export default {
           );
         })
         .filter((item) => item);
+
+
     }
 
     return {

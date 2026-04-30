@@ -32,7 +32,7 @@
                   :nowData="dataFinal[item.prop]"
                   :row="dataFinal"
                 >
-                  {{ item.label }}：
+                  {{ item.label }}<span v-if="(item.list || []).length === 0">：</span>
                 </slot>
               </template>
               <template #default>
@@ -93,6 +93,7 @@ const createMarkRaw = (myRender:tableColumnItem['funDom'], data:dataItemType, pr
   });
 };
 const getColumnData = (columnColumn:tableColumnItem) => {
+  if (columnColumn.list) return '';
   const funData = columnColumn.fun && columnColumn.fun(dataFinal.value, columnColumn.prop, attr);
   return columnColumn.type === 'number' ? (funData ?? props.defaultBlock) : funData || props.defaultBlock;
 };
@@ -149,6 +150,52 @@ const props = withDefaults(defineProps<DesDialogProps>(), {
 const myDialog = useTemplateRef<MyDialogInstance>('myDialog')
 const dataFinal = ref<{ [key: string]: any }>({})
 const columnFinal = computed<(tableColumnItem&{useRander?:boolean})[]>(() => {
+  const filtered = deepClone(props.column).filter((item: { isForm: any; }) => typeof item.isForm == 'undefined' || item.isForm);
+
+  // map 转成 for 循环
+  const mapped = [];
+  for (let i = 0; i < filtered.length; i++) {
+    const item = filtered[i];
+    item.align = item.align ?? 'left';
+    let defaultSpan = 1;
+    if (item.list) defaultSpan = props.desColumn;
+    item.span = item.span ?? defaultSpan;
+    item.rowspan = item.rowspan ?? 1;
+    if (!item.showFun) item.showFun = (row: any) => true;
+    if ((item.list || []).length > 0) {
+      mapped.push(item);
+      filtered.splice(i + 1, 0, ...item.list);
+      continue;
+    }
+    item.unit = item.unit ?? '';
+    item.fun =
+      item.fun ??
+      ((
+        row: any,
+        prop: string,
+        other?: {
+          index?: number;
+          searchValue?: { [key: string]: any };
+          [key: string]: any;
+        }
+      ) => {
+              const content = String(
+                typeof row[prop] == 'number'&&(item.decimalPlaces||0)>0
+                  ? (row[prop] as number).toFixed(item.decimalPlaces)
+                  : row[prop] ?? props.defaultBlock
+              )
+              const unit =
+                typeof item.unit == 'string'
+                  ? item.unit
+                  : (item.unit && item.unit(row, prop, other)) ?? ''
+              return content != props.defaultBlock ? content + unit : content
+            });
+
+    mapped.push(item);
+  }
+
+  // 继续 sort
+  return mapped.sort((a: { no: any }, b: { no: any }) => (a.no || 0) - (b.no || 0));
   return deepClone(props.column)
     .filter((item: { isForm: any }) => typeof item.isForm == 'undefined' || item.isForm)
     .map(
@@ -159,7 +206,8 @@ const columnFinal = computed<(tableColumnItem&{useRander?:boolean})[]>(() => {
         fun: (row: any, prop: string) => string
         unit: any
         showFun: (row: any) => boolean
-        useRander: boolean
+        useRander: boolean,
+        decimalPlaces?:number
       }) => {
         item.align = item.align ?? 'left'
         item.span = item.span ?? 1
@@ -178,10 +226,18 @@ const columnFinal = computed<(tableColumnItem&{useRander?:boolean})[]>(() => {
               [key: string]: any
             }
           ) =>
-            String(row[prop] ?? props.defaultBlock) +
-            (typeof item.unit == 'string'
-              ? item.unit
-              : (item.unit && item.unit(row, prop, other)) ?? ''))
+            {
+              const content = String(
+                typeof row[prop] == 'number'&&(item.decimalPlaces||0)>0
+                  ? (row[prop] as number).toFixed(item.decimalPlaces)
+                  : row[prop] ?? props.defaultBlock
+              )
+              const unit =
+                typeof item.unit == 'string'
+                  ? item.unit
+                  : (item.unit && item.unit(row, prop, other)) ?? ''
+              return content != props.defaultBlock ? content + unit : content
+            })
 
         if (!item.showFun) item.showFun = (row: any) => true
         // console.log(item.width);
@@ -229,7 +285,7 @@ const init = async (
     finaldata = { ...data }
   }
   dataFinal.value = { ...finaldata }
-  myDialog.value.init()
+  myDialog.value?.init()
   nextTick(() => {
     openCb(dataFinal.value)
   })

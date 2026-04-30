@@ -108,27 +108,23 @@
         </template>
       </el-table-v2>
       <div v-if="hasPage && !isTree" v-show="totalComputed > 0">
-
         <pagination
-
-        class="table-plus-pagination"
-
-        :total="totalComputed"
-        v-model:page="queryParams.pageNum"
-        v-model:limit="queryParams.pageSize"
-        @pagination="handleQuery"
-        :layout="pageLayout"
-        :pagerCount="pagerCount"
-      >
-        <template #extra>
-          <span :key="key" v-for="(value, key, index) in extra" class="extra">
-            <span v-if="index === 0">&nbsp;</span>
-            {{ key }} :{{ value }}
-          </span>
-        </template>
-      </pagination>
+          class="table-plus-pagination"
+          :total="totalComputed"
+          v-model:page="queryParams.pageNum"
+          v-model:limit="queryParams.pageSize"
+          @pagination="handleQuery"
+          :layout="pageLayout"
+          :pagerCount="pagerCount"
+        >
+          <template #extra>
+            <span :key="key" v-for="(value, key, index) in extra" class="extra">
+              <span v-if="index === 0">&nbsp;</span>
+              {{ key }} :{{ value }}
+            </span>
+          </template>
+        </pagination>
       </div>
-
     </el-card>
   </el-config-provider>
 </template>
@@ -900,13 +896,15 @@ const createEllipsisCellRenderer = ({
   tooltipPlacement = 'top',
   fun,
   classFun,
-  ofun
+  ofun,
+  type = undefined
 }: {
-  ofun?:(
-        row: ObjectType,
-        prop: string,
-        other: ObjectType & { renderTxt: (context: string) => string }
-      ) => string,
+  type: 'string' | 'number' | undefined;
+  ofun?: (
+    row: ObjectType,
+    prop: string,
+    other: ObjectType & { renderTxt: (context: string) => string }
+  ) => string
   fun:
     | ((
         row: ObjectType,
@@ -932,17 +930,20 @@ const createEllipsisCellRenderer = ({
     const separator = [',', '~', '-', '/']
     const nowSeparator = separator.find((item) => (column['dataKey'] as string).indexOf(item) > -1)
     if (fun.toString().indexOf('(...args)') > -1) {
-      const originFun=ofun||((row, prop) => row[prop])
-      return fun({ row: rowData, prop: column.dataKey, fun: originFun },null,null)
+      const originFun = ofun || ((row, prop) => row[prop])
+      return fun({ row: rowData, prop: column.dataKey, fun: originFun }, null, null)
+    }
+    if (!type) {
+      type = typeof (rowData[column['dataKey']])==='number'?'number':'string';
     }
     const funData = fun(rowData, column['dataKey'] as string, {
       renderTxt: (context: string) =>
-        column.type === 'number' ? context ?? props.defaultBlock : context || props.defaultBlock,
+        type === 'number' ? context ?? props.defaultBlock : context || props.defaultBlock,
       ...attrs,
       index: rowIndex,
     })
     const content =
-      column.type === 'number' ? funData ?? props.defaultBlock : funData || props.defaultBlock
+      type === 'number' ? funData ?? props.defaultBlock : funData || props.defaultBlock
     const style: { width: string; overflow?: string; textOverflow?: string; whiteSpace?: string } =
       {
         width: `auto`, // 减去 padding
@@ -1392,8 +1393,8 @@ const tableColumnFinal = computed(() => {
         const vnodes = slots[data.prop]
 
         const fun =
-        data.funDom ??
-        vnodes ??
+          data.funDom ??
+          vnodes ??
           data.fun ??
           ((
             row: ObjectType,
@@ -1404,6 +1405,9 @@ const tableColumnFinal = computed(() => {
               renderTxt: (context: string) => string
             }
           ) => {
+            if (!data.type) {
+              data.type = typeof row[prop] == 'number' ? 'number' : 'string'
+            }
             let content
             if (nowSeparator) {
               const propArr = data.prop.split(nowSeparator)
@@ -1454,7 +1458,7 @@ const tableColumnFinal = computed(() => {
           classFun: data.classFun,
           showTooltip: data.showOverflow as boolean,
           tooltipPlacement: 'top',
-          ofun:data.fun
+          ofun: data.fun,
         })
         const header = data.header ?? (() => item.title!)
         let headerDom: VNode | string | Component = h('span', {}, header as string)
@@ -1479,7 +1483,7 @@ const tableColumnFinal = computed(() => {
               // dataset: {
               //   sort: '123',
               // },
-              'data-sort':'123',
+              'data-sort': '123',
               class: ``,
               onClick: () => {
                 if (data.sortable) {
