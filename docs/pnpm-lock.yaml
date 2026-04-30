@@ -14,6 +14,15 @@ importers:
       ftv3:
         specifier: file:../packages
         version: file:../packages
+      vxe-pc-ui:
+        specifier: 4.13.29
+        version: 4.13.29(vue@3.5.22(typescript@5.9.3))
+      vxe-table:
+        specifier: ^4.18.13
+        version: 4.18.13(vue@3.5.22(typescript@5.9.3))
+      xe-utils:
+        specifier: ^4.0.4
+        version: 4.0.4
     devDependencies:
       '@element-plus/icons-vue':
         specifier: ^2.3.2
@@ -787,6 +796,11 @@ packages:
   '@vueuse/shared@9.13.0':
     resolution: {integrity: sha512-UrnhU+Cnufu4S6JLCPZnkWh0WwZGUp72ktOF2DFptMlOs3TOdVv8xJN53zhHGARmVOsz5KqOls09+J1NR6sBKw==}
 
+  '@vxe-ui/core@4.4.6':
+    resolution: {integrity: sha512-qVOCzxfdhVJun05AAotRGIavpqANvleo+kl2ZHASmDqA8cUXSHUusvEVpz4895SK6/OwB1YmNY8Cy5Sjes2JgA==}
+    peerDependencies:
+      vue: ^3.2.0
+
   algoliasearch@5.40.0:
     resolution: {integrity: sha512-a9aIL2E3Z7uYUPMCmjMFFd5MWhn+ccTubEvnMy7rOTZCB62dXBJtz0R5BZ/TPuX3R9ocBsgWuAbGWQ+Ph4Fmlg==}
     engines: {node: '>= 14.0.0'}
@@ -837,6 +851,9 @@ packages:
 
   devlop@1.1.0:
     resolution: {integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==}
+
+  dom-zindex@1.0.6:
+    resolution: {integrity: sha512-FKWIhiU96bi3xpP9ewRMgANsoVmMUBnMnmpCT6dPMZOunVYJQmJhSRruoI0XSPoHeIif3kyEuiHbFrOJwEJaEA==}
 
   element-plus@2.11.4:
     resolution: {integrity: sha512-sLq+Ypd0cIVilv8wGGMEGvzRVBBsRpJjnAS5PsI/1JU1COZXqzH3N1UYMUc/HCdvdjf6dfrBy80Sj7KcACsT7w==}
@@ -1180,6 +1197,15 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  vxe-pc-ui@4.13.29:
+    resolution: {integrity: sha512-QhmRV5KfaofgReQ0/4qDiJNNJr46OLIPYqa5j1aFjjgO8xvYxqQ1aivD5mya7Iz3Eqj9BwKmYFYc9gkQtJSXUA==}
+
+  vxe-table@4.18.13:
+    resolution: {integrity: sha512-aSq+Gl8cbRbDfja5G40ZOmr+uS9aaQ5pMyzsLX2e0gI2ybcUM20ARspX+U0ZMPaidFwt8FRLDJsKoeGxdy470Q==}
+
+  xe-utils@4.0.4:
+    resolution: {integrity: sha512-1IUuTZRHa5w88Y3kEf0O4Y/99O0hIdh5o8EXqmgqyhY3MaT1xWZgS5iuD7pys6v+9JrJOzECb07+6gxRahDsyw==}
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -1804,6 +1830,12 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
+  '@vxe-ui/core@4.4.6(vue@3.5.22(typescript@5.9.3))':
+    dependencies:
+      dom-zindex: 1.0.6
+      vue: 3.5.22(typescript@5.9.3)
+      xe-utils: 4.0.4
+
   algoliasearch@5.40.0:
     dependencies:
       '@algolia/abtesting': 1.6.0
@@ -1856,6 +1888,8 @@ snapshots:
   devlop@1.1.0:
     dependencies:
       dequal: 2.0.3
+
+  dom-zindex@1.0.6: {}
 
   element-plus@2.11.4(vue@3.5.22(typescript@5.9.3)):
     dependencies:
@@ -1952,9 +1986,7 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  ftv3@file:../packages:
-    dependencies:
-      '@chenglou/pretext': 0.0.6
+  ftv3@file:../packages: {}
 
   hast-util-to-html@9.0.5:
     dependencies:
@@ -2268,5 +2300,19 @@ snapshots:
       '@vue/shared': 3.5.22
     optionalDependencies:
       typescript: 5.9.3
+
+  vxe-pc-ui@4.13.29(vue@3.5.22(typescript@5.9.3)):
+    dependencies:
+      '@vxe-ui/core': 4.4.6(vue@3.5.22(typescript@5.9.3))
+    transitivePeerDependencies:
+      - vue
+
+  vxe-table@4.18.13(vue@3.5.22(typescript@5.9.3)):
+    dependencies:
+      vxe-pc-ui: 4.13.29(vue@3.5.22(typescript@5.9.3))
+    transitivePeerDependencies:
+      - vue
+
+  xe-utils@4.0.4: {}
 
   zwitch@2.0.4: {}

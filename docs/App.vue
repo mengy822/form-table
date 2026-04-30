@@ -1,5 +1,5 @@
-<script setup lang="tsx">
-import { MyTable,MyTableV2, MyForm, MyEdit, MyDetail,type MyTableInstance } from 'ftv3'
+<script setup lang="ts">
+import { MyTable,MyTableV2,MyTableV3, MyForm, MyEdit, MyDetail,type MyTableInstance } from 'ftv3'
 import useAppConfig from './app'
 import type {inputInnerType , selectInnerType , dateInnerType} from './app'
 import { ElTable } from 'element-plus'
@@ -78,7 +78,7 @@ const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
       @search="query"
     ></MyForm>
     <!-- <MyTabelV2 ref="tableRef" :columns="table"> </MyTabelV2> -->
-    <MyTable
+    <MyTableV3
       baseClass=".app1"
       :simpTransVar="1"
       ref="tableRef"
@@ -91,14 +91,14 @@ const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
       @add="update"
       @query="query"
     >
-      <template #switch="{ row, prop, fun }">
-        <el-switch
-          :model-value="fun(row, prop)"
-          :active-value="'开启'"
-          :inactive-value="'关闭'"
-        ></el-switch>
-      </template>
-    </MyTable>
+<!--      <template #switch="{ row, prop, fun }">-->
+<!--        <el-switch-->
+<!--          :model-value="fun(row, prop)"-->
+<!--          :active-value="'开启'"-->
+<!--          :inactive-value="'关闭'"-->
+<!--        ></el-switch>-->
+<!--      </template>-->
+    </MyTableV3>
     <MyEdit ref="editRef" :column="editColumn" @submit="submitFun"></MyEdit>
     <MyDetail :des-column="3" ref="detailRef" :column="table"></MyDetail>
   </div>
