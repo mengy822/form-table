@@ -390,7 +390,7 @@ const slotContentCache = new Map()
 // 获取 slot 的虚拟节点内容
 function getSlotContent(
   scope_data: {
-    data: {[key:string]:string|number|boolean}
+    data: { [key: string]: string | number | boolean }
     index: number
     text: boolean
     link: boolean
@@ -429,11 +429,12 @@ function getSlotContent(
     'operationAfterUpdate',
     'remove',
     'operationAfter',
-  ] as const;
-  const defaultButtonShowFun:{addSon:boolean|string;
-    detail:boolean|string;
-    update:boolean|string;
-    remove:boolean|string;
+  ] as const
+  const defaultButtonShowFun: {
+    addSon: boolean | string
+    detail: boolean | string
+    update: boolean | string
+    remove: boolean | string
   } = {
     addSon:
       typeof props.hasAddSon === 'function'
@@ -452,12 +453,17 @@ function getSlotContent(
         ? props.hasRemove(scope_data.data)
         : props.hasRemove && proxyProps.value[`onRemove`],
   }
-  const defaultButtonShowFunKey:(keyof typeof defaultButtonShowFun)[] = Object.keys(defaultButtonShowFun) as Array<keyof typeof defaultButtonShowFun>
+  const defaultButtonShowFunKey: (keyof typeof defaultButtonShowFun)[] = Object.keys(
+    defaultButtonShowFun
+  ) as Array<keyof typeof defaultButtonShowFun>
   const vnodesArr = []
   // console.log(allSlotName);
   for (const slotName of allSlotName) {
     const slot = slots[slotName]
-    if (defaultButtonShowFunKey.includes(slotName as keyof typeof defaultButtonShowFun) && defaultButtonShowFun[slotName as keyof typeof defaultButtonShowFun]) {
+    if (
+      defaultButtonShowFunKey.includes(slotName as keyof typeof defaultButtonShowFun) &&
+      defaultButtonShowFun[slotName as keyof typeof defaultButtonShowFun]
+    ) {
       // if (nowUseSim < sim) {
       //   nowUseSim++;
       //   showTableButton.value.push(slotName);
@@ -486,8 +492,8 @@ export interface TableProps {
   /** 表格顶部按钮Plain */
   hasTableTopPlain: boolean
   moreButton: string
-  moreButtonType?: ButtonType;
-  moreButtonTrigger?:'hover'|'click'
+  moreButtonType?: ButtonType
+  moreButtonTrigger?: 'hover' | 'click'
   /** 分页配置 **/
   pageLayout: string
   pagerCount: number
@@ -665,10 +671,6 @@ export interface queryParamType {
   [key: string]: string | number | undefined | boolean
 }
 
-
-
-
-
 export interface tableColumnItem {
   prop: string
   label: string
@@ -787,8 +789,8 @@ const props = withDefaults(defineProps<TableProps>(), {
   // 基础配置
   hasPage: true,
   moreButton: '更多',
-  moreButtonType:'primary',
-  moreButtonTrigger:'hover',
+  moreButtonType: 'primary',
+  moreButtonTrigger: 'hover',
   isTree: false,
   downFun: undefined,
   //删除成功的状态码
@@ -1009,7 +1011,7 @@ const heightChange = () => {
 const operationWidthComputed = computed(() => {
   let width = props.operationWidth ?? 100
   if (props.simpTransVar > 0) {
-    return props.operationWidth || props.oneOperationWidth * (props.simpTransVar + 1)+20;
+    return props.operationWidth || props.oneOperationWidth * (props.simpTransVar + 1) + 20
   }
   if (typeof props.operationWidth === 'undefined') {
     let i = 0
@@ -1130,74 +1132,7 @@ const tableColumnFinal = computed({
       tableColumn.value = deepClone(props.tableColumn)
         .filter((item: { isTable: any }) => item.isTable || typeof item.isTable === 'undefined')
         .map((item: tableColumnItem, index: number) => {
-          if (props.isTree && index === 0 && !props.hasSelection) {
-            item.align = 'left'
-          }
-          item.visible = item.visible ?? true
-          item.sortable = item.sort ?? item.sortable ?? false
-          if (typeof item.sortable === 'string' && props.sortable) {
-            item.sortable = true
-          }
-          if (typeof item.sortable === 'boolean' && !props.sortable) {
-            item.sortable = 'custom'
-          }
-          if (item.sortable) {
-            item.sortProp = item.sortProp ?? item.prop
-            sortProp.value[item.prop] = item.sortProp
-          }
-          if (slots[item.prop]) {
-            item.slot = item.prop
-          }
-          item.selectable = item.selectable ?? true
-          item.maxWidth = item.width ? false : item.maxWidth ?? props.maxWidth
-          item.unit = item.unit ?? ''
-          item.fun =
-            item.fun ??
-            ((
-              row: dataItemType,
-              prop: string,
-              other?: {
-                index?: number
-                tableColumnFinal?: tableColumnItem[]
-                [key: string]: any
-              }
-            ) => {
-              const content = String(
-                typeof row[prop] == 'number'&&item.decimalPlaces>0
-                  ? (row[prop] as number).toFixed(item.decimalPlaces)
-                  : row[prop] ?? props.defaultBlock
-              )
-              const unit =
-                typeof item.unit == 'string'
-                  ? item.unit
-                  : (item.unit && item.unit(row, prop, other)) ?? ''
-              return content != props.defaultBlock ? content + unit : content
-            })
-          if (item.list)
-            item.list = (item.list || []).map((listfun) => {
-              listfun.fun =
-                listfun.fun ??
-                ((
-                  row: dataItemType,
-                  prop: string,
-                  other?: {
-                    index?: number
-                    tableColumnFinal?: tableColumnItem[]
-                    searchValue?: { [key: string]: any }
-                    [key: string]: any
-                  }
-                ) =>
-                  String(
-                    typeof row[prop] == 'number'
-                      ? (row[prop] as number).toFixed(item.decimalPlaces)
-                      : row[prop] ?? props.defaultBlock
-                  ) +
-                  (typeof listfun.unit == 'string'
-                    ? listfun.unit
-                    : (listfun.unit && listfun.unit(row, prop, other)) ?? ''))
-              return listfun
-            })
-          return item
+          return computedTableColumn(item, index)
         })
     }
     return tableColumn.value
@@ -1206,7 +1141,81 @@ const tableColumnFinal = computed({
     tableColumn.value = [...data]
   },
 })
-
+const computedTableColumn = (item: tableColumnItem, index: number) => {
+  if (props.isTree && index === 0 && !props.hasSelection) {
+    item.align = 'left'
+  }
+  item.visible = item.visible ?? true
+  item.sortable = item.sort ?? item.sortable ?? false
+  if (typeof item.sortable === 'string' && props.sortable) {
+    item.sortable = true
+  }
+  if (typeof item.sortable === 'boolean' && !props.sortable) {
+    item.sortable = 'custom'
+  }
+  if ((item.list || []).length > 0) {
+    item.sortable = false
+    item.list = (item.list||[]).map((item, index) => {
+      return computedTableColumn(item, index)
+    })
+    return item
+  }
+  if (item.sortable) {
+    item.sortProp = item.sortProp ?? item.prop
+    sortProp.value[item.prop] = item.sortProp
+  }
+  if (slots[item.prop]) {
+    item.slot = item.prop
+  }
+  item.selectable = item.selectable ?? true
+  item.maxWidth = item.width ? false : item.maxWidth ?? props.maxWidth
+  item.unit = item.unit ?? ''
+  item.fun =
+    item.fun ??
+    ((
+      row: dataItemType,
+      prop: string,
+      other?: {
+        index?: number
+        tableColumnFinal?: tableColumnItem[]
+        [key: string]: any
+      }
+    ) => {
+      const content = String(
+        typeof row[prop] == 'number' && item.decimalPlaces > 0
+          ? (row[prop] as number).toFixed(item.decimalPlaces)
+          : row[prop] ?? props.defaultBlock
+      )
+      const unit =
+        typeof item.unit == 'string' ? item.unit : (item.unit && item.unit(row, prop, other)) ?? ''
+      return content != props.defaultBlock ? content + unit : content
+    })
+  if (item.list)
+    item.list = (item.list || []).map((listfun) => {
+      listfun.fun =
+        listfun.fun ??
+        ((
+          row: dataItemType,
+          prop: string,
+          other?: {
+            index?: number
+            tableColumnFinal?: tableColumnItem[]
+            searchValue?: { [key: string]: any }
+            [key: string]: any
+          }
+        ) =>
+          String(
+            typeof row[prop] == 'number'
+              ? (row[prop] as number).toFixed(item.decimalPlaces)
+              : row[prop] ?? props.defaultBlock
+          ) +
+          (typeof listfun.unit == 'string'
+            ? listfun.unit
+            : (listfun.unit && listfun.unit(row, prop, other)) ?? ''))
+      return listfun
+    })
+  return item
+}
 // const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const loading = ref<boolean>(true)
 const showSearchInner = ref(true)
@@ -1750,8 +1759,8 @@ const handleRemove = (row: dataItemType) => {
     type: props.removeType,
   })
     .then(() => {
-       emits('remove', row,  (flag: string | boolean | Promise<any> = true, ...obj: any[]) => {
-         removeCallback(flag, ...obj)
+      emits('remove', row, (flag: string | boolean | Promise<any> = true, ...obj: any[]) => {
+        removeCallback(flag, ...obj)
       })
     })
     .catch(() => {
