@@ -8,12 +8,15 @@ importers:
 
   .:
     dependencies:
-      '@chenglou/pretext':
-        specifier: ^0.0.6
-        version: 0.0.6
       element-plus:
         specifier: ^2.9.8
         version: 2.11.3(vue@3.5.21(typescript@5.6.3))
+      vxe-table:
+        specifier: ^4.18.13
+        version: 4.18.13(vue@3.5.21(typescript@5.6.3))
+      xe-utils:
+        specifier: ^4.0.4
+        version: 4.0.4
     devDependencies:
       '@element-plus/icons-vue':
         specifier: ^2.3.2
@@ -235,9 +238,6 @@ packages:
   '@babel/types@7.28.4':
     resolution: {integrity: sha512-bkFqkLhh3pMBUQQkpVgWDWq/lqzc2678eUyDlTBhRqhCHFguYYGM0Efga7tYk4TogG/3x0EEl66/OQ+WGbWB/Q==}
     engines: {node: '>=6.9.0'}
-
-  '@chenglou/pretext@0.0.6':
-    resolution: {integrity: sha512-U10s4tFeyu3oVHfXuNWwZSKqHXefhaigpcBkGj60qQFRJ+yUoQ+ez3cGJelP7BWDAB58HCgjcTSmOcg+77afBQ==}
 
   '@ctrl/tinycolor@3.6.1':
     resolution: {integrity: sha512-SITSV6aIXsuVNV3f3O0f2n/cgyEDWoSqtZMYiAmcsYHydcKrOz3gUxB/iXd/Qf08+IZX4KpgNbvUdMBmWz+kcA==}
@@ -963,6 +963,11 @@ packages:
   '@vueuse/shared@9.13.0':
     resolution: {integrity: sha512-UrnhU+Cnufu4S6JLCPZnkWh0WwZGUp72ktOF2DFptMlOs3TOdVv8xJN53zhHGARmVOsz5KqOls09+J1NR6sBKw==}
 
+  '@vxe-ui/core@4.4.6':
+    resolution: {integrity: sha512-qVOCzxfdhVJun05AAotRGIavpqANvleo+kl2ZHASmDqA8cUXSHUusvEVpz4895SK6/OwB1YmNY8Cy5Sjes2JgA==}
+    peerDependencies:
+      vue: ^3.2.0
+
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
     peerDependencies:
@@ -1163,6 +1168,9 @@ packages:
     resolution: {integrity: sha512-pGjwhsmsp4kL2RTz08wcOlGN83otlqHeD/Z5T8GXZB+/YcpQ/dgo+lbU8ZsGxV0HIvqqxo9l7mqYwyYMD9bKDg==}
     engines: {node: '>=0.10'}
     hasBin: true
+
+  dom-zindex@1.0.6:
+    resolution: {integrity: sha512-FKWIhiU96bi3xpP9ewRMgANsoVmMUBnMnmpCT6dPMZOunVYJQmJhSRruoI0XSPoHeIif3kyEuiHbFrOJwEJaEA==}
 
   electron-to-chromium@1.5.218:
     resolution: {integrity: sha512-uwwdN0TUHs8u6iRgN8vKeWZMRll4gBkz+QMqdS7DDe49uiK68/UX92lFb61oiFPrpYZNeZIqa4bA7O6Aiasnzg==}
@@ -2128,6 +2136,12 @@ packages:
       typescript:
         optional: true
 
+  vxe-pc-ui@4.13.29:
+    resolution: {integrity: sha512-QhmRV5KfaofgReQ0/4qDiJNNJr46OLIPYqa5j1aFjjgO8xvYxqQ1aivD5mya7Iz3Eqj9BwKmYFYc9gkQtJSXUA==}
+
+  vxe-table@4.18.13:
+    resolution: {integrity: sha512-aSq+Gl8cbRbDfja5G40ZOmr+uS9aaQ5pMyzsLX2e0gI2ybcUM20ARspX+U0ZMPaidFwt8FRLDJsKoeGxdy470Q==}
+
   webpack-virtual-modules@0.6.2:
     resolution: {integrity: sha512-66/V2i5hQanC51vBQKPH4aI8NMAcBW59FVBs+rC7eGHupMyfn34q7rZIE+ETlJ+XTevqfUhVVBgSUNSW2flEUQ==}
 
@@ -2148,6 +2162,9 @@ packages:
   wsl-utils@0.1.0:
     resolution: {integrity: sha512-h3Fbisa2nKGPxCpm89Hk33lBLsnaGBvctQopaBSOW/uIs6FTe1ATyAnKFJrzVs9vpGdsTe73WF3V4lIsk4Gacw==}
     engines: {node: '>=18'}
+
+  xe-utils@4.0.4:
+    resolution: {integrity: sha512-1IUuTZRHa5w88Y3kEf0O4Y/99O0hIdh5o8EXqmgqyhY3MaT1xWZgS5iuD7pys6v+9JrJOzECb07+6gxRahDsyw==}
 
   xml-name-validator@4.0.0:
     resolution: {integrity: sha512-ICP2e+jsHvAj2E2lIHxa5tjXRlKDJo4IdvPvCXbXQGdzSfmSpNVyIKMvoZHjDY9DP0zV17iI85o90vRFXNccRw==}
@@ -2370,8 +2387,6 @@ snapshots:
     dependencies:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
-
-  '@chenglou/pretext@0.0.6': {}
 
   '@ctrl/tinycolor@3.6.1': {}
 
@@ -3085,6 +3100,12 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
+  '@vxe-ui/core@4.4.6(vue@3.5.21(typescript@5.6.3))':
+    dependencies:
+      dom-zindex: 1.0.6
+      vue: 3.5.21(typescript@5.6.3)
+      xe-utils: 4.0.4
+
   acorn-jsx@5.3.2(acorn@8.14.1):
     dependencies:
       acorn: 8.14.1
@@ -3260,6 +3281,8 @@ snapshots:
 
   detect-libc@1.0.3:
     optional: true
+
+  dom-zindex@1.0.6: {}
 
   electron-to-chromium@1.5.218: {}
 
@@ -4238,6 +4261,18 @@ snapshots:
     optionalDependencies:
       typescript: 5.6.3
 
+  vxe-pc-ui@4.13.29(vue@3.5.21(typescript@5.6.3)):
+    dependencies:
+      '@vxe-ui/core': 4.4.6(vue@3.5.21(typescript@5.6.3))
+    transitivePeerDependencies:
+      - vue
+
+  vxe-table@4.18.13(vue@3.5.21(typescript@5.6.3)):
+    dependencies:
+      vxe-pc-ui: 4.13.29(vue@3.5.21(typescript@5.6.3))
+    transitivePeerDependencies:
+      - vue
+
   webpack-virtual-modules@0.6.2: {}
 
   which@2.0.2:
@@ -4253,6 +4288,8 @@ snapshots:
   wsl-utils@0.1.0:
     dependencies:
       is-wsl: 3.1.0
+
+  xe-utils@4.0.4: {}
 
   xml-name-validator@4.0.0: {}
 

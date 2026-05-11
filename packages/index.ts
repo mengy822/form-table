@@ -1,6 +1,7 @@
 import Form from './components/Form/index.vue';
 import Table from './components/Table/index.vue';
 import TableV2 from './components/TableV2/index.vue';
+import TableV3 from './components/TableV3/index.vue';
 import Detail from './components/Detail/index.vue';
 import Edit from './components/Edit/index.vue';
 import Import from './components/Edit/index.vue';
@@ -18,6 +19,8 @@ Date.prototype.format = function (fmt) {
   return parseTime(date, fmt);
 };
 export type MyTableInstance = InstanceType<typeof Table>;
+export type MyTableV2Instance = InstanceType<typeof TableV2>;
+export type MyTableV3Instance = InstanceType<typeof TableV3>;
 export type MyFormInstance = InstanceType<typeof Form>;
 export type MyEditInstance = InstanceType<typeof Edit>;
 export type MyImportInstance = InstanceType<typeof Import>;
@@ -29,6 +32,7 @@ export { inputInnerType, dateInnerType, selectInnerType, fileInnerType, switchIn
 export const MyForm: typeof Form = Form;
 export const MyTable: typeof Table = Table;
 export const MyTableV2: typeof TableV2 = TableV2;
+export const MyTableV3: typeof TableV3 = TableV3;
 export const MyDetail: typeof Detail = Detail;
 export const MyEdit: typeof Edit = Edit;
 export const MyImport: typeof Import = Import;
