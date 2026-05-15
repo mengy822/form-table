@@ -897,9 +897,9 @@ const createEllipsisCellRenderer = ({
   fun,
   classFun,
   ofun,
-  type = undefined
+  type = undefined,
 }: {
-  type: 'string' | 'number' | undefined;
+  type: 'string' | 'number' | undefined
   ofun?: (
     row: ObjectType,
     prop: string,
@@ -934,7 +934,7 @@ const createEllipsisCellRenderer = ({
       return fun({ row: rowData, prop: column.dataKey, fun: originFun }, null, null)
     }
     if (!type) {
-      type = typeof (rowData[column['dataKey']])==='number'?'number':'string';
+      type = typeof rowData[column['dataKey']] === 'number' ? 'number' : 'string'
     }
     const funData = fun(rowData, column['dataKey'] as string, {
       renderTxt: (context: string) =>
@@ -1421,10 +1421,19 @@ const tableColumnFinal = computed(() => {
               })
               content = fundatas.join(nowSeparator)
             } else {
+              let propss = [prop]
+              if (prop.indexOf('.') > -1) {
+                propss = prop.split('.')
+              }
+              let lscontent = row[propss[0]]
+              for (let i = 1; i < propss.length; i++) {
+                const item1 = propss[i]
+                lscontent = (lscontent as ObjectType)?.[item1] || undefined
+              }
               content = String(
                 data.type === 'number'
-                  ? row[prop] ?? props.defaultBlock
-                  : row[prop] || props.defaultBlock
+                  ? (lscontent as number).toFixed(data.decimalPlaces||0||Number((String(lscontent).split('.')[1]||'').length||0)) ?? props.defaultBlock
+                  : lscontent || props.defaultBlock
               )
             }
 

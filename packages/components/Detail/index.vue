@@ -43,12 +43,19 @@
                   :row="dataFinal"
                 >
                   <span
-                    v-if="!item.funDom||!item.useRander"
-                    :class="`span span_${item.prop} span_${item.prop}_${dataFinal[item.prop]} span_other_${item.classFun && item.classFun(dataFinal, item.prop, attr)} ${item.classFun && item.classFun(dataFinal, item.prop, attr)} ${(item.fun && item.fun(dataFinal, item.prop, attr)) ?? defaultBlock}`"
+                    v-if="!item.funDom || !item.useRander"
+                    :class="`span span_${item.prop} span_${item.prop}_${
+                      dataFinal[item.prop]
+                    } span_other_${item.classFun && item.classFun(dataFinal, item.prop, attr)} ${
+                      item.classFun && item.classFun(dataFinal, item.prop, attr)
+                    } ${(item.fun && item.fun(dataFinal, item.prop, attr)) ?? defaultBlock}`"
                   >
                     {{ getColumnData(item) }}
                   </span>
-                  <component v-else :is="createMarkRaw(item.funDom, dataFinal, item.prop)"></component>
+                  <component
+                    v-else
+                    :is="createMarkRaw(item.funDom, dataFinal, item.prop)"
+                  ></component>
                 </slot>
               </template>
             </el-descriptions-item>
@@ -72,10 +79,11 @@ import { computed, markRaw, nextTick, ref, useAttrs, useSlots, useTemplateRef } 
 
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { deepClone } from '../js/utils'
-import MyDialog from '../Dialog/index.vue';
+import MyDialog from '../Dialog/index.vue'
 import { dataItemType, tableColumnItem } from '../Table/index.vue'
+import { ObjectType } from '../js/types'
 
-type MyDialogInstance = InstanceType<typeof MyDialog>;
+type MyDialogInstance = InstanceType<typeof MyDialog>
 const attr = useAttrs()
 const slots = useSlots()
 const display = computed(() => {
@@ -84,19 +92,31 @@ const display = computed(() => {
 const gridTemplateColumns = computed(() => {
   return `${slots['left'] ? 'auto ' : ''}1fr${slots['right'] ? ' auto' : ''}`
 })
-const createMarkRaw = (myRender:tableColumnItem['funDom'], data:dataItemType, prop:string, other = {}) => {
-  const innerother = { ...other, ...attr, loading: false, renderTxt: (context:string|number|boolean) => context ?? props.defaultBlock };
+const createMarkRaw = (
+  myRender: tableColumnItem['funDom'],
+  data: dataItemType,
+  prop: string,
+  other = {}
+) => {
+  const innerother = {
+    ...other,
+    ...attr,
+    loading: false,
+    renderTxt: (context: string | number | boolean) => context ?? props.defaultBlock,
+  }
   return markRaw({
     render() {
-      return myRender!(data, prop, innerother);
-    }
-  });
-};
-const getColumnData = (columnColumn:tableColumnItem) => {
-  if (columnColumn.list) return '';
-  const funData = columnColumn.fun && columnColumn.fun(dataFinal.value, columnColumn.prop, attr);
-  return columnColumn.type === 'number' ? (funData ?? props.defaultBlock) : funData || props.defaultBlock;
-};
+      return myRender!(data, prop, innerother)
+    },
+  })
+}
+const getColumnData = (columnColumn: tableColumnItem) => {
+  if (columnColumn.list) return ''
+  const funData = columnColumn.fun && columnColumn.fun(dataFinal.value, columnColumn.prop, attr)
+  return columnColumn.type === 'number'
+    ? funData ?? props.defaultBlock
+    : funData || props.defaultBlock
+}
 // 定义 Props 类型接口，清晰划分配置维度
 interface DesDialogProps {
   /** 语言配置（多语言支持） */
@@ -120,7 +140,7 @@ interface DesDialogProps {
   /** 描述区域右上方操作区文本 */
   desExtra: string
   /** 描述项配置列表（必填，核心配置） */
-  column: (tableColumnItem&{useRander?:boolean})[]
+  column: (tableColumnItem & { useRander?: boolean })[]
   defaultBlock: string
   /** 数据源格式配置（数据、成功状态码、状态码字段） */
   dataConfig: { data: string; status: string | number | boolean; code: string }
@@ -149,53 +169,64 @@ const props = withDefaults(defineProps<DesDialogProps>(), {
 })
 const myDialog = useTemplateRef<MyDialogInstance>('myDialog')
 const dataFinal = ref<{ [key: string]: any }>({})
-const columnFinal = computed<(tableColumnItem&{useRander?:boolean})[]>(() => {
-  const filtered = deepClone(props.column).filter((item: { isForm: any; }) => typeof item.isForm == 'undefined' || item.isForm);
+const columnFinal = computed<(tableColumnItem & { useRander?: boolean })[]>(() => {
+  const filtered = deepClone(props.column).filter(
+    (item: { isForm: any }) => typeof item.isForm == 'undefined' || item.isForm
+  )
 
   // map 转成 for 循环
-  const mapped = [];
+  const mapped = []
   for (let i = 0; i < filtered.length; i++) {
-    const item = filtered[i];
-    item.align = item.align ?? 'left';
-    let defaultSpan = 1;
-    if (item.list) defaultSpan = props.desColumn;
-    item.span = item.span ?? defaultSpan;
-    item.rowspan = item.rowspan ?? 1;
-    if (!item.showFun) item.showFun = (row: any) => true;
+    const item = filtered[i]
+    item.align = item.align ?? 'left'
+    let defaultSpan = 1
+    if (item.list) defaultSpan = props.desColumn
+    item.span = item.span ?? defaultSpan
+    item.rowspan = item.rowspan ?? 1
+    if (!item.showFun) item.showFun = (row: any) => true
     if ((item.list || []).length > 0) {
-      mapped.push(item);
-      filtered.splice(i + 1, 0, ...item.list);
-      continue;
+      mapped.push(item)
+      filtered.splice(i + 1, 0, ...item.list)
+      continue
     }
-    item.unit = item.unit ?? '';
+    item.unit = item.unit ?? ''
     item.fun =
       item.fun ??
       ((
         row: any,
         prop: string,
         other?: {
-          index?: number;
-          searchValue?: { [key: string]: any };
-          [key: string]: any;
+          index?: number
+          searchValue?: { [key: string]: any }
+          [key: string]: any
         }
       ) => {
-              const content = String(
-                typeof row[prop] == 'number'&&(item.decimalPlaces||0)>0
-                  ? (row[prop] as number).toFixed(item.decimalPlaces)
-                  : row[prop] ?? props.defaultBlock
-              )
-              const unit =
-                typeof item.unit == 'string'
-                  ? item.unit
-                  : (item.unit && item.unit(row, prop, other)) ?? ''
-              return content != props.defaultBlock ? content + unit : content
-            });
+        let propss = [prop]
+        if (prop.indexOf('.') > -1) {
+          propss = prop.split('.')
+        }
+        let lscontent = row[propss[0]]
+        for (let i = 1; i < propss.length; i++) {
+          const item1 = propss[i]
+          lscontent = (lscontent as ObjectType)?.[item1] || undefined
+        }
+        const content = String(
+          typeof lscontent == 'number' && item.decimalPlaces > 0
+            ? (lscontent as number).toFixed(item.decimalPlaces)
+            : lscontent ?? props.defaultBlock
+        )
+        const unit =
+          typeof item.unit == 'string'
+            ? item.unit
+            : (item.unit && item.unit(row, prop, other)) ?? ''
+        return content != props.defaultBlock ? content + unit : content
+      })
 
-    mapped.push(item);
+    mapped.push(item)
   }
 
   // 继续 sort
-  return mapped.sort((a: { no: any }, b: { no: any }) => (a.no || 0) - (b.no || 0));
+  return mapped.sort((a: { no: any }, b: { no: any }) => (a.no || 0) - (b.no || 0))
   return deepClone(props.column)
     .filter((item: { isForm: any }) => typeof item.isForm == 'undefined' || item.isForm)
     .map(
@@ -206,14 +237,14 @@ const columnFinal = computed<(tableColumnItem&{useRander?:boolean})[]>(() => {
         fun: (row: any, prop: string) => string
         unit: any
         showFun: (row: any) => boolean
-        useRander: boolean,
-        decimalPlaces?:number
+        useRander: boolean
+        decimalPlaces?: number
       }) => {
         item.align = item.align ?? 'left'
         item.span = item.span ?? 1
         item.rowspan = item.rowspan ?? 1
         item.unit = item.unit ?? ''
-        item.useRander=item.useRander||false
+        item.useRander = item.useRander || false
         // item.fun = item.fun ?? ((row: any, prop: string) => String(row[prop] ?? props.defaultBlock) + (item.unit ?? ''));
         item.fun =
           item.fun ??
@@ -225,19 +256,18 @@ const columnFinal = computed<(tableColumnItem&{useRander?:boolean})[]>(() => {
               searchValue?: { [key: string]: any }
               [key: string]: any
             }
-          ) =>
-            {
-              const content = String(
-                typeof row[prop] == 'number'&&(item.decimalPlaces||0)>0
-                  ? (row[prop] as number).toFixed(item.decimalPlaces)
-                  : row[prop] ?? props.defaultBlock
-              )
-              const unit =
-                typeof item.unit == 'string'
-                  ? item.unit
-                  : (item.unit && item.unit(row, prop, other)) ?? ''
-              return content != props.defaultBlock ? content + unit : content
-            })
+          ) => {
+            const content = String(
+              typeof row[prop] == 'number' && (item.decimalPlaces || 0) > 0
+                ? (row[prop] as number).toFixed(item.decimalPlaces)
+                : row[prop] ?? props.defaultBlock
+            )
+            const unit =
+              typeof item.unit == 'string'
+                ? item.unit
+                : (item.unit && item.unit(row, prop, other)) ?? ''
+            return content != props.defaultBlock ? content + unit : content
+          })
 
         if (!item.showFun) item.showFun = (row: any) => true
         // console.log(item.width);
@@ -271,12 +301,12 @@ const init = async (
 ) => {
   let finaldata = {}
   if (data instanceof Promise) {
-    let res;
+    let res
     try {
-      res = await data;
+      res = await data
     } catch (e) {
-      openCb({});
-      return;
+      openCb({})
+      return
     }
     if (res[props.dataConfig.code] === props.dataConfig.status) {
       finaldata = res[props.dataConfig.data]
@@ -291,13 +321,13 @@ const init = async (
   })
 }
 const updateData = (prop: string, data: any): void => {
-  dataFinal.value[prop] = data;
-};
+  dataFinal.value[prop] = data
+}
 
 const getData = (prop: string): void => {
-  return dataFinal.value[prop];
-};
-defineExpose({ init, handleClose, updateData, getData });
+  return dataFinal.value[prop]
+}
+defineExpose({ init, handleClose, updateData, getData })
 </script>
 <style scoped lang="scss">
 .detail {

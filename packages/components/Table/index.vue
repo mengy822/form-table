@@ -379,6 +379,7 @@ import {
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { useListenDomChange } from '../utils/hooks'
 import { handleFileDownload, request } from '../js'
+import { ObjectType } from '../js/types'
 
 interface IsTreeConfig {
   id: string
@@ -530,7 +531,7 @@ export interface TableProps {
   height: number | string | undefined
   /** 基础样式类（用于计算高度等） */
   baseClass: string
-  authHeightExcludeClassName: string[]
+  autoHeightExcludeClassName: string[]
   //默认对齐
   align: 'center' | 'left' | 'right'
   operationAlign: 'center' | 'left' | 'right'
@@ -815,7 +816,7 @@ const props = withDefaults(defineProps<TableProps>(), {
   maxHeight: undefined,
   height: undefined,
   baseClass: undefined,
-  authHeightExcludeClassName: () => [],
+  autoHeightExcludeClassName: () => [],
   maxWidth: true,
   sortable: true,
   sortableConfig: () => ({ descending: 'descending', ascending: 'ascending' }),
@@ -1073,7 +1074,7 @@ const autoHeight = (key: string) => {
       const { borderTopWidth, borderBottomWidth } = getComputedStyle('.table-plus .el-card__header')
       const { height, dom } = getRemainingHeight(baseClass.value, [
         '.table-plus',
-        ...props.authHeightExcludeClassName,
+        ...props.autoHeightExcludeClassName,
       ])
       console.log(dom)
       // console.log(height)
@@ -1155,7 +1156,7 @@ const computedTableColumn = (item: tableColumnItem, index: number) => {
   }
   if ((item.list || []).length > 0) {
     item.sortable = false
-    item.list = (item.list||[]).map((item, index) => {
+    item.list = (item.list || []).map((item, index) => {
       return computedTableColumn(item, index)
     })
     return item
@@ -1181,10 +1182,21 @@ const computedTableColumn = (item: tableColumnItem, index: number) => {
         [key: string]: any
       }
     ) => {
+      let propss = [prop]
+      if (prop.indexOf('.') > -1) {
+        propss = prop.split('.')
+      }
+      let lscontent = row[propss[0]]
+      for (let i = 1; i < propss.length; i++) {
+        const item1 = propss[i]
+        lscontent = (lscontent as ObjectType)?.[item1] || undefined
+      }
       const content = String(
-        typeof row[prop] == 'number' && item.decimalPlaces > 0
-          ? (row[prop] as number).toFixed(item.decimalPlaces)
-          : row[prop] ?? props.defaultBlock
+        typeof lscontent == 'number'
+          ? (lscontent as number).toFixed(
+              item.decimalPlaces || 0 || Number((String(lscontent).split('.')[1] || '').length || 0)
+            )
+          : lscontent ?? props.defaultBlock
       )
       const unit =
         typeof item.unit == 'string' ? item.unit : (item.unit && item.unit(row, prop, other)) ?? ''

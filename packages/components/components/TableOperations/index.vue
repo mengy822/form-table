@@ -77,6 +77,7 @@
 import { VNode, computed, h } from 'vue';
 import { ArrowDown } from '@element-plus/icons-vue';
 import { ElButton, ElTooltip, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon } from 'element-plus';
+import { ObjectType } from '@/components/js/types';
 // 组件名称
 defineOptions({
   name: 'TableOperations'
@@ -95,7 +96,7 @@ export interface SlotsObject {
   [key: string]: any;
 }
 export interface dataItemType {
-  [key: string]: string | number | undefined | boolean
+  [key: string]: string | number | undefined | boolean|ObjectType
 }
 // 动态内容类型：VNode 或内置按钮标识
 type SlotContentItem = VNode | 'detail' | 'update' | 'addSon' | 'remove';
