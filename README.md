@@ -1,619 +1,712 @@
+[👉前往github](https://github.com/mengy822/form-table)
+
 # 介绍
 
-基于[Element-Plus](https://element-plus.org/zh-CN) 的[vue3](https://cn.vuejs.org/)版本的表单组件
+基于 [Element-Plus](https://element-plus.org/zh-CN) 的 [Vue3](https://cn.vuejs.org/) 版本的表单/表格组件库，提供搜索表单、表格、虚拟表格、详情、编辑弹框、导入弹框等核心功能，支持高度自定义配置。
+
+---
 
 # 使用
 
-## 搜索框
+## 搜索框 (MyForm)
 
 1. 属性
 
-| 属性名          | 类型    | 默认值 | 说明                 |
-| :-------------- | :------ | :----- | :------------------- |
-| language        | Object  | zhCn   | 语言包               |
-| showSearch      | Boolean | true   | 显示搜索栏           |
-| defaultSearch   | Boolean | true   | 初始化后立即执行搜索 |
-| labelWidth      | String  | auto   | 标签宽度             |
-| gutter          | Number  | 20     | 搜索框间隔           |
-| showSearchLabel | Boolean | true   | 搜索标签             |
-| search          | Array   | 必填   | 搜索条件             |
-| searchButton    | Array   | []     | 搜索按钮             |
-| clearable       | Boolean | true   | 清除按钮             |
-| searchValue     | Object  | 必填   | 搜索值               |
-| isRefreshSearch | Boolean | false  | 重置后立即搜索       |
+| 属性名 | 类型 | 默认值 | 说明 |
+|:-------- |:-----|:-----|:-----|
+| language | Object | zhCn | 语言包 |
+| notNeedChangeCheck | Array | ['input', 'inputNumber'] | 不需要触发变更检查的组件类型 |
+| showSearch | Boolean | true | 显示搜索栏 |
+| defaultSearch | Boolean | true | 初始化后立即执行搜索 |
+| labelWidth | String | 'auto' | 标签宽度 |
+| gutter | Number | 20 | 搜索框间隔 |
+| showSearchLabel | Boolean | true | 显示搜索标签 |
+| search | Array | 必填 | 搜索条件配置 |
+| searchButton | Array | [] | 搜索按钮配置（为空时默认添加 search-refresh 类型按钮） |
+| clearable | Boolean | true | 清除按钮 |
+| searchValue | Object | {} | 搜索值 |
+| isRefreshSearch | Boolean | false | 重置后立即搜索 |
 
-`search 可选值 inputInnerType | selectInnerType | dateInnerType`
+> `search` 可选值：`inputInnerType` | `selectInnerType` | `dateInnerType` | `switchInnerType` | `checkboxInnerType` | `radioInnerType`
 
 2. 事件
 
-| 事件名  | 触发时机                 | 参数                     | 说明     |
-| :------ | :----------------------- | :----------------------- | :------- |
-| search  | 搜索按钮点击/初始化/重置 | 根据search属性生成的对象 | 搜索事件 |
-| refresh | 重置按钮点击             | --                       | 重置事件 |
+| 事件名 | 触发时机 | 参数 | 说明 |
+|:-------- |:-----|:-----|:-----|
+| search | 搜索按钮点击/初始化/重置 | 根据 search 属性生成的对象 | 搜索事件 |
+| refresh | 重置按钮点击 | — | 重置事件 |
 
 3. 插槽
 
-详情见下表
+| 插槽名 | 说明 | 参数 |
+|:---|:----|:----|
+| my-form-item-${prop} | 自定义表单项 | prop, data |
+| label_${prop} | 自定义标签 | prop, data |
+| error_${prop} | 自定义错误信息 | prop, data |
+| ${prop} | 自定义输入框 | prop, data |
 
 4. 使用
 
 ```html
 <MyForm
-  :default-search="true"
-  :search-value="dataForm"
   :search="searchList"
-  @search="query"
-></MyForm>
+  :search-value="searchParams"
+  :default-search="true"
+  :clearable="true"
+  @search="handleSearch"
+>
+  <template #status="{ prop, data }">
+    <el-select v-model="data[prop]" placeholder="请选择状态">
+      <el-option label="启用" value="1"></el-option>
+      <el-option label="禁用" value="0"></el-option>
+    </el-select>
+  </template>
+</MyForm>
 ```
 
 ```javascript
-//搜索条件配置项
-const searchList = ref<(inputInnerType | selectInnerType | dateInnerType)[]>([])
-searchList.value.push({
-    isRequired: true,
-    prop: 'inputNumber',
-    label: 'number',
-    max: 10,
-    type: 'input',
-    inputType: 'number',
-    span: 5,
-  } as inputInnerType)
-searchList.value.push({ isRequired: true, prop: 'input', label: 'input', type: 'input', span: 5 })
-searchList.value.push({
-    prop: 'select',
-    label: 'select',
-    type: 'select',
-    options: 10,
-    multiple: true,
-    span: 5,
-  } as selectInnerType)
+import { ref } from 'vue'
 
-searchList.value.push({
-    prop: 'daterange',
-    label: 'daterange',
-    type: 'date',
-    dateType: 'daterange',
-    valueFormat: 'YYYY-MM-DD',
-    format: 'YYYY-MM-DD',
-    span: 8,
-    aliases: 'start,end',
-  } as dateInnerType)
-//搜索条件
-const dataForm = ref({
-  inputNumber: '123',
-  input: '456',
-  select: '1,2,3',
-  start: '2022-04-01',
-  end: '2024-12-30',
+const searchParams = ref({
+  userName: '',
+  status: ''
 })
-//查询事件
-const query = (e: any) => {
-  dataForm.value = { ...e }
-  request('/test', dataForm.value).then((res: any) => {
-    data.value = res.data
-  })
+
+const searchList = ref([
+  {
+    prop: 'userName',
+    label: '用户名',
+    type: 'input',
+    inputType: 'text',
+    placeholder: '请输入用户名',
+    span: 6
+  },
+  {
+    prop: 'status',
+    label: '状态',
+    type: 'select',
+    options: [
+      { label: '启用', value: 1 },
+      { label: '禁用', value: 0 }
+    ],
+    span: 6
+  }
+])
+
+const handleSearch = (params) => {
+  console.log('搜索参数:', params)
 }
 ```
 
 ---
 
-## 表格
+## 表格 (MyTable)
 
 1. 属性
 
-| 属性名              | 类型                                                                    | 默认值                                                                                                                                                                                                | 说明                                 |
-| :------------------ | :---------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------- |
-| language            | Object                                                                  | zhCn                                                                                                                                                                                                  | 语言包                               |
-| hasIndex            | [Boolean, String]                                                       | true                                                                                                                                                                                                  | 显示序号,string时为列名              |
-| hasOperation        | [Boolean, String]                                                       | true                                                                                                                                                                                                  | 显示操作,string时为列名              |
-| maxHeight           | [Number, String]                                                        | undefined                                                                                                                                                                                             | 最大高度                             |
-| height              | [Number, String]                                                        | undefined                                                                                                                                                                                             | 最大高度                             |
-| hasAdd              | [Boolean, String]                                                       | false                                                                                                                                                                                                 | 显示添加按钮,string时为按钮文本      |
-| hasDetail           | [Boolean, String]                                                       | true                                                                                                                                                                                                  | 显示详情按钮,string时为按钮文本      |
-| hasUpdate           | [Boolean, String]                                                       | true                                                                                                                                                                                                  | 显示修改按钮,string时为按钮文本      |
-| hasRemove           | [Boolean, String]                                                       | true                                                                                                                                                                                                  | 显示删除按钮,string时为按钮文本      |
-| tableColumn         | Array                                                                   | 必填                                                                                                                                                                                                  | 表格列                               |
-| queryParam          | object                                                                  | 必填                                                                                                                                                                                                  | 搜索条件                             |
-| removeMessage       | string                                                                  | 您确定删除该数据吗? 警告:该操作不可逆,请慎重操作                                                                                                                                                      | 删除提示                             |
-| dataList            | Array                                                                   | 必填                                                                                                                                                                                                  | 数据列表                             |
-| total               | number                                                                  | 0                                                                                                                                                                                                     | 总条数(大于0显示分页按钮)            |
-| hasSelection        | boolean,((row: any, index: number) => boolean)                          | 显示多选按钮,为function时控制多选按钮是否可以选中                                                                                                                                                     | --                                   |
-| highlightCurrentRow | Boolean                                                                 | 是否要高亮当前行                                                                                                                                                                                      | false                                |
-| currentRowKey       | String,Number                                                           | 当前行的 key，只写属性                                                                                                                                                                                | --                                   |
-| rowClassName        | string,((data: { row: any, rowIndex: number }) => string)               | 行的 className 的回调方法，也可以使用字符串为所有行设置一个固定的 className。                                                                                                                         | --                                   |
-| rowStyle            | CSSProperties,((data: { row: any, rowIndex: number }) => CSSProperties) | 行的 style 的回调方法，也可以使用一个固定的 Object 为所有行设置一样的 Style                                                                                                                           | --                                   |
-| cellClassName       | string,((data: { row: any, rowIndex: number }) => string)               | 单元格的 className 的回调方法，也可以使用字符串为所有单元格设置一个固定的 className。                                                                                                                 | --                                   |
-| cellStyle           | CSSProperties,((data: { row: any, rowIndex: number }) => CSSProperties) | 单元格的 style 的回调方法，也可以使用一个固定的 Object 为所有单元格设置一样的 Style                                                                                                                   | --                                   |
-| headerRowClassName  | string,((data: { row: any, rowIndex: number }) => string)               | 表头行的 className 的回调方法，也可以使用字符串为所有表头行设置一个固定的 className。                                                                                                                 | --                                   |
-| headerRowStyle      | CSSProperties,((data: { row: any, rowIndex: number }) => CSSProperties) | 表头行的 style 的回调方法，也可以使用一个固定的 Object 为所有表头行设置一样的 Style                                                                                                                   | --                                   |
-| headerCellClassName | string,((data: { row: any, rowIndex: number }) => string)               | 表头单元格的 className 的回调方法，也可以使用字符串为所有表头单元格设置一个固定的 className。                                                                                                         | --                                   |
-| headerCellStyle     | CSSProperties,((data: { row: any, rowIndex: number }) => CSSProperties) | 表头单元格的 style 的回调方法，也可以使用一个固定的 Object 为所有表头行设置一样的 Style                                                                                                               | --                                   |
-| rowKey              | string,((row: any) => string)                                           | 行数据的 Key，用来优化 Table 的渲染； 在使用reserve-selection功能与显示树形数据时，该属性是必填的。 类型为 String 时，支持多层访问：user.info.id，但不支持 user.info[0].id，此种情况请使用 Function。 | --                                   |
-| emptyText           | string                                                                  | 空数据时显示的文本内容， 也可以通过 #empty 设置                                                                                                                                                       | 没有数据                             |
-| duration            | number                                                                  | 1500                                                                                                                                                                                                  | 延迟关闭时间(毫秒) 为0时不会自动关闭 |
-| message             | string                                                                  | 操作成功                                                                                                                                                                                              | 提示信息                             |
+| 属性名 | 类型 | 默认值 | 说明 |
+|:-------- |:-----|:-----|:-----|
+| hasPage | Boolean | true | 是否显示分页 |
+| language | Object | zhCn | 语言包 |
+| hasIndex | Boolean/String | true | 显示序号，string 时为列名 |
+| hasSelection | Boolean/Function | false | 显示多选按钮 |
+| hasOperation | Boolean/String | true | 显示操作列，string 时为列名 |
+| operationWidth | Number | undefined | 操作列总宽度 |
+| oneOperationWidth | Number | 70 | 单个操作按钮宽度 |
+| hasOperationName | Boolean | true | 是否显示操作列标题 |
+| maxHeight | Number/String | undefined | 最大高度 |
+| height | Number/String | undefined | 固定高度 |
+| baseClass | String | '' | 基础样式类（用于自动计算高度） |
+| autoHeightExcludeClassName | Array | [] | 高度计算时排除的 class 名称 |
+| align | String | 'center' | 默认对齐方式 |
+| operationAlign | String | 'center' | 操作列对齐方式 |
+| operationFixed | String | 'right' | 操作列固定位置 |
+| hasIndexFixed | String | 'left' | 序号列固定位置 |
+| maxWidth | Boolean | true | 是否启用最大宽度限制 |
+| hasOperationText | Boolean | true | 操作按钮是否显示文本 |
+| hasOperationLink | Boolean | true | 操作按钮是否显示链接样式 |
+| hasDetail | Boolean/String/Function | '详情' | 显示详情按钮 |
+| hasDetailIcon | Object | View | 详情按钮图标 |
+| hasDetailType | String | 'primary' | 详情按钮类型 |
+| hasUpdate | Boolean/String/Function | '修改' | 显示修改按钮 |
+| hasUpdateIcon | Object | Edit | 修改按钮图标 |
+| hasUpdateType | String | 'warning' | 修改按钮类型 |
+| hasRemove | Boolean/String/Function | '删除' | 显示删除按钮 |
+| hasRemoveIcon | Object | Delete | 删除按钮图标 |
+| hasRemoveType | String | 'danger' | 删除按钮类型 |
+| hasAdd | Boolean/String/Function | '新增' | 显示新增按钮 |
+| hasAddIcon | Object | Plus | 新增按钮图标 |
+| hasAddSon | Boolean/String/Function | '新增' | 显示新增子节点按钮 |
+| hasAddSonIcon | Object | Plus | 新增子节点按钮图标 |
+| hasAddSonType | String | 'primary' | 新增子节点按钮类型 |
+| hasBatchRemove | Boolean/String/Function | true | 显示批量删除按钮 |
+| hasBatchRemoveIcon | Object | Delete | 批量删除按钮图标 |
+| hasBatchRemoveType | String | 'danger' | 批量删除按钮类型 |
+| hasImport | Boolean/String/Function | true | 显示导入按钮 |
+| hasImportIcon | Object | Upload | 导入按钮图标 |
+| hasExport | Boolean/String/Function | true | 显示导出按钮 |
+| hasExportIcon | Object | Download | 导出按钮图标 |
+| hasTableTopPlain | Boolean | true | 表格顶部按钮 Plain |
+| moreButton | String | '更多' | 更多按钮文本 |
+| moreButtonType | String | 'primary' | 更多按钮类型 |
+| moreButtonTrigger | String | 'hover' | 更多按钮触发方式 |
+| isTree | Boolean/Object | false | 树形结构配置 |
+| lazy | Boolean | true | 懒加载 |
+| defaultExpandAll | Boolean | false | 树形结构默认展开所有节点 |
+| loadFun | Function | undefined | 懒加载数据加载函数 |
+| treeProps | Object | { children: 'children', hasChildren: 'hasChildren' } | 树形结构配置 |
+| tableColumn | Array | 必填 | 表格列配置 |
+| dataListFun | Function | undefined | 数据加载函数 |
+| dataConfig | Object | { rows: 'rows', total: 'total', extra: 'extra' } | 数据格式配置 |
+| total | Number | 0 | 数据总数 |
+| removeMessage | String | '您确定删除该数据吗? 警告:该操作不可逆,请慎重操作' | 删除提示 |
+| removeType | String | 'warning' | 删除弹窗类型 |
+| removeMessageTitle | String | '警告' | 删除弹窗标题 |
+| exportMessage | String/Boolean | '是否确认导出数据?' | 导出提示 |
+| exportType | String | 'warning' | 导出弹窗类型 |
+| exportMessageTitle | String | '提示' | 导出弹窗标题 |
+| highlightCurrentRow | Boolean | false | 是否高亮当前行 |
+| currentRowKey | String/Number | '' | 当前行的 key |
+| rowClassName | String/Function | '' | 行的 className 回调 |
+| rowStyle | Object/Function | {} | 行的 style 回调 |
+| cellClassName | String/Function | '' | 单元格 className 回调 |
+| cellStyle | Object/Function | {} | 单元格 style 回调 |
+| headerRowClassName | String/Function | '' | 表头行 className 回调 |
+| headerRowStyle | Object/Function | {} | 表头行 style 回调 |
+| headerCellClassName | String/Function | '' | 表头单元格 className 回调 |
+| headerCellStyle | Object/Function | {} | 表头单元格 style 回调 |
+| rowKey | String/Function | '' | 行数据的 Key |
+| emptyText | String | '没有数据' | 空数据提示文本 |
+| duration | Number | 1500 | 提示时长 |
+| message | String | '操作成功' | 成功提示文本 |
+| defaultBlock | String | '-' | 默认空白占位符 |
+| status | Number/Boolean/String | 200 | 成功状态码 |
+| code | String | 'code' | 状态码字段 |
+| downFun | Function | undefined | 导出下载方法 |
+| sortable | Boolean | true | 是否支持排序 |
+| sortableConfig | Object | { descending: 'descending', ascending: 'ascending' } | 排序配置 |
+| searchSortableConfig | Object | { fieId: 'fieId', fieVal: 'fieVal' } | 搜索排序配置 |
+| simpTransVar | Number | 0 | 简化转换变量 |
 
 > tableColumn 字段
->
-> > prop: 列绑定的字段
-> > label: 列显示的文本
-> > isTable: 是否是表格使用(可选)
-> > isForm: 是否是表单使用(可选)
-> > showOverflow: 超长省略(可选)
-> > width: 列宽(可选)
-> > hidden: 是否隐藏(可选)
-> > visible: 隐藏状态是否显示(可选)
-> > align:对齐方式(可选) 'center' | 'left' | 'right'
-> > fixed:固定列(可选) false | true | 'left' | 'right'
-> > fun: 显示内容方法(可选)
-> > classFun: 定制类(可选)
-> > hasDetail: 显示行详情按钮(可选)
-> > hasUpload: 显示行修改按钮(可选)
-> > hasRemove: 显示行删除按钮(可选)
+
+| 字段 | 类型 | 默认值 | 说明 |
+|:-----|:-----|:-----|:-----|
+| prop | String | 必填 | 列绑定的字段，支持 `a.b.c` 访问嵌套属性，支持 `,`、`~`、`-`、`/` 分隔符组合多个字段 |
+| label | String | 必填 | 列显示的文本 |
+| isTable | Boolean | true | 是否是表格使用 |
+| isForm | Boolean | false | 是否是表单使用 |
+| showOverflow | Boolean | true | 超长省略 |
+| width | Number | 100 | 列宽 |
+| unit | String/Function | '' | 单位 |
+| sort | Boolean/String | false | 是否可排序 |
+| sortable | Boolean/String | false | 是否可排序 |
+| sortProp | String | prop | 排序字段映射 |
+| hidden | Boolean | false | 是否隐藏 |
+| visible | Boolean | true | 是否可见 |
+| align | String | 'center' | 对齐方式 |
+| fixed | Boolean/String | false | 固定列 |
+| selectable | Boolean | true | 是否可选 |
+| maxWidth | Boolean | true | 是否最大宽度 |
+| decimalPlaces | Number | 0 | 小数位数 |
+| fun | Function | 内置方法 | 显示内容方法，支持 `(row, prop, { renderTxt }) => renderTxt(row[prop])` 用法 |
+| funDom | Function | — | 显示内容组件方法 |
+| type | String | — | 数据类型 |
+| classFun | Function | — | 定制类 |
+| showFun | Function | — | 是否显示 |
+| slot | String | — | 插槽名（当 prop 与插槽名不一致时使用） |
+| header | String/Function | — | 自定义表头 |
+| list | Array | — | 子列配置（多级表头） |
+
+**prop 特殊用法：**
+
+- 嵌套对象：`prop: 'user.profile.name'` 访问 `user.profile.name`
+- 多字段组合：支持 `,`、`~`、`-`、`/` 作为分隔符，如 `prop: 'createTime~endTime'`
 
 2. 事件
 
-| 事件名     | 触发时机                  | 参数                                                                                                      | 说明           |
-| :--------- | :------------------------ | :-------------------------------------------------------------------------------------------------------- | :------------- |
-| query      | 搜索按钮点击/刷新按钮点击 | queryParam                                                                                                | 搜索事件       |
-| add        | 新增按钮点击              | --                                                                                                        | 新增事件       |
-| update     | 修改按钮点击              | 当前行的所有数据                                                                                          | 修改事件       |
-| detail     | 详情按钮点击              | 当前行的所有数据                                                                                          | 详情事件       |
-| remove     | 删除按钮点击              | 当前行的所有数据,回调事件调完接口需主动回调flag为true接口成功自动弹出消息,false为接口失败 (flag=true)=>{} | 删除事件       |
-| showSearch | 显示搜索框按钮点击        | true/false                                                                                                | 显示搜索框事件 |
+| 事件名 | 触发时机 | 参数 | 说明 |
+|:-------- |:-----|:-----|:-----|
+| add | 新增按钮点击 | — | 新增事件 |
+| update | 修改按钮点击 | row | 修改事件 |
+| detail | 详情按钮点击 | row | 详情事件 |
+| remove | 删除按钮点击 | row, callback | 删除事件（callback 传入接口 Promise） |
+| batch-remove | 批量删除点击 | selectedRows, callback | 批量删除事件 |
+| export | 导出按钮点击 | exportData, callback | 导出事件 |
+| import | 导入按钮点击 | callback | 导入事件 |
+| add-son | 新增子节点点击 | parentRow, callback | 新增子节点事件 |
+| custom-event | 调用 handleNeedConfirmEvent 后用户确认时触发 | { eventName, data }, callback | 自定义需要确认的事件 |
+| expand-change | 树形表格展开/折叠 | row, expanded | 展开/折叠事件 |
+| current-change | 当前行变化 | row | 当前行变化事件 |
 
 3. 插槽
 
-| 插槽名         | 说明               | 参数                                                                   |
-| :------------- | :----------------- | :--------------------------------------------------------------------- |
-| tableOperation | 表格上方的操作按钮 | --                                                                     |
-| header         | 表格上方           | --                                                                     |
-| ${prop}        | 表格列             | data:当前数据<br>prop:当前属性名<br>row:当前行数据<br>index:当前行序号 |
-| operation      | 表格操作列额外按钮 | 当前行数据                                                             |
-| update         | 表格操作列修改按钮 | 当前行数据                                                             |
-| detail         | 表格操作列详情按钮 | 当前行数据                                                             |
-| remove         | 表格操作列删除按钮 | 当前行数据                                                             |
+| 插槽名 | 说明 | 参数 |
+|:---|:----|:----|
+| header | 表格上方区域 | — |
+| tableOperation | 表格上方操作按钮区域 | data, loading, plain |
+| empty | 空数据内容 | — |
+| operationBefore | 操作列前置内容 | data, index, text, link, loading |
+| operationAfterAddSon | 新增子节点后置内容 | data, index, text, link, loading |
+| operationAfterDetail | 详情后置内容 | data, index, text, link, loading |
+| operationAfterUpdate | 修改后置内容 | data, index, text, link, loading |
+| operationAfter | 操作列后置内容 | data, index, text, link, loading |
+| addSon | 自定义新增子节点按钮 | data, index, text, link, loading |
+| detail | 自定义详情按钮 | data, index, text, link, loading |
+| update | 自定义修改按钮 | data, index, text, link, loading |
+| remove | 自定义删除按钮 | data, index, text, link, loading |
+| ${prop} | 表格列自定义内容 | row, prop, index, nowData, loading |
 
-详情见下表
-
-4.使用
+4. 使用
 
 ```html
-<MyTabel
-  :query-param="dataForm"
-  :total="total"
-  :table-column="table"
-  :data-list="data"
-  :max-height="'75vh'"
-  :has-detail="true"
-  :has-remove="true"
-  :has-update="true"
-  :has-add="true"
-  @detail="detail"
-  @update="update"
-  @remove="remove"
-  @add="update"
-  @query="query"
-></MyTabel>
+<MyTable
+  ref="tableRef"
+  :table-column="tableColumns"
+  :data-list-fun="getList"
+  :base-class="'.app-main'"
+  @add="handleAdd"
+  @update="handleEdit"
+  @detail="handleDetail"
+  @remove="handleDelete"
+  @export="handleExport"
+  @custom-event="handleCustomEvent"
+>
+  <template #status="{ row }">
+    <el-tag :type="row.status === 1 ? 'success' : 'danger'">
+      {{ row.status === 1 ? '启用' : '禁用' }}
+    </el-tag>
+  </template>
+  
+  <template #operationAfter="{ data, loading }">
+    <el-button 
+      link 
+      type="primary" 
+      :loading="loading"
+      @click="handleCustomAction(data, tableRef)"
+    >
+      重置密码
+    </el-button>
+  </template>
+</MyTable>
 ```
 
 ```javascript
-//查询条件
-const dataForm = ref({
-  inputNumber: '123',
-  input: '456',
-  select: '1,2,3',
-  start: '2022-04-01',
-  end: '2024-12-30',
-  pageSize:10,
-  pageNum:1
-})
-//数据条数
-const total=ref(10)
-//当前页的数据
-const data=ref([])
-//表格配置项
-const table=ref([
-  { prop: 'text', label: '文本输入框' },
-  { prop: 'textarea', label: '文本域输入框' },
-  { prop: 'password', label: '密码输入框' },
-  { prop: 'number', label: '数字输入框' },
-  { prop: 'year', label: '日期-年' },
-  { prop: 'years', label: '日期-多年' },
-  { prop: 'month', label: '日期-月' },
-  { prop: 'date', label: '日期-日' },
-  { prop: 'dates', label: '日期-多日', hidden: true, visible: false },
-  { prop: 'datetime', label: '日期-天时间', hidden: true, visible: true },
-  { prop: 'week', label: '日期-周', hidden: true, visible: false },
-  { prop: 'datetimerange', label: '日期-多时间', hidden: true, visible: true,fun:(row,prop)=>row['startDateTime']+'/'+row['endDateTime'] },
-  { prop: 'daterange', label: '日期-多天', hidden: true, visible: false ,fun:(row,prop)=>row['startDate']+'/'+row['endDate']},
-  { prop: 'monthrange', label: '日期-多月', hidden: true, visible: true ,fun:(row,prop)=>row['startMouth']+'/'+row['endMouth']},
-  { prop: 'switch', label: '开关', hidden: true, visible: false },
-  { prop: 'checkboxNumber', label: '多选框数字', hidden: true, visible: true },
-  { prop: 'radioNumber', label: '单选框数字', hidden: true, visible: false },
-  { prop: 'selectNumber', label: '选择器数字', hidden: true, visible: true },
-  { prop: 'checkbox', label: '多选框', hidden: true, visible: false },
-  { prop: 'radio', label: '单选框', hidden: true, visible: true },
-  { prop: 'select', label: '选择器', hidden: true, visible: false },
+import { ref } from 'vue'
+
+const tableRef = ref(null)
+const editDialogRef = ref(null)
+const detailDialogRef = ref(null)
+
+const tableColumns = ref([
+  { prop: 'userName', label: '用户名', width: 120, fixed: 'left' },
+  { prop: 'user.profile.email', label: '邮箱', width: 200 },
+  { prop: 'age', label: '年龄', width: 80, align: 'center' },
+  { prop: 'status', label: '状态', width: 100 },
+  { 
+    prop: 'createTime~endTime', 
+    label: '有效期', 
+    width: 200 
+  },
+  { 
+    prop: 'createTime', 
+    label: '创建时间', 
+    width: 180,
+    fun: (row, prop, { renderTxt }) => renderTxt(row[prop])
+  },
+  { prop: 'remark', label: '备注' }
 ])
-//详情事件
-const detail = (e: unknown) => {
-  console.log(e, '详情')
+
+const getList = (params, callback) => {
+  callback(
+    new Promise((resolve) => {
+      fetchUserList(params).then(res => {
+        resolve({ rows: res.data, total: res.total })
+      }).catch(() => {
+        resolve({ rows: [], total: 0 })
+      })
+    })
+  )
 }
-//修改事件
-const update = (e: any = {}) => {
-  console.log(e, '修改')
+
+const handleAdd = () => {
+  editDialogRef.value?.init({})
 }
-//删除事件
-const remove = (e: unknown) => {
-  console.log(e, '删除')
+
+const handleEdit = (row) => {
+  editDialogRef.value?.init(row)
 }
-//搜索事件
-const query = (e: any) => {
-  dataForm.value = { ...e }
-  console.log(e, '查询')
-  request('/test', dataForm.value).then((res: any) => {
-    total.value = res.total
-    data.value = res.data
+
+const handleDetail = (row) => {
+  detailDialogRef.value?.init(row)
+}
+
+const handleDelete = (row, callback) => {
+  callback(deleteUser(row.id))
+}
+
+const handleExport = (exportData, callback) => {
+  callback('/api/export', exportData, '用户数据.xlsx', 'post')
+}
+
+const handleCustomAction = (row, tableRef) => {
+  tableRef?.handleNeedConfirmEvent({
+    data: row,
+    eventName: 'resetPassword',
+    message: '确认重置该用户的密码吗？',
+    iconType: 'warning',
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    title: '提示'
   })
+}
+
+const handleCustomEvent = ({ eventName, data }, callback) => {
+  if (eventName === 'resetPassword') {
+    callback(resetPassword(data.id))
+  }
 }
 ```
 
 ---
 
-## 详情
+## 虚拟表格 (MyTableV2)
+
+基于 `el-table-v2` 实现的虚拟滚动表格，适用于大数据量场景，API 与 MyTable 基本一致。
+
+| 属性名 | 类型 | 默认值 | 说明 |
+|:-------- |:-----|:-----|:-----|
+| width | Number | undefined | 表格宽度 |
+| rowHeight | Number | 50 | 行高 |
+
+其他属性、事件、插槽与 MyTable 相同。
+
+---
+
+## 详情 (MyDetail)
 
 1. 属性
 
-| 属性名       | 类型                             | 默认值     | 说明                     |
-| :----------- | :------------------------------- | :--------- | :----------------------- |
-| language     | Object                           | zhCn       | 语言包                   |
-| width        | String                           | 50%        | 弹框宽度                 |
-| title        | String                           | 详情       | 弹框标题                 |
-| desBorder    | Boolean                          | true       | 是否带有边框             |
-| desColumn    | Number                           | 2          | 列数                     |
-| desDirection | 'vertical' , 'horizontal'        | horizontal | 排列的方向               |
-| desSize      | '', 'large' , 'default' , 'small | ''         | 列表的尺寸               |
-| desTitle     | String                           | ''         | 标题文本，显示在左上方   |
-| desExtra     | String                           | ''         | 操作区文本，显示在右上方 |
-| column       | Array                            | 必填       | 表格列                   |
+| 属性名 | 类型 | 默认值 | 说明 |
+|:-------- |:-----|:-----|:-----|
+| language | Object | zhCn | 语言包 |
+| width | String | '50%' | 弹框宽度 |
+| title | String | '详情' | 弹框标题（可选） |
+| desBorder | Boolean | false | 描述列表是否带有边框 |
+| desColumn | Number | 2 | 描述列表列数 |
+| desDirection | String | 'horizontal' | 排列方向 |
+| desSize | String | '' | 描述列表尺寸 |
+| desTitle | String | '' | 描述列表标题文本 |
+| desExtra | String | '' | 描述列表操作区文本 |
+| column | Array | 必填 | 详情列配置 |
+| defaultBlock | String | '-' | 默认空白占位符 |
+| dataConfig | Object | { data: 'data', status: 200, code: 'code' } | 数据格式配置 |
 
 > column 字段
->
-> > prop: 列绑定的字段
-> > label: 列显示的文本
-> > span: 列的数量(可选)
-> > rowspan: 单元格应该跨越的行数(可选)
-> > width: 列的宽度，不同行相同列的宽度按最大值设定（如无 border ，宽度包含标签与内容）(可选)
-> > minWidth: 列的最小宽度，与 width 的区别是 width 是固定的，min-width 会把剩余宽度按比例分配给设置了 min-width 的列（如无 border，宽度包含标签与内容）(可选)
-> > align:对齐方式(可选) 'center' | 'left' | 'right'
-> > labelAlign:标签对齐方式(可选) 'left' | 'center' | 'right'; //列的标签对齐方式，若不设置该项，则使用内容的对齐方式（如无 border，请使用 align 参数）
-> > fun: 显示内容方法(可选)
-> > className: 列的内容自定义类名(可选)
-> > labelClassName: 标签自定义类名(可选)
+
+| 字段 | 类型 | 默认值 | 说明 |
+|:-----|:-----|:-----|:-----|
+| prop | String | 必填 | 绑定的字段 |
+| label | String | 必填 | 显示的文本 |
+| span | Number | 1 | 列的数量 |
+| rowspan | Number | 1 | 跨行的数量 |
+| width | Number | — | 列宽度 |
+| minWidth | Number | — | 列最小宽度 |
+| align | String | 'left' | 对齐方式 |
+| labelAlign | String | — | 标签对齐方式 |
+| fun | Function | 内置方法 | 显示内容方法 |
+| classFun | Function | — | 定制类 |
+| className | String | — | 内容自定义类名 |
+| labelClassName | String | — | 标签自定义类名 |
+| showFun | Function | — | 是否显示 |
+| list | Array | — | 子项配置 |
+| unit | String/Function | '' | 单位 |
+| decimalPlaces | Number | 0 | 小数位数 |
+| useRander | Boolean | false | 是否使用渲染函数 |
 
 2. 插槽
 
-| 插槽名         | 说明       | 参数                             |
-| :------------- | :--------- | :------------------------------- |
-| label\_${prop} | 单项的标签 | data:所有数据<br>prop:当前属性名 |
-| ${prop}        | 单项的内容 | data:所有数据<br>prop:当前属性名 |
-| footer         | 操作按钮   | data:所有数据                    |
+| 插槽名 | 说明 | 参数 |
+|:---|:----|:----|
+| left | 左侧区域 | data |
+| right | 右侧区域 | data |
+| footer | 底部区域 | data |
+| label_${prop} | 单项的标签 | prop, nowData, row |
+| ${prop} | 单项的内容 | prop, nowData, row |
 
-3.使用
+3. 使用
 
 ```html
-<MyDetail des-column="3" ref="detailRef" :column="table"></MyDetail>
+<MyDetail ref="detailRef" :column="detailColumns"></MyDetail>
 ```
 
 ```javascript
-//详情配置项
-const table=ref([
-  { prop: 'text', label: '文本输入框' },
-  { prop: 'textarea', label: '文本域输入框' },
-  { prop: 'password', label: '密码输入框' },
-  { prop: 'number', label: '数字输入框' },
-  { prop: 'year', label: '日期-年' },
-  { prop: 'years', label: '日期-多年' },
-  { prop: 'month', label: '日期-月' },
-  { prop: 'date', label: '日期-日' },
-  { prop: 'dates', label: '日期-多日', hidden: true, visible: false },
-  { prop: 'datetime', label: '日期-天时间', hidden: true, visible: true },
-  { prop: 'week', label: '日期-周', hidden: true, visible: false },
-  { prop: 'datetimerange', label: '日期-多时间', hidden: true, visible: true,fun:(row,prop)=>row['startDateTime']+'/'+row['endDateTime'] },
-  { prop: 'daterange', label: '日期-多天', hidden: true, visible: false ,fun:(row,prop)=>row['startDate']+'/'+row['endDate']},
-  { prop: 'monthrange', label: '日期-多月', hidden: true, visible: true ,fun:(row,prop)=>row['startMouth']+'/'+row['endMouth']},
-  { prop: 'switch', label: '开关', hidden: true, visible: false },
-  { prop: 'checkboxNumber', label: '多选框数字', hidden: true, visible: true },
-  { prop: 'radioNumber', label: '单选框数字', hidden: true, visible: false },
-  { prop: 'selectNumber', label: '选择器数字', hidden: true, visible: true },
-  { prop: 'checkbox', label: '多选框', hidden: true, visible: false },
-  { prop: 'radio', label: '单选框', hidden: true, visible: true },
-  { prop: 'select', label: '选择器', hidden: true, visible: false },
+const detailRef = ref(null)
+
+const detailColumns = ref([
+  { prop: 'userName', label: '用户名', span: 1 },
+  { prop: 'email', label: '邮箱', span: 1 },
+  { 
+    prop: 'status', 
+    label: '状态',
+    fun: (row) => row.status === 1 ? '启用' : '禁用'
+  },
+  { 
+    prop: 'createTime', 
+    label: '创建时间',
+    fun: (row, prop, { renderTxt }) => renderTxt(row[prop])
+  }
 ])
-//详情面板的ref对象
-const detailRef=ref(null)
-//详情事件
-const detail = (e: unknown) => {
-  console.log(e, '详情')
-  detailRef.value.init({...e})
+
+const handleDetail = (row) => {
+  detailRef.value?.init(row)
 }
 ```
 
-## 新增/修改
+---
+
+## 新增/修改 (MyEdit)
 
 1. 属性
 
-| 属性名                  | 类型                               | 默认值                   | 说明                                 |
-| :---------------------- | :--------------------------------- | :----------------------- | :----------------------------------- |
-| language                | Object                             | zhCn                     | 语言包                               |
-| notNeedChangeCheck      | Array                              | [input]                  | 不需要创建change检查的类型           |
-| submitButtonTxt         | {add: Stringedit: String}          | {add:'提交',edit:'修改'} | 新增/修改的按钮文本配置              |
-| cancelButtonTxt         | String                             | 取消                     | 关闭按钮的文本配置                   |
-| width                   | String                             | 50%                      | 弹框宽度                             |
-| title                   | {add: Stringedit: String}          | {add:'新增',edit:'编辑'} | 新增/修改的标题配置                  |
-| column                  | Array                              | 必填                     | 编辑列                               |
-| inline                  | Boolean                            | false                    | 行内表单模式                         |
-| labelPosition           | 'left', 'right' , 'top'            | right                    | 表单域标签位置                       |
-| labelWidth              | [String, Number]                   | ''                       | 标签长度                             |
-| labelSuffix             | String                             | ''                       | 表单域标签后缀                       |
-| hideRequiredAsterisk    | Boolean                            | false                    | 隐藏必填星号                         |
-| requireAsteriskPosition | 'left' , 'right'                   | 'left'                   | 星号位置                             |
-| showMessage             | Boolean                            | true                     | 是否显示错误信息                     |
-| inlineMessage           | Boolean                            | false                    | 以行内形式显示错误信息               |
-| statusIcon              | Boolean                            | false                    | 在输入框内显示反馈图标               |
-| validateOnRuleChange    | Boolean                            | true                     | 是否在rules改变后立即触发            |
-| size                    | '' , 'large' , 'default' , 'small' | ''                       | 表单内组件尺寸                       |
-| disabled                | Boolean                            | false                    | 禁用所有组件                         |
-| scrollToError           | Boolean                            | false                    | 滚动到第一个错误表单                 |
-| duration                | number                             | 1500                     | 延迟关闭时间(毫秒) 为0时不会自动关闭 |
-| message                 | string                             | 操作成功                 | 提示信息                             |
+| 属性名 | 类型 | 默认值 | 说明 |
+|:-------- |:-----|:-----|:-----|
+| language | Object | zhCn | 语言包 |
+| notNeedChangeCheck | Array | ['input', 'inputNumber'] | 不需要触发变更检查的类型 |
+| submitButtonTxt | Object | { add: '提交', edit: '修改' } | 提交按钮文本 |
+| cancelButtonTxt | String | '取消' | 取消按钮文本 |
+| width | String | '50%' | 弹框宽度 |
+| title | Object | { add: '新增', edit: '编辑' } | 弹框标题 |
+| column | Array | 必填 | 编辑列配置 |
+| inline | Boolean | false | 行内表单模式 |
+| labelPosition | String | 'right' | 表单域标签位置 |
+| labelWidth | String/Number | 'auto' | 标签长度 |
+| labelSuffix | String | '' | 表单域标签后缀 |
+| hideRequiredAsterisk | Boolean | false | 隐藏必填星号 |
+| requireAsteriskPosition | String | 'left' | 星号位置 |
+| showMessage | Boolean | true | 是否显示错误信息 |
+| inlineMessage | Boolean | false | 行内形式显示错误信息 |
+| statusIcon | Boolean | false | 显示反馈图标 |
+| validateOnRuleChange | Boolean | true | rules 改变后立即触发 |
+| size | String | '' | 表单内组件尺寸 |
+| disabled | Boolean | false | 禁用所有组件 |
+| scrollToError | Boolean | false | 滚动到第一个错误表单 |
+| duration | Number | 1500 | 提示时长 |
+| message | String | '操作成功' | 成功提示文本 |
+| autoUpdate | Function | undefined | 操作成功后自动调用（可用于刷新表格） |
+| status | Number/Boolean/String | 200 | 成功状态码 |
+| code | String | 'code' | 状态码字段 |
+| dataConfig | Object | { data: 'data', status: 200, code: 'code' } | 数据格式配置 |
 
-> tableColumn 字段
->
-> > inputInnerType
-
-    switchInnerType
-     checkboxInnerType
-    radioInnerType
-    selectInnerType
-     dateInnerType
-     详情见下表
+> column 字段支持类型：`inputInnerType` | `dateInnerType` | `selectInnerType` | `switchInnerType` | `checkboxInnerType` | `radioInnerType` | `fileInnerType`
 
 2. 事件
 
-| 事件名 | 触发时机     | 参数                                                                                                       | 说明     |
-| :----- | :----------- | :--------------------------------------------------------------------------------------------------------- | :------- |
-| submit | 确定按钮点击 | 所有数据,回调事件调完接口需主动回调flag为true接口成功自动弹出消息,关闭窗口,false为接口失败 (flag=true)=>{} | 保存事件 |
+| 事件名 | 触发时机 | 参数 | 说明 |
+|:-------- |:-----|:-----|:-----|
+| submit | 确定按钮点击 | data, callback | 保存事件 |
+| close | 弹窗关闭 | — | 关闭事件 |
 
 3. 插槽
 
-| 插槽名         | 说明     | 参数                             |
-| :------------- | :------- | :------------------------------- |
-| ${prop}        | 输入框   | data:所有数据<br>prop:当前属性名 |
-| item\_${prop}  | 输入框   | data:所有数据<br>prop:当前属性名 |
-| label\_${prop} | 输入框   | data:所有数据<br>prop:当前属性名 |
-| error\_${prop} | 输入框   | data:所有数据<br>prop:当前属性名 |
-| footer         | 操作按钮 | data:所有数据                    |
+| 插槽名 | 说明 | 参数 |
+|:---|:----|:----|
+| left | 表单左侧区域 | data |
+| right | 表单右侧区域 | data |
+| footer | 底部按钮区域 | loading, data, orginaData |
+| submitFooter | 提交按钮区域 | loading, data, orginaData |
+| errorData | 错误信息区域 | data |
+| item_${prop} | 表单项包装 | prop, data |
+| ${prop} | 输入框内容 | prop, data, config |
+| label_${prop} | 标签内容 | prop, data |
+| error_${prop} | 错误信息内容 | prop, data |
 
-详情见下表
-
-4.使用
+4. 使用
 
 ```html
-<MyEdit ref="editRef" :column="editColumn" @submit="submitFun"></MyEdit>
+<MyEdit
+  ref="editRef"
+  :column="editColumns"
+  :label-width="'100px'"
+  :auto-update="refreshTable"
+  @submit="handleSubmit"
+/>
 ```
 
 ```javascript
-//配置项
-const editColumn = ref([
+const editRef = ref(null)
+
+const editColumns = ref([
   {
-    prop: 'text',
-    label: '文本输入框',
+    prop: 'userName',
+    label: '用户名',
     type: 'input',
     inputType: 'text',
-    isRequired:true
-  } as inputInnerType,
+    isRequired: true,
+    maxlength: 50
+  },
   {
-    prop: 'textarea',
-    label: '文本域输入框',
+    prop: 'email',
+    label: '邮箱',
     type: 'input',
-    inputType: 'textarea',
-  } as inputInnerType,
+    inputType: 'text',
+    isRequired: true
+  },
   {
-    prop: 'password',
-    label: '密码输入框',
-    type: 'input',
-    inputType: 'password',
-  } as inputInnerType,
+    prop: 'status',
+    label: '状态',
+    type: 'select',
+    options: [
+      { label: '启用', value: 1 },
+      { label: '禁用', value: 0 }
+    ],
+    isRequired: true,
+    isDefault: true
+  },
   {
-    prop: 'number',
-    label: '数字输入框',
-    type: 'input',
-    inputType: 'number',
-  } as inputInnerType,
-  {
-    prop: 'year',
-    label: '日期-年',
-    type: 'date',
-    dateType: 'year',
-    valueFormat: 'YYYY',
-  } as dateInnerType,
-  {
-    prop: 'years',
-    label: '日期-多年',
-    type: 'date',
-    dateType: 'years',
-    valueFormat: 'YYYY',
-  } as dateInnerType,
-
-  {
-    prop: 'month',
-    label: '日期-月',
-    type: 'date',
-    dateType: 'month',
-    valueFormat: 'YYYY-MM',
-  } as dateInnerType,
-  {
-    prop: 'date',
-    label: '日期-日',
-    type: 'date',
-    dateType: 'date',
-    valueFormat: 'YYYY-MM-DD',
-    format: 'YYYY-MM-DD',
-  } as dateInnerType,
-  {
-    prop: 'dates',
-    label: '日期-多日',
-    type: 'date',
-    dateType: 'dates',
-    valueFormat: 'YYYY-MM-DD',
-    format: 'YYYY-MM-DD',
-  } as dateInnerType,
-  {
-    prop: 'datetime',
-    label: '日期-天时间',
-    type: 'date',
-    dateType: 'datetime',
-    valueFormat: 'YYYY-MM-DD hh:mm:ss',
-    format: 'YYYY-MM-DD hh:mm:ss',
-  } as dateInnerType,
-  {
-    prop: 'week',
-    label: '日期-周',
-    type: 'date',
-    dateType: 'week',
-    valueFormat: 'YYYY-ww',
-  } as dateInnerType,
-  {
-    prop: 'datetimerange',
-    label: '日期-多时间',
-    type: 'date',
-    dateType: 'datetimerange',
-    valueFormat: 'YYYY-MM-DD hh:mm:ss',
-    format: 'YYYY-MM-DD hh:mm:ss',
-    aliases: 'startDateTime,endDateTime',
-  } as dateInnerType,
-  {
-    prop: 'daterange',
-    label: '日期-多天',
+    label: '有效期',
+    prop: 'dateRange',
     type: 'date',
     dateType: 'daterange',
-    valueFormat: 'YYYY-MM-DD',
-    format: 'YYYY-MM-DD',
     aliases: 'startDate,endDate',
-  } as dateInnerType,
+    isRequired: true
+  },
   {
-    prop: 'monthrange',
-    label: '日期-多月',
+    label: '年份',
+    prop: 'years',
     type: 'date',
-    dateType: 'monthrange',
-    valueFormat: 'YYYY-MM',
-    aliases: 'startMouth,endMouth',
-  } as dateInnerType,
+    dateType: 'years'
+  },
   {
-    prop: 'switch',
-    label: '开关',
-    type: 'switch',
-  } as switchInnerType,
-  {
-    prop: 'checkboxNumber',
-    label: '多选框数字',
-    type: 'checkbox',
-    options: 10,
-  } as checkboxInnerType,
-  {
-    prop: 'radioNumber',
-    label: '单选框数字',
-    type: 'radio',
-    options: 10,
-  } as radioInnerType,
-  {
-    prop: 'selectNumber',
-    label: '选择器数字',
+    label: '角色',
+    prop: 'roles',
     type: 'select',
-    options: 10,
-  } as selectInnerType,
-  {
-    prop: 'selectNumberMultiple',
-    label: '选择器数字多选',
-    type: 'select',
-    options: 10,
-    multiple:true,
-  } as selectInnerType,
-  {
-    prop: 'checkbox',
-    label: '多选框',
-    type: 'checkbox',
+    multiple: true,
+    valueType: 'string',
     options: [
-      {
-        label: 'a',
-        value: 'a',
-      },
-      {
-        label: 'b',
-        value: 'b',
-        disable: true,
-      },
-      {
-        label: 'c',
-        value: 'c',
-      },
-    ],
-  } as checkboxInnerType,
-  {
-    prop: 'radio',
-    label: '单选框',
-    type: 'radio',
-    options: [
-      {
-        label: 'a',
-        value: 'a',
-      },
-      {
-        label: 'b',
-        value: 'b',
-        disable: true,
-      },
-      {
-        label: 'c',
-        value: 'c',
-      },
-    ],
-  } as radioInnerType,
-  {
-    prop: 'select',
-    label: '选择器',
-    type: 'select',
-    options: [
-      {
-        label: 'a',
-        value: 'a',
-      },
-      {
-        label: 'b',
-        value: 'b',
-        disabled: true,
-      },
-      {
-        label: 'c',
-        value: 'c',
-      },
-    ],
-  } as selectInnerType,
+      { label: '管理员', value: 'admin' },
+      { label: '普通用户', value: 'user' }
+    ]
+  }
 ])
-//新增/编辑 ref对象
-const editRef=ref(null)
-//修改事件
-const update = (e: any = {}) => {
-  console.log(e, '修改')
-  editRef.value.init({...e})
-}
-//保存事件
-const submitFun=(e:any)=>{
-  console.log(e, '保存')
+
+const refreshTable = () => {
+  tableRef.value?.query()
 }
 
+const handleSubmit = (data, callback) => {
+  callback(saveUser(data))
+}
+
+const handleAdd = () => {
+  editRef.value?.init({})
+}
+
+const handleEdit = (row) => {
+  editRef.value?.init(row)
+}
+```
+
+---
+
+## 导入 (MyImport)
+
+1. 属性
+
+| 属性名 | 类型 | 默认值 | 说明 |
+|:-------- |:-----|:-----|:-----|
+| errorColumn | Array | [] | 错误信息表格列配置 |
+
+其他属性继承 MyEdit。
+
+2. 事件
+
+| 事件名 | 触发时机 | 参数 | 说明 |
+|:-------- |:-----|:-----|:-----|
+| submit | 确定按钮点击 | data, callback | 导入事件 |
+| close | 弹窗关闭 | — | 关闭事件 |
+
+3. 使用
+
+```html
+<MyImport
+  ref="importRef"
+  :column="importColumns"
+  :error-column="errorColumns"
+  @submit="handleImport"
+/>
+```
+
+```javascript
+const importRef = ref(null)
+
+const importColumns = ref([
+  {
+    prop: 'file',
+    label: '导入文件',
+    type: 'file',
+    accept: '.xlsx,.xls',
+    limitSize: 10,
+    hasTemplate: '/template/import-template.xlsx'
+  }
+])
+
+const errorColumns = ref([
+  { prop: 'rowNum', label: '行号', width: 80 },
+  { prop: 'errorMsg', label: '错误信息', width: 300 }
+])
+
+const handleImport = (data, callback) => {
+  const formData = new FormData()
+  formData.append('file', data.file)
+  callback(importExcel(formData))
+}
+
+const openImport = () => {
+  importRef.value?.init({})
+}
+```
+
+---
+
+## 弹框 (MyDialog)
+
+1. 属性
+
+| 属性名 | 类型 | 默认值 | 说明 |
+|:-------- |:-----|:-----|:-----|
+| title | String | — | 弹框标题 |
+| width | Number/String | '50%' | 弹框宽度 |
+
+2. 事件
+
+| 事件名 | 参数 | 说明 |
+|:-------- |:-----|:-----|
+| beforeClose | callback: () => void | 弹窗关闭前事件 |
+
+3. 插槽
+
+| 插槽名 | 参数 | 说明 |
+|:---|:----|:----|
+| inner | { innerData } | 弹窗内容区域 |
+| footer | — | 弹窗底部区域 |
+
+4. 使用
+
+```html
+<MyDialog ref="dialogRef" title="弹窗标题">
+  <template #inner="{ innerData }">
+    <div>{{ innerData }}</div>
+  </template>
+</MyDialog>
+```
+
+```javascript
+const dialogRef = ref(null)
+
+const openDialog = (data) => {
+  dialogRef.value?.init(data)
+}
 ```
 
 ---
@@ -622,200 +715,181 @@ const submitFun=(e:any)=>{
 
 ## 公共参数
 
-| 属性名         | 类型                                                          | 说明                                    | 默认值 |
-| -------------- | ------------------------------------------------------------- | --------------------------------------- | ------ |
-| prop           | string                                                        | model 的键名。                          | 必填   |
-| label          | string                                                        | 标签                                    | 必填   |
-| labelPosition  | '' , 'left' , 'right' , 'top'                                 | 表单域标签的位置                        | --     |
-| labelWidth     | string , number                                               | 标签宽度，例如 '50px'。 可以使用 auto。 | --     |
-| isForm         | boolean                                                       | 表单字段                                | false  |
-| isTable        | boolean                                                       | 表格字段                                | false  |
-| error          | string                                                        | 表单域验证错误时的提示信息。            | --     |
-| showMessage    | boolean                                                       | 是否显示校验错误信息                    | --     |
-| inlineMessage  | string , boolean                                              | 是否在行内显示校验信息                  | --     |
-| type           | 'input' , 'date' , 'radio' , 'select' , 'switch' , 'checkbox' | 表单项类型                              | 必填   |
-| span           | number                                                        | 栏宽度                                  | --     |
-| for            | string                                                        | 和原生标签相同能力                      | --     |
-| validateStatus | '' , 'error' , 'validating' , 'success'                       | formitem 校验的状态                     | --     |
-| isDefault      | boolean                                                       | 是否有默认选中                          | false  |
-| isRequired     | boolean,((rule: any, value: any, callback: any)=>void)        | 是否必填                                | false  |
-| size           | large' ,'default' , 'small'                                   | 多选框组尺寸                            | --     |
-| disabled       | boolean                                                       | 是否禁用                                | false  |
-| clearable      | boolean                                                       | 是否有清除按钮                          | false  |
-| readonly       | boolean                                                       | 只读                                    | false  |
+以下属性为各表单子组件（Input、Select、Date、Checkbox、Radio、Switch、File）的通用配置。
 
-## 输入框
+| 属性名 | 类型 | 说明 | 默认值 |
+|----|----|----|----|
+| prop | String | model 的键名 | 必填 |
+| label | String | 标签 | 必填 |
+| type | String | 表单项类型（input/select/date/switch/checkbox/radio/file） | 必填 |
+| labelPosition | String | 表单域标签的位置 | — |
+| labelWidth | String/Number | 标签宽度 | — |
+| isForm | Boolean | 表单字段 | false |
+| isTable | Boolean | 表格字段 | false |
+| error | String | 表单域验证错误时的提示信息 | — |
+| showMessage | Boolean | 是否显示校验错误信息 | — |
+| inlineMessage | String/Boolean | 是否在行内显示校验信息 | — |
+| span | Number | 栏宽度 | — |
+| for | String | 和原生标签相同能力 | — |
+| validateStatus | String | formitem 校验的状态 | — |
+| isDefault | Boolean | 是否有默认选中 | false |
+| isRequired | Boolean/Function | 是否必填 | false |
+| size | String | 组件尺寸 | — |
+| disabled | Boolean/Function | 是否禁用 | false |
+| clearable | Boolean | 是否有清除按钮 | true |
+| readonly | Boolean | 只读 | false |
 
-| 插槽名         | 说明                                            |
-| -------------- | ----------------------------------------------- |
-| prefix-{prop}  | 输入框头部内容，只对非 type="textarea" 有效     |
-| suffix-{prop}  | 输入框尾部内容，只对非 type="textarea" 有效     |
-| prepend-{prop} | 输入框前置内容，只对非 type="textarea" 有效     |
-| append-{prop}  | 输入框后置内容，只对非 type="textarea" 有效     |
-| prefix         | 全局输入框头部内容，只对非 type="textarea" 有效 |
-| suffix         | 全局输入框尾部内容，只对非 type="textarea" 有效 |
-| prepend        | 全局输入框前置内容，只对非 type="textarea" 有效 |
-| append         | 全局输入框后置内容，只对非 type="textarea" 有效 |
+> **isDefault 行为说明**：
+> - Checkbox/Radio/Select：自动选中第一个可用选项
+> - Date：单个日期设为当前时间；日期范围设为今天 00:00:00 到 23:59:59
 
-| 属性名        | 类型                                        | 说明                                                                                                       |
-| ------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| inputType     | 'text' , 'textarea' , 'password' , 'number' | 输入框类型                                                                                                 |
-| maxlength     | string , number                             | 同原生 maxlength 属性                                                                                      |
-| minlength     | string , number                             | 原生属性，最小输入长度                                                                                     |
-| showWordLimit | boolean                                     | 是否显示统计字数, 只在 type 为 'text' 或 'textarea' 的时候生效 false                                       |
-| placeholder   | string                                      | 输入框占位文本                                                                                             |
-| showPassword  | boolean                                     | 是否显示切换密码图标                                                                                       |
-| prefixIcon    | string                                      | 自定义前缀图标                                                                                             |
-| suffixIcon    | string                                      | 自定义后缀图标                                                                                             |
-| rows          | number                                      | 输入框行数，仅 type 为 'textarea' 时有效                                                                   |
-| autosize      | boolean , object                            | textarea 高度是否自适应，仅 type 为 'textarea' 时生效。 可以接受一个对象，比如: { minRows: 2, maxRows: 6 } |
-| autocomplete  | string                                      | 原生 autocomplete 属性 off                                                                                 |
-| name          | string                                      | 等价于原生 input name 属性                                                                                 |
-| max           | any                                         | 原生 max 属性，设置最大值 — —                                                                              |
-| min           | any                                         | 原生属性，设置最小值 — —                                                                                   |
-| step          | any                                         | 原生属性，设置输入字段的合法数字间隔 — —                                                                   |
-| resize        | 'none' , 'both' , 'horizontal' , 'vertical' | 控制是否能被用户缩放                                                                                       |
-| autofocus     | boolean                                     | 原生属性，自动获取焦点 false                                                                               |
-| form          | string                                      | 原生属性 string —                                                                                          |
-| validateEvent | boolean                                     | 输入时是否触发表单的校验                                                                                   |
-| inputStyle    | string , object;                            |
-| blur          | (event: FocusEvent) => void                 | 当选择器的输入框失去焦点时触发                                                                             |
-| focus         | (event: FocusEvent) => void                 | 当选择器的输入框获得焦点时触发                                                                             |
-| change        | (value: string , number) => void            | 仅当 modelValue 改变时，当输入框失去焦点或用户按Enter时触发                                                |
-| input         | (value: string , number) => void            | 在 Input 值改变时触发                                                                                      |
-| clear         | () => void                                  | 在点击由 clearable 属性生成的清空按钮时触发                                                                |
+---
 
-## 日期选择
+## 输入框 (Input)
 
-| 插槽名                 | 说明                     |
-| ---------------------- | ------------------------ |
-| default-{prop}         | 自定义单元格内容         |
-| range-separator-{prop} | 自定义范围分割符内容     |
-| prev-month-{prop}      | 上个月的图标             |
-| next-month-{prop}      | 下个月的图标             |
-| prev-year-{prop}       | 上一年图标               |
-| next-year-{prop}       | 下一年图标               |
-| default                | 全局自定义单元格内容     |
-| range-separator        | 全局自定义范围分割符内容 |
-| prev-month             | 全局上个月的图标         |
-| next-month             | 全局下个月的图标         |
-| prev-year              | 全局上一年图标           |
-| next-year              | 全局下一年图标           |
+| 属性名 | 类型 | 默认值 | 说明 |
+|----|----|----|----|
+| inputType | String | 'text' | 输入框类型（text/textarea/password/number/numberRange） |
+| maxlength | Number | 50 | 最大输入长度 |
+| minlength | Number | — | 最小输入长度 |
+| showWordLimit | Boolean | false | 是否显示统计字数 |
+| placeholder | String | '请输入' + label | 输入框占位文本 |
+| showPassword | Boolean | false | 是否显示切换密码图标 |
+| prefixIcon | String | — | 自定义前缀图标 |
+| suffixIcon | String | — | 自定义后缀图标 |
+| rows | Number | 2 | 输入框行数 |
+| autosize | Boolean/Object | false | textarea 高度自适应 |
+| autocomplete | String | 'off' | 原生 autocomplete 属性 |
+| name | String | — | 原生 name 属性 |
+| max | Number | — | 最大值 |
+| min | Number | — | 最小值 |
+| step | Number | — | 合法数字间隔 |
+| resize | String | — | 控制缩放 |
+| autofocus | Boolean | false | 自动获取焦点 |
+| form | String | — | 原生 form 属性 |
+| validateEvent | Boolean | true | 输入时是否触发表单校验 |
+| inputStyle | Object | {} | 输入框样式 |
+| integerPlaces | Number | 10 | 整数位数（numberRange） |
+| decimalPlaces | Number | 2 | 小数位数（numberRange/number） |
 
-| 属性名           | 类型                                                                                                                           | 说明                                       |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------ | ---------------------- |
-| startPlaceholder | string                                                                                                                         | 时间范围开始时间                           |
-| rangeSeparator   | string                                                                                                                         | 时间范围连接符                             |
-| endPlaceholder   | string                                                                                                                         | 时间范围结束时间                           |
-| aliases          | string                                                                                                                         | 时间范围转义单字段                         |
-| editable         | boolean                                                                                                                        |
-| valueFormat      | string                                                                                                                         | 时间绑定格式                               |
-| format           | string                                                                                                                         | 时间显示格式                               |
-| dateType         | 'year' , 'years','yearrange' , 'month' , 'date' , 'dates' , 'datetime' , 'week' , 'datetimerange' , 'daterange' , 'monthrange' | 类型                                       |
-| change           | (val: any) => void                                                                                                             | 用户确认选定的值时触发                     |
-| blur             | (e: FocusEvent) => void                                                                                                        | 在组件 Input 失去焦点时触发                |
-| focus            | (e: FocusEvent) => void                                                                                                        | 在组件 Input 获得焦点时触发                |
-| clear            | () => void                                                                                                                     | 2.7.7 可清空的模式下用户点击清空按钮时触发 |
-| calendarChange   | (val: [Date, null , Date]) => void                                                                                             | 在日历所选日期更改时触发                   |
-| panelChange      | (date: Date , [Date, Date], mode: 'month' , 'year', view                                                                       | string) => void                            | 当日期面板改变时触发。 |
-| visibleChange    | (visibility: boolean) => void                                                                                                  | 当 DatePicker 的下拉列表出现/消失时触发    |
+---
 
-## 开关
+## 下拉框 (Select)
 
-| 插槽名               | 说明           |
-| -------------------- | -------------- |
-| active-action-{prop} | 激活按钮       |
-| active-action-{prop} | 未激活按钮     |
-| active-action        | 全局激活按钮   |
-| active-action        | 全局未激活按钮 |
+| 属性名 | 类型 | 默认值 | 说明 |
+|----|----|----|----|
+| type | String | '' | 类型（'' / group） |
+| options | Array/Number | 必填 | 选项配置 |
+| multiple | Boolean | false | 是否多选 |
+| filterable | Boolean | false | 是否可筛选 |
+| remote | Boolean | false | 是否远程加载 |
+| remoteMethod | Function | — | 远程搜索方法 |
+| extraParams | Object | {} | 额外参数（自动传递到 remoteMethod） |
+| clearable | Boolean | false | 是否可清空 |
+| collapseTags | Boolean | false | 多选时是否折叠 |
+| multipleLimit | Number | 0 | 最多选择数量 |
+| loading | Boolean | false | 是否加载中 |
+| valueType | String | — | 值类型（为 'string' 时转为逗号分隔字符串） |
 
-| 属性名             | 类型                                     | 说明                                                                         |
-| ------------------ | ---------------------------------------- | ---------------------------------------------------------------------------- |
-| loading            | boolean                                  | 是否显示加载中 boolean false                                                 |
-| width              | string , number                          | switch 的宽度                                                                |
-| inlinePrompt       | boolean                                  | 无论图标或文本是否显示在点内，只会呈现文本的第一个字符 boolean false         |
-| activeIcon         | string                                   | switch 状态为 on 时所显示图标，设置此项会忽略 active-text                    |
-| inactiveIcon       | string                                   | switch 状态为 off 时所显示图标，设置此项会忽略 inactive-text                 |
-| activeActionIcon   | string                                   | on状态下显示的图标组件                                                       |
-| inactiveActionIcon | string                                   | off状态下显示的图标组件                                                      |
-| activeText         | string                                   | switch 打开时的文字描述                                                      |
-| inactiveText       | string                                   | switch 的状态为 off 时的文字描述                                             |
-| activeValue        | boolean , string , number                | switch 状态为 on 时的值 true                                                 |
-| inactiveValue      | boolean , string , number                | switch的状态为 off 时的值 false                                              |
-| name               | string                                   | switch 对应的 name 属性                                                      |
-| validateEvent      | boolean                                  | 是否触发表单验证 true                                                        |
-| beforeChange       | boolean , (() => Promise<boolean>)       | switch 状态改变前的钩子， 返回 false 或者返回 Promise 且被 reject 则停止切换 |
-| id                 | string                                   | input 的 id                                                                  |
-| tabindex           | string , number                          | input 的 tabindex                                                            |
-| change             | (val: boolean , string , number) => void | 切换时触发                                                                   |
+**远程搜索示例：**
 
-## 下拉框
+```javascript
+{
+  label: '设备编号',
+  prop: 'vehicleId',
+  type: 'select',
+  options: [],
+  filterable: true,
+  remote: true,
+  remoteMethod: querySearchAllAsync,
+  extraParams: { typeCode: 'DJ6' }
+}
+```
 
-| 插槽名               | 说明           |
-| -------------------- | -------------- |
-| active-action-{prop} | 激活按钮       |
-| active-action-{prop} | 未激活按钮     |
-| active-action        | 全局激活按钮   |
-| active-action        | 全局未激活按钮 |
+```javascript
+const querySearchAllAsync = (keyword, callback, extraParams) => {
+  fetchDeviceList({ keyword, ...extraParams }).then(res => {
+    callback(res.data)
+  })
+}
+```
 
-| 属性名              | 类型                                                                                                                                                    | 说明                                                                                                  | 默认值                            |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------- | --- |
-| multiple            | boolean                                                                                                                                                 | 是否多选                                                                                              | false                             |
-| valueKey            | string                                                                                                                                                  | 作为 value 唯一标识的键名，绑定值为对象类型时必填                                                     | --                                |
-| collapseTags        | boolean                                                                                                                                                 | 多选时是否将选中值按文字的形式展示                                                                    | false                             |
-| collapseTagsTooltip | boolean                                                                                                                                                 | 当鼠标悬停于折叠标签的文本时，是否显示所有选中的标签。 要使用此属性，collapse-tags属性必须设定为 true | false                             |
-| multipleLimit       | number                                                                                                                                                  | multiple 属性设置为 true 时，代表多选场景下用户最多可以选择的项目数， 为 0 则不限制                   | 0                                 |
-| name                | string                                                                                                                                                  | Select 输入框的原生 name 属性                                                                         | --                                |
-| effect              | 'dark' , 'light' , string                                                                                                                               | tooltip 主题，内置了 dark / light 两种                                                                | light                             |
-| autocomplete        | string                                                                                                                                                  | Select 输入框的原生 autocomplete 属性                                                                 | off                               |
-| filterable          | boolean                                                                                                                                                 | Select 组件是否可筛选                                                                                 | false                             |
-| allowCreate         | boolean                                                                                                                                                 | 是否允许用户创建新条目， 只有当 filterable 设置为 true 时才会生效。                                   | false                             |
-| filterMethod        | () => void                                                                                                                                              | 自定义筛选方法                                                                                        | --                                |
-| remote              | boolean                                                                                                                                                 | 其中的选项是否从服务器远程加载                                                                        | false                             |
-| remoteMethod        | () => void                                                                                                                                              | 自定义远程搜索方法                                                                                    | --                                |
-| remoteShowSuffix    | boolean                                                                                                                                                 | 远程搜索方法显示后缀图标                                                                              | false                             |
-| loading             | boolean                                                                                                                                                 | 是否正在从远程获取数据                                                                                | false                             |
-| loadingText         | string                                                                                                                                                  | 从服务器加载数据时显示的文本，默认为“Loading”                                                         | Loading                           |
-| noMatchText         | string                                                                                                                                                  | 搜索条件无匹配时显示的文字，也可以使用 empty 插槽设置，默认是 “No matching data'”                     | No matching data                  |
-| noDataText          | string                                                                                                                                                  | 无选项时显示的文字，也可以使用 empty 插槽设置自定义内容，默认是 “No data”                             | No data                           |
-| popperClass         | string                                                                                                                                                  | 选择器下拉菜单的自定义类名                                                                            | --                                |
-| reserveKeyword      | boolean                                                                                                                                                 | 当 multiple 和 filterable被设置为 true 时，是否在选中一个选项后保留当前的搜索关键词                   | true                              |
-| defaultFirstOption  | boolean                                                                                                                                                 | 是否在输入框按下回车时，选择第一个匹配项。 需配合 filterable 或 remote 使用                           | false                             |
-| teleported          | boolean                                                                                                                                                 | 是否将下拉列表插入至 body 元素                                                                        | true                              |
-| appendTo            | string                                                                                                                                                  | 下拉框挂载到哪个 DOM 元素                                                                             | --                                |
-| persistent          | boolean                                                                                                                                                 | 当下拉选择器未被激活并且persistent设置为false，选择器会被删除。                                       | true                              |
-| automaticDropdown   | boolean                                                                                                                                                 | 对于不可搜索的 Select，是否在输入框获得焦点后自动弹出选项菜单                                         | false                             |
-| clearIcon           | string , object                                                                                                                                         | 自定义清除图标                                                                                        | CircleClose                       |
-| fitInputWidth       | boolean                                                                                                                                                 | 下拉框的宽度是否与输入框相同                                                                          | false                             |
-| suffixIcon          | string , object                                                                                                                                         | 自定义后缀图标组件                                                                                    | ArrowDown                         |
-| tagType             | '' , 'success' , 'info' , 'warning' , 'danger'                                                                                                          | 标签类型                                                                                              | info                              |
-| tagEffect           | '' , 'light' , 'dark' , 'plain'                                                                                                                         | 标签效果                                                                                              | light                             |
-| validateEvent       | boolean                                                                                                                                                 | 是否触发表单验证                                                                                      | true                              |
-| placement           | 'top' , 'top-start' , 'top-end' , 'bottom' , 'bottom-start' , 'bottom-end' , 'left' , 'left-start' , 'left-end' , 'right' , 'right-start' , 'right-end' | 下拉框出现的位置                                                                                      | bottom-start                      |
-| fallbackPlacements  | any[]                                                                                                                                                   | dropdown 可用的 positions 请查看popper.js 文档 ['bottom-start', 'top-start', 'right', 'left']         | --                                |
-| maxCollapseTags     | number                                                                                                                                                  | 需要显示的 Tag 的最大数量 只有当 collapse-tags 设置为 true 时才会生效。                               | 1                                 |
-| popperOptions       | object                                                                                                                                                  | popper.js 参数                                                                                        | {}                                |
-| emptyValues         | any[]// 组件的空值配置 参考config-providervalueOnClear                                                                                                  | string , number , boolean , Function                                                                  | 清空选项的值 参考 config-provider | --  |
-| options             | selectOptionsGroupType[] , selectOptionsType[] , number                                                                                                 |
-| focus               | (event: FocusEvent) => void                                                                                                                             | 当 input 获得焦点时触发                                                                               | --                                |
-| blur                | (event: FocusEvent) => void                                                                                                                             | 当 input 失去焦点时触发                                                                               | --                                |
-| clear               | () => void                                                                                                                                              | 可清空的单选模式下用户点击清空按钮时触发                                                              | --                                |
-| removeTag           | (tagValue: any) => void                                                                                                                                 | 多选模式下移除tag时触发                                                                               | --                                |
-| visibleChange       | (visible: boolean) => void                                                                                                                              | 下拉框出现/隐藏时触发                                                                                 | --                                |
-| change              | (value: any) => void                                                                                                                                    | 选中值发生变化时触发                                                                                  | --                                |
+---
 
-> selectOptionsGroupType
+## 日期选择 (Date)
 
-| 属性名                       | 类型    | 说明       |
-| ---------------------------- | ------- | ---------- |
-| label                        | string  | 选项的标签 |
-| disabled                     | boolean | 是否禁用   |
-| options: selectOptionsType[] | option  |
+| 属性名 | 类型 | 默认值 | 说明 |
+|----|----|----|----|
+| dateType | String | 'datetimerange' | 日期类型（year/years/month/date/dates/datetime/week/time/timerange/daterange/monthrange/datetimerange） |
+| valueFormat | String | 自动推断 | 绑定值格式 |
+| format | String | 同 valueFormat | 显示格式 |
+| aliases | String | — | 范围字段别名（用于拆分字段） |
+| startPlaceholder | String | '开始日期' | 开始占位符 |
+| endPlaceholder | String | '结束日期' | 结束占位符 |
+| rangeSeparator | String | '-' | 范围分隔符 |
 
-> selectOptionsType
+---
 
-| 属性名   | 类型                              | 说明           |
-| -------- | --------------------------------- | -------------- | ------------------------------------- |
-| value    | string , number , boolean, object | 选项的值       |
-| label    | string                            | number         | 选项的标签，若不设置则默认与value相同 |
-| disabled | boolean                           | 是否禁用该选项 |
+## 开关 (Switch)
+
+| 属性名 | 类型 | 默认值 | 说明 |
+|----|----|----|----|
+| activeValue | Any | true | 开启时的值 |
+| inactiveValue | Any | false | 关闭时的值 |
+| activeText | String | — | 开启时的文本 |
+| inactiveText | String | — | 关闭时的文本 |
+| loading | Boolean | false | 是否加载中 |
+| disabled | Boolean | false | 是否禁用 |
+
+---
+
+## 多选框 (Checkbox)
+
+| 属性名 | 类型 | 默认值 | 说明 |
+|----|----|----|----|
+| type | String | 'checkbox' | 类型（checkbox / checkboxButton） |
+| options | Array/Number | 必填 | 选项配置 |
+| min | Number | 0 | 最小选择数量 |
+| max | Number | 选项数量 | 最大选择数量 |
+| valueType | String | — | 值类型（为 'string' 时转为逗号分隔字符串） |
+
+---
+
+## 单选框 (Radio)
+
+| 属性名 | 类型 | 默认值 | 说明 |
+|----|----|----|----|
+| type | String | 'radio' | 类型（radio / radioButton） |
+| options | Array/Number | 必填 | 选项配置 |
+| valueType | String | — | 值类型 |
+
+---
+
+## 文件上传 (File)
+
+| 属性名 | 类型 | 默认值 | 说明 |
+|----|----|----|----|
+| accept | String | — | 接受的文件类型 |
+| limitSize | Number | 2 | 文件大小限制（MB） |
+| limitNum | Number | 1 | 最大文件数量 |
+| hasTemplate | String | — | 模板下载地址 |
+| drag | Boolean | false | 是否支持拖拽 |
+| autoUpload | Boolean | true | 是否自动上传 |
+
+---
+
+# 数据转换功能
+
+在 MyEdit 和 MyForm 组件中，支持以下数据自动转换：
+
+| 组件 | 条件 | 转换结果 |
+|:-----|:-----|:-----|
+| Date | dateType 包含 range + aliases | 拆分为多个字段（按 aliases） |
+| Date | dateType 最后一个字符为 s（如 years、dates） | 转为逗号分隔字符串 |
+| Select | multiple + valueType = 'string' | 转为逗号分隔字符串 |
+| Checkbox | valueType = 'string' | 转为逗号分隔字符串 |
+| Input | multiple: true + aliases | 拆分为独立字段 |
+| Input | multiple: false | 转为逗号分隔字符串 |
+
+> **注意**：Select 多选不支持 aliases 拆分为独立字段。
+
