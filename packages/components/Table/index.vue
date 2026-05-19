@@ -1550,7 +1550,15 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
           } else {
             delete query.params
           }
-          computedData = await props.dataLoadFun(query)
+          try {
+            computedData = await props.dataLoadFun(query)
+          } catch (err) {
+            computedData = {
+              [props.dataConfig.rows]: [],
+              [props.dataConfig.total]: 0,
+              [props.dataConfig.extra]: {},
+            }
+          }
         } else {
           computedData = {
             [props.dataConfig.rows]: res,

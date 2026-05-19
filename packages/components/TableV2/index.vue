@@ -1432,7 +1432,11 @@ const tableColumnFinal = computed(() => {
               }
               content = String(
                 data.type === 'number'
-                  ? (lscontent as number).toFixed(data.decimalPlaces||0||Number((String(lscontent).split('.')[1]||'').length||0)) ?? props.defaultBlock
+                  ? (lscontent as number).toFixed(
+                      data.decimalPlaces ||
+                        0 ||
+                        Number((String(lscontent).split('.')[1] || '').length || 0)
+                    ) ?? props.defaultBlock
                   : lscontent || props.defaultBlock
               )
             }
@@ -1902,7 +1906,16 @@ const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = f
             } else {
               delete query.params
             }
-            requestData = await (props.dataLoadFun(query) as Promise<ObjectType>)
+
+            try {
+              requestData = await (props.dataLoadFun(query) as Promise<ObjectType>)
+            } catch (err) {
+              requestData = {
+                [props.dataConfig.rows]: [],
+                [props.dataConfig.total]: 0,
+                [props.dataConfig.extra]: {},
+              }
+            }
             //console.log(res, query);
           } else {
             requestData = {
