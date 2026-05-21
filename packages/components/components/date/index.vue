@@ -74,7 +74,7 @@ import { type PropType, computed, ref, useSlots } from 'vue'
 import { ElDatePicker } from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import type { dateInnerType } from '../form/types'
-import { getName } from '../../js/utils'
+import { checkExistence, getName } from '../../js/utils'
 const slots = useSlots()
 const props = defineProps({
   language: {
@@ -145,7 +145,7 @@ const dataFinal = computed(() => {
 const emits = defineEmits(['update:modelValue'])
 const bindValue = computed({
   get() {
-    if (!props.modelValue || props.modelValue.length === 0) setDefaultValue(dataFinal.value)
+    if (!checkExistence(props.modelValue)) setDefaultValue(dataFinal.value)
     return typeof props.modelValue !== 'object'
       ? String(props.modelValue)
       : props.modelValue != null

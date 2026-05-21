@@ -4,11 +4,15 @@ export interface radioGroupType {
   textColor?: string;//	当按钮为活跃状态时的字体颜色	#ffffff
   fill?: string;//	当按钮为活跃状态时的边框和背景颜色	#409eff
   validateEvent?: boolean;//	是否触发表单验证	true
-  options: Array<{ label: string, value: string | number ,
+  options: Array<{  [key: string]: any  ,
     disabled?: boolean;//	是否禁用
   }>|number;
   config?: radioButtonType | radioType
   change?: (value: string | number | boolean) => void;//当绑定值变化时触发的事件
+  keyConfig?: {
+    label: string;
+    value: string;
+  }
 }
 
 export interface radioButtonType {

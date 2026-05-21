@@ -23,8 +23,8 @@
                 ? []
                 : dataFinal.options"
               :key="JSON.stringify(item)"
-              :label="item.label"
-              :value="item.value ?? item.label"
+              :label="item[keyConfig.label]"
+              :value="item[keyConfig.value] ?? item[keyConfig.label]"
               :true-value="dataFinal.config?.trueValue"
               :false-value="dataFinal.config?.falseValue"
               :disabled="dataFinal.config?.disabled ?? false"
@@ -37,7 +37,7 @@
               :tabindex="index"
               @change="dataFinal.config?.change"
             >
-              {{ item.label }}
+              {{ item[keyConfig.label] }}
             </el-radio>
           </div>
 
@@ -45,14 +45,14 @@
             <el-radio-button
               v-for="item in typeof dataFinal.options === 'number' ? [] : dataFinal.options"
               :key="JSON.stringify(item)"
-              :label="item.label"
-              :value="item.value ?? item.label"
+              :label="item[keyConfig.label]"
+              :value="item[keyConfig.value] ?? item[keyConfig.label]"
               :true-value="dataFinal.config?.trueValue"
               :false-value="dataFinal.config?.falseValue"
               :disabled="dataFinal.config?.disabled ?? false"
               :name="dataFinal.config?.name ?? ''"
               :checked="dataFinal.config?.checked ?? false"
-              >{{ item.label }}</el-radio-button
+              >{{ item[keyConfig.label] }}</el-radio-button
             >
           </div>
         </slot>
@@ -69,6 +69,7 @@ export default {
 import { computed, type PropType, ref } from 'vue'
 import { type radioInnerType } from '../form/types'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import { checkExistence } from '@/components/js/utils';
 const props = defineProps({
   language: {
     type: Object,
@@ -89,14 +90,28 @@ const props = defineProps({
     default: () => [],
   },
 })
+const keyConfig = ref({ label: 'label', value: 'value' })
 const dataFinal = computed(() => {
   let data: radioInnerType = { ...props.data }
+  keyConfig.value = data.keyConfig || { label: 'label', value: 'value' }
+  if (
+    !keyConfig.value ||
+    !keyConfig.value.hasOwnProperty('label') ||
+    !keyConfig.value.hasOwnProperty('value')
+  ) {
+    keyConfig.value = {
+      label: 'label',
+      value: 'value',
+    }
+    data.keyConfig = keyConfig.value
+  }
+
   if (typeof data.options === 'number') {
-    let option: { label: string; value: string | number }[] = []
+    let option: {  [key: string]: any  }[] = []
     for (let i = 0; i < data.options; i++) {
       option.push({
-        label: i + '',
-        value: i,
+        [keyConfig.value.value]: i,
+        [keyConfig.value.label]: i + '',
       })
     }
     data.options = option
@@ -109,13 +124,13 @@ const dataFinal = computed(() => {
 const setDefaultValue = (data: radioInnerType) => {
   if (data.isDefault && (data.options as any[]).length > 0) {
     const isDefault = (data.options as any[]).find((item) => !item.disabled)
-    bindValue.value = (isDefault && isDefault.value) || ''
+    bindValue.value = (isDefault && isDefault[keyConfig.value.value]) || ''
   }
 }
 const emits = defineEmits(['update:modelValue'])
 const bindValue = computed({
   get() {
-    if (!String(props.modelValue) || String(props.modelValue).length === 0)
+    if (!checkExistence(props.modelValue))
       setDefaultValue(dataFinal.value)
     return props.modelValue
   },

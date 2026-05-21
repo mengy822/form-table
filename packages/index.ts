@@ -7,6 +7,7 @@ import Edit from './components/Edit/index.vue';
 import Import from './components/Edit/index.vue';
 import Dialog from './components/Dialog/index.vue';
 import UploadFile from './components/components/File/index.vue';
+import Echarts from './components/Echarts/index.vue';
 import type { inputInnerType, dateInnerType, selectInnerType, fileInnerType, switchInnerType, radioInnerType, checkboxInnerType } from './components/components/form/types';
 import { parseTime } from './components/js/utils';
 String.prototype.formatDate = function (fmt) {
@@ -27,6 +28,7 @@ export type MyImportInstance = InstanceType<typeof Import>;
 export type MyDetailInstance = InstanceType<typeof Detail>;
 export type MyDialogInstance = InstanceType<typeof Dialog>;
 export type MyUploadFileInstance = InstanceType<typeof UploadFile>;
+export type MyEchartsInstance = InstanceType<typeof Echarts>;
 export { inputInnerType, dateInnerType, selectInnerType, fileInnerType, switchInnerType, radioInnerType, checkboxInnerType };
 // 导出My前缀的组件并添加明确类型注解
 export const MyForm: typeof Form = Form;
@@ -38,3 +40,4 @@ export const MyEdit: typeof Edit = Edit;
 export const MyImport: typeof Import = Import;
 export const MyDialog: typeof Dialog = Dialog;
 export const MyUploadFile: typeof UploadFile = UploadFile;
+export const MyEcharts: typeof Echarts = Echarts;

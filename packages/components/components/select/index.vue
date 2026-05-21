@@ -45,8 +45,9 @@
       :popper-options="dataFinal.popperOptions"
       :empty-values="dataFinal.emptyValues"
       :value-on-clear="dataFinal.valueOnClear"
+      :props="dataFinal.keyConfig"
       @change="change"
-      @visible-change="dataFinal.visibleChange"
+      @visible-change="visibleChange"
       @remove-tag="dataFinal.removeTag"
       @clear="dataFinal.clear"
       @blur="blur"
@@ -66,21 +67,65 @@ export default {
 }
 </script>
 <script setup lang="ts" name="select">
-import { type PropType, ref, computed, watch, useSlots } from 'vue'
+import { type PropType, ref, computed, watch, useSlots, nextTick } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import type { selectInnerType } from '../form/types'
 import type { selectOptionsGroupType, selectOptionsType } from './types'
-import { getName } from '../../js/utils'
+import { checkExistence, getName } from '../../js/utils'
 
-const remoteOptions = ref();
+const remoteOptions = ref()
 const selectOptions = computed(() => {
-  return remoteOptions.value || dataFinal.value.options;
-});
-const remoteMethod = (e:string) => {
-  dataFinal.value?.remoteMethod?.(e, (data) => {
-    remoteOptions.value = data;
-  },dataFinal.value.extraParams || {});
-};
+  const opts = checkExistence(remoteOptions.value) ? remoteOptions.value : dataFinal.value.options
+  console.warn(
+    '部分数据错误,取消渲染',
+    opts.filter((item: { value: null }) => item.value == null || typeof item.value == 'undefined')
+  )
+  return opts.filter(
+    (item: { value: null }) => item.value != null && typeof item.value != 'undefined'
+  )
+})
+const visibleChange = (visible: boolean) => {
+  dataFinal.value?.visibleChange?.(visible)
+
+  if (visible && dataFinal.value.filterable && dataFinal.value.multiple != true) {
+    nextTick(() => {
+      // 找到 input 元素并让内容可编辑
+      const input = _ref.value?.$el?.querySelector('.el-select__input')
+      if (input) {
+        // 获取当前选中项的 label
+        const selected = selectOptions.value.find(
+          (item: { value: any }) => item.value === bindValue.value
+        )
+        if (selected && !input.value) {
+          input.value = selected.label
+          // 模拟输入事件让 filterable 生效
+          input.dispatchEvent(new Event('input'))
+        }
+        input.focus()
+        // 将光标移到末尾
+        input.setSelectionRange(input.value.length, input.value.length)
+      }
+    })
+  }
+  if (!visible) {
+    nextTick(() => {
+      // 找到 input 元素并让内容可编辑
+      const input = _ref.value?.$el?.querySelector('.el-select__input')
+      if (input) {
+        input.blur()
+      }
+    })
+  }
+}
+const remoteMethod = (e: string) => {
+  dataFinal.value?.remoteMethod?.(
+    e,
+    (data) => {
+      remoteOptions.value = data
+    },
+    dataFinal.value.extraParams || {}
+  )
+}
 
 const slots = useSlots()
 const props = defineProps({
@@ -107,7 +152,7 @@ const props = defineProps({
 const emits = defineEmits(['update:modelValue'])
 const bindValue = computed({
   get() {
-    if (typeof props.modelValue == 'undefined'  || (props.modelValue as Array<String | Number | Boolean | Object>).length === 0) setDefaultValue(dataFinal.value)
+    if (!checkExistence(props.modelValue)) setDefaultValue(dataFinal.value)
     return props.modelValue
   },
   set(val) {
@@ -121,28 +166,39 @@ const change = (e: typeof props.modelValue) => {
   emits('update:modelValue', e)
 }
 const blur = (e: any) => {
-  // return (...args) => {
-  // if (bindValue.value) {
-  //   document.querySelector(`._class${dataFinal.value.prop}`)?.classList.remove('error')
-  // } else {
-  //   document.querySelector(`._class${dataFinal.value.prop}`)?.classList.add('error')
-  // }
   dataFinal.value && dataFinal.value.blur && dataFinal.value.blur(e)
-  // }
 }
+const keyConfig = ref({ label: 'label', value: 'value', disabled: 'disabled', options: 'options' })
 const dataFinal = computed(() => {
   let data: selectInnerType = { ...props.data }
+  keyConfig.value = data.keyConfig || {
+    label: 'label',
+    value: 'value',
+    disabled: 'disabled',
+    options: 'options',
+  }
+  if (!keyConfig || !keyConfig.hasOwnProperty('label') || !keyConfig.hasOwnProperty('value')||
+   !keyConfig.hasOwnProperty('disabled')
+  || !keyConfig.hasOwnProperty('options')) {
+    keyConfig.value = {
+      label: 'label',
+      value: 'value',
+      disabled: 'disabled',
+      options: 'options',
+    }
+    data.keyConfig = keyConfig.value
+  }
   if (typeof data.options === 'number' || typeof data.options === 'string') {
-    let option: { label: string; value: string | number }[] = []
+    let option: { [key: string]: string | number }[] = []
     if (isNaN(Number(data.options)) || Number(data.options) < 0) {
       throw new Error(
-        `${data.label}:options数据格式错误,应该为{ label,value}[]或数字,实际为${data.options}`
+        `${data.label}:options数据格式错误,应该为{ ${keyConfig.value.label},${keyConfig.value.value}}[]或数字,实际为${data.options}`
       )
     }
     for (let i = 0; i < Number(data.options); i++) {
       option.push({
-        label: String(i),
-        value: String(i),
+        [keyConfig.value.label]: String(i),
+        [keyConfig.value.value]: String(i),
       })
     }
     data.options = option
@@ -157,25 +213,25 @@ const dataFinal = computed(() => {
   data.focus = data.focus || function () {}
   return data
 })
-const setDefaultValue = (data:selectInnerType) => {
+const setDefaultValue = (data: selectInnerType) => {
   if (data.isDefault && (data.options as Array<any>).length > 0) {
     if (props.type === '') {
       const isDefault: selectOptionsType | undefined = (data.options as selectOptionsType[]).find(
-        (item: selectOptionsType) => !item.disabled
+        (item: selectOptionsType) => !item[keyConfig.value.disabled]
       )
       // bindValue.value = (isDefault && isDefault.value) ?? ''
-      bindValue.value = (isDefault && isDefault.value) ?? ''
+      bindValue.value = (isDefault && isDefault[keyConfig.value.value]) ?? ''
     } else {
       const isDefaultGroup: selectOptionsGroupType | undefined = (
         data.options as selectOptionsGroupType[]
-      ).find((item: selectOptionsGroupType) => !item.disabled)
+      ).find((item: selectOptionsGroupType) => !item[keyConfig.value.disabled])
       const isDefault: selectOptionsType | undefined =
         isDefaultGroup &&
         (isDefaultGroup.options as selectOptionsType[]).find(
-          (item: selectOptionsType) => !item.disabled
+          (item: selectOptionsType) => !item[keyConfig.value.disabled]
         )
       // bindValue.value = (isDefault && isDefault.value) ?? ''
-      bindValue.value = (isDefault && isDefault.value) ?? ''
+      bindValue.value = (isDefault && isDefault[keyConfig.value.value]) ?? ''
     }
     data.clearable = false
   }

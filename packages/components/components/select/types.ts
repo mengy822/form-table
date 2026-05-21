@@ -44,16 +44,23 @@ export interface selectType {
   removeTag?: (tagValue: any) => void;//多选模式下移除tag时触发
   visibleChange?: (visible: boolean) => void;//下拉框出现/隐藏时触发
   change?: (value: any) => void;//	选中值发生变化时触发
+  keyConfig?:{
+    label:string;
+    value:string;
+    options:string;
+    disabled:string;
+  }
 }
 
 export interface selectOptionsGroupType {
-  label: string;
-  disabled?: boolean;
-  options: selectOptionsType[]
+  // label: string;
+  // disabled?: boolean;
+  // options: selectOptionsType[]
+  [key: string]: string | number | boolean | object | selectOptionsType[];
 }
 
 export interface selectOptionsType {
-  value: string | number | boolean | object;//	选项的值
-  label: string | number;//	选项的标签，若不设置则默认与value相同
-  disabled?: boolean;//	是否禁用该选项
+  // label: string | number;//	选项的标签，若不设置则默认与value相同
+  [key:string]: string | number | boolean | object;//	选项的值
+  // disabled?: boolean;//	是否禁用该选项
 }

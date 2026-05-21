@@ -7,12 +7,16 @@ export interface checkboxGroupType {
   fill?: string;//	当按钮为活跃状态时的边框和背景颜色	#409eff
   tag?: string;//	复选框组元素标签	 div
   validateEvent?: boolean;//	是否触发表单验证	true
-  options: Array<{ label: string, value: string | number ,
+  options: Array<{ [key:string]:any ,
     disabled?: boolean;//	是否禁用
   }>|number;
   config?: checkBoxButtonType | checkBoxType
   change?: (value: (string | number)[]) => void;//当绑定值变化时触发的事件
   valueType?:'string'|'array'
+  keyConfig?: {
+    label: string;
+    value: string;
+  }
 }
 
 export interface checkBoxButtonType {

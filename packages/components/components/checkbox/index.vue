@@ -23,11 +23,11 @@
                 ? []
                 : dataFinal.options"
               :key="JSON.stringify(item)"
-              :label="item.label"
-              :value="(item.value ?? item.label)"
+              :label="item[keyConfig.label]"
+              :value="item[keyConfig.value] ?? item[keyConfig.label]"
               :true-value="dataFinal.config?.trueValue"
               :false-value="dataFinal.config?.falseValue"
-              :disabled="item.disabled??dataFinal.config?.disabled ?? false"
+              :disabled="item.disabled ?? dataFinal.config?.disabled ?? false"
               :name="dataFinal.config?.name ?? ''"
               :checked="dataFinal.config?.checked ?? false"
               :border="dataFinal.config?.border"
@@ -37,7 +37,7 @@
               :tabindex="index"
               @change="dataFinal.config?.change"
             >
-              {{ item.label }}
+              {{ item[keyConfig.label] }}
             </el-checkbox>
           </div>
 
@@ -45,14 +45,14 @@
             <el-checkbox-button
               v-for="item in typeof dataFinal.options === 'number' ? [] : dataFinal.options"
               :key="JSON.stringify(item)"
-              :label="item.label"
-              :value="(item.value ?? item.label)"
+              :label="item[keyConfig.label]"
+              :value="item[keyConfig.value] ?? item[keyConfig.label]"
               :true-value="dataFinal.config?.trueValue"
               :false-value="dataFinal.config?.falseValue"
-              :disabled="item.disabled??dataFinal.config?.disabled ?? false"
+              :disabled="item.disabled ?? dataFinal.config?.disabled ?? false"
               :name="dataFinal.config?.name ?? ''"
               :checked="dataFinal.config?.checked ?? false"
-              >{{ item.label }}</el-checkbox-button
+              >{{ item[keyConfig.label] }}</el-checkbox-button
             >
           </div>
         </slot>
@@ -70,6 +70,7 @@ import { ElCheckbox, ElCheckboxGroup, ElCheckboxButton } from 'element-plus'
 import { type PropType, ref, computed } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { type checkboxInnerType } from '../form/types'
+import { checkExistence } from '@/components/js/utils'
 const props = defineProps({
   language: {
     type: Object,
@@ -97,15 +98,27 @@ const max = computed(() => {
       : dataFinal.value.options.length
   return len
 })
-
+const keyConfig = ref({ label: 'label', value: 'value',  })
 const dataFinal = computed(() => {
   let data = { ...props.data }
+  keyConfig.value = data.keyConfig || { label: 'label', value: 'value',  }
+  if (
+    !keyConfig.value ||
+    !keyConfig.value.hasOwnProperty('label') ||
+    !keyConfig.value.hasOwnProperty('value')
+  ) {
+    keyConfig.value = {
+      label: 'label',
+      value: 'value',
+    }
+    data.keyConfig = keyConfig.value
+  }
   if (typeof data.options === 'number') {
-    let option: { label: string; value: string | number }[] = []
+    let option: { [key: string]: any }[] = []
     for (let i = 0; i < data.options; i++) {
       option.push({
-        value: i,
-        label: i + '',
+        [keyConfig.value.value]: i,
+        [keyConfig.value.label]: i + '',
       })
     }
     data.options = option
@@ -118,14 +131,14 @@ const dataFinal = computed(() => {
 const setDefaultValue = (data: checkboxInnerType) => {
   if (data.isDefault && (data.options as any[]).length > 0) {
     const isDefault = (data.options as any[]).find((item) => !item.disabled)
-    bindValue.value = [(isDefault && isDefault.value) || '']
+    bindValue.value = [(isDefault && isDefault[keyConfig.value.value]) || '']
   }
 }
 const emits = defineEmits(['update:modelValue'])
 
 const bindValue = computed({
   get() {
-    if (!props.modelValue || props.modelValue.length === 0) setDefaultValue(dataFinal.value)
+    if (!checkExistence(props.modelValue)) setDefaultValue(dataFinal.value)
 
     return props.modelValue
   },

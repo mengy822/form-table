@@ -1,3 +1,5 @@
+import { Primitive } from "./types";
+
 export const isMobile = () => {
   const flag = navigator.userAgent.match(
     /(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i
@@ -11,6 +13,50 @@ export const getName = (name: string | number, other: string = '') => {
 export const getZoomPercent = () => {
   return window.devicePixelRatio || 1;
 };
+export const checkExistence = (value: Primitive | Primitive[]): boolean => {
+  // 处理 null 和 undefined（肯定不存在）
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  const type = typeof value;
+
+  // 根据不同数据类型判断是否存在
+  switch (type) {
+    case 'string':
+      // 字符串：非空字符串才算存在
+      return value.length > 0;
+
+    case 'number':
+      // 数字：不是 NaN 且是有限数字才算存在
+      return !isNaN(value as number) && isFinite(value as number);
+
+    case 'boolean':
+      // 布尔值：true 和 false 都算存在（本身就是有效值）
+      return true;
+
+    case 'bigint':
+      // bigint：所有 bigint 值都算存在
+      return true;
+
+    case 'symbol':
+      // symbol：所有 symbol 都算存在
+      return true;
+
+    case 'object':
+      // 对象类型
+      if (Array.isArray(value)) {
+        // 数组：非空数组才算存在
+        return value.length > 0;
+      }
+      // 普通对象：非空对象才算存在（可以根据需求调整）
+      return Object.keys(value as object).length > 0;
+
+    default:
+      return false;
+  }
+};
+
 export const deepClone = (target: any[]) => {
   // WeakMap作为记录对象Hash表（用于防止循环引用）
   const map = new WeakMap();

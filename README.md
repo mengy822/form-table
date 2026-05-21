@@ -1,4 +1,7 @@
+![封面](https://i-blog.csdnimg.cn/direct/f4eb7b4a21fe4e2fb803e851857d6eab.png)
+
 [👉前往github](https://github.com/mengy822/form-table)
+
 
 # 介绍
 
@@ -710,6 +713,92 @@ const openDialog = (data) => {
 ```
 
 ---
+## Echarts 图表组件
+
+基于 ECharts 封装的图表组件，支持图表联动功能（图例、tooltip、点击联动）。
+
+1. 属性
+
+| 属性名 | 类型 | 默认值 | 说明 |
+|:-------- |:-----|:-----|:-----|
+| options | Object | {} | ECharts 图表配置项 |
+| listen | String | '.main-container' | 监听容器选择器，当该容器大小改变时自动缩放图表 |
+| width | String | '100%' | 图表宽度 |
+| height | String | '400px' | 图表高度 |
+| chartId | String | null | 图表唯一标识，传入时自动开启联动功能 |
+| linkageGroup | String | 'default' | 联动组名称，同一组的图表可相互联动（页面只有一个联动组时可忽略） |
+
+2. 事件
+
+| 事件名 | 触发时机 | 参数 | 说明 |
+|:-------- |:-----|:-----|:-----|
+| chart-ready | 图表初始化完成 | chartId, chart | 图表准备就绪事件 |
+
+3. 暴露的方法
+
+| 方法名 | 参数 | 说明 |
+|:-------- |:-----|:-----|
+| chart | — | 获取 ECharts 实例(可能不正确,建议通过@chart-ready 事件获取) |
+| resize | — | 手动调整图表大小 |
+
+4. 联动功能说明
+
+当满足以下条件时，图表之间会实现联动效果（图例联动、Tooltip 联动、点击联动）：
+
+- 传入 `chartId`（同一页面内需唯一）
+- 多个图表使用相同的 `linkage-group`（页面只有一个联动组时可忽略，使用默认值即可）
+- **同一联动组内的图表实例数量大于 2**
+
+> **注意**：
+> - 传递 `chartId` 即自动开启联动功能
+> - 页面只有一个联动组时，`linkageGroup` 可忽略，使用默认值 `'default'` 即可
+> - 用户需自行保证 `chartId` 在同一页面内是唯一的
+> - 联动效果需要同一组内至少有 2 个图表实例才会生效
+
+5. 使用
+
+```html
+<!-- 不开启联动（未传入 chartId） -->
+<Echarts 
+  :options="chartOptions" 
+  height="350px" 
+  width="100%" 
+/>
+
+<!-- 开启联动：只需传递 chartId（使用默认联动组） -->
+<Echarts 
+  :chart-id="'chart-a'" 
+  :options="chartAOptions" 
+  height="350px" 
+  width="100%" 
+  @chart-ready="handleChartReady"
+/>
+
+<!-- 开启联动：指定联动组 -->
+<Echarts 
+  :chart-id="'chart-b'" 
+  :options="chartBOptions" 
+  linkage-group="my-group" 
+  height="350px" 
+  width="100%" 
+/>
+```
+
+```javascript
+import { ref } from 'vue'
+
+const chartAOptions = ref({
+  title: { text: '销售趋势' },
+  tooltip: { trigger: 'axis' },
+  xAxis: { type: 'category', data: ['1月', '2月', '3月', '4月'] },
+  yAxis: { type: 'value' },
+  series: [{ type: 'line', data: [120, 200, 150, 80] }]
+})
+
+const handleChartReady = (chartId, chart) => {
+  console.log(`图表 ${chartId} 初始化完成`, chart)
+}
+```
 
 # 子组件
 

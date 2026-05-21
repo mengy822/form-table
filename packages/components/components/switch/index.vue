@@ -39,6 +39,7 @@ export default {
 import { type PropType, computed, ref, useSlots } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import type { switchInnerType } from '../form/types'
+import {getName} from '../../js/utils'
 const slot = useSlots()
 const props = defineProps({
   language: {
@@ -56,7 +57,7 @@ const props = defineProps({
     default: () => [],
   },
 })
-import {getName} from '../../js/utils'
+
 const dataFinal = computed(() => {
   let data = { ...props.data }
   data.change = data.change || function () {}
