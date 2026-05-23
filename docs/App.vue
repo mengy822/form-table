@@ -47,7 +47,7 @@ const submitFun = (e: (typeof editColumn.value)[number]['prop'], callback: Funct
   console.log(e, '保存')
   setTimeout(() => {
     callback()
-  }, 2 * 1000)
+  }, 20 * 1000)
 }
 
 const showSearch = ref(true)
@@ -99,7 +99,8 @@ const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
 <!--        ></el-switch>-->
 <!--      </template>-->
     </MyTable>
-    <MyEdit ref="editRef" :column="editColumn" @submit="submitFun"></MyEdit>
+    <!-- {{ editColumn }} -->
+    <MyEdit ref="editRef" :desColumn="2" :column="editColumn" @submit="submitFun"></MyEdit>
     <MyDetail :des-column="3" ref="detailRef" :column="table"></MyDetail>
   </div>
 </template>

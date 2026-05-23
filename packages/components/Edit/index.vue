@@ -28,11 +28,12 @@
           :scroll-to-error="scrollToError"
           @submit.native.prevent="submitFun"
         >
-          <div v-for="(columnItem, index) in columnFinal" :key="index" :class="`class_${index}`">
+          <div v-for="(columnItem, index) in columnFinal" :key="index" :class="`class_${index} editItems`">
             <div
               v-for="item in columnItem"
               :key="JSON.stringify(item)"
               :class="`class_${item.prop}`"
+              :style="`width:${100/desColumn*(item.span||desColumn)}%`"
             >
               <slot :name="`item_${item.prop}`" :prop="item.prop" :data="dynamicComputedMap">
                 <el-form-item
@@ -164,13 +165,12 @@
                             ? item.disabled(dynamicComputedMap)
                             : item.disabled
                         "
-                        @fileSizeError="emits('fileSizeError')"
-                        @fileTypeError="emits('fileTypeError')"
+                        @fileSizeError="item?.fileSizeError"
+                        @fileTypeError="item?.fileTypeError"
                       >
                         <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
                           <slot :name="name" v-bind="scopeData"></slot>
                         </template>
-
                       </MyFile>
                     </slot>
                   </template>
@@ -186,10 +186,15 @@
       <template #footer>
         <slot name="footer" :loading="loading" :data="dynamicComputedMap" :orginaData="dataFinal">
           <div class="dialog-footer">
-          <slot name="submitFooter" :loading="loading" :data="dynamicComputedMap" :orginaData="dataFinal">
-            <el-button type="primary" @click="submitFun" :loading="loading">
-              {{ isAdd ? submitButtonTxt.add : submitButtonTxt.edit }}
-            </el-button>
+            <slot
+              name="submitFooter"
+              :loading="loading"
+              :data="dynamicComputedMap"
+              :orginaData="dataFinal"
+            >
+              <el-button type="primary" @click="submitFun" :loading="loading">
+                {{ isAdd ? submitButtonTxt.add : submitButtonTxt.edit }}
+              </el-button>
             </slot>
             <el-button @click="cancelFun" :loading="loading"> {{ cancelButtonTxt }}</el-button>
           </div>
@@ -200,7 +205,7 @@
   </el-config-provider>
 </template>
 <script lang="ts" setup name="MyEdit">
-  import { getName } from '../js/utils';
+import { getName } from '../js/utils'
 import { computed, nextTick, ref, type Ref, useAttrs, useSlots, useTemplateRef } from 'vue'
 import { ElMessage, FormRules } from 'element-plus'
 import Input from '../components/input/index.vue'
@@ -225,7 +230,7 @@ import MyComputedData from '../utils/hooks/MyComputedData'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { createRules } from '../utils/rules'
 import { scrollTo } from '../utils/scroll-to'
-import { MyDialogInstance } from '@/components/FormTable'
+import { MyDialogInstance } from '../../index'
 
 const myDialog = useTemplateRef<MyDialogInstance>('myDialog')
 const top = ref('15vh')
@@ -264,6 +269,7 @@ interface FormDialogProps {
     | radioInnerType
     | selectInnerType
     | dateInnerType
+    | fileInnerType
   )[]
 
   /** 行内表单模式 */
@@ -317,6 +323,8 @@ interface FormDialogProps {
   code?: string
   /** 数据源格式配置（数据列表字段、总数字段） */
   dataConfig: { data: string; status: string | number | boolean; code: string }
+  /** 列数 */
+  desColumn?: number
 }
 
 // 使用 withDefaults 定义 Props 并配置默认值
@@ -331,6 +339,8 @@ const props = withDefaults(defineProps<FormDialogProps>(), {
   // 不需要变更检查的组件类型
   notNeedChangeCheck: () => ['input', 'inputNumber'],
 
+  //列数
+  desColumn: 1,
   // 按钮文本
   submitButtonTxt: () => ({ add: '提交', edit: '修改' }),
   cancelButtonTxt: '取消',
@@ -392,7 +402,7 @@ const computedSearchSign = (list: typeof props.column = [], flag = false) => {
 const editFormDisplay = ref()
 const editFormGridTemplateColumns = ref()
 const columnFinal = computed<(typeof props.column)[]>(() => {
-  // computedSearchSign(props.column)
+  // console.log(props.column)
   rules.value = createRules(props.column, props.notNeedChangeCheck)
   const clu: (typeof props.column)[] = []
   props.column.map(
@@ -404,6 +414,7 @@ const columnFinal = computed<(typeof props.column)[]>(() => {
         | radioInnerType
         | selectInnerType
         | dateInnerType
+        | fileInnerType
     ) => {
       item.showMessage = item.showMessage ?? true
       item.inlineMessage = item.inlineMessage ?? ''
@@ -411,7 +422,9 @@ const columnFinal = computed<(typeof props.column)[]>(() => {
       item.labelWidth = item.labelWidth ?? ''
       item.showFun = item.showFun ?? (() => true)
       item.disabled = item.disabled ?? false
-      item.clearable = item.clearable ?? true;
+      item.clearable = item.clearable ?? true
+      // console.log(item.span,props.column)
+      item.span = item.span ?? props.desColumn
       // typeof item.disabled === 'boolean'
       //   ? item.disabled
       //   : item.disabled && item.disabled(dynamicComputedMap.value)
@@ -483,12 +496,12 @@ const init = async (
   let finaldata = {}
 
   if (data instanceof Promise) {
-    let res;
+    let res
     try {
-      res = await data;
+      res = await data
     } catch (e) {
-      openCb({},{});
-      return;
+      openCb({}, {})
+      return
     }
     if (res[props.dataConfig.code] === props.dataConfig.status) {
       finaldata = res[props.dataConfig.data]
@@ -608,14 +621,14 @@ interface MyEditEmits {
 
 const emits = defineEmits<MyEditEmits>()
 const cancelFun = () => {
-  dataFinal.value = {};
+  dataFinal.value = {}
   formRef.value.clearValidate([])
   myDialog.value?.handleClose()
 }
 const updateData = (prop: string, data: any) => {
   dynamicComputedMap.value[prop] = data
   //formRef.value.validateField(prop)
-  formRef.value?.clearValidate(prop);
+  formRef.value?.clearValidate(prop)
 }
 const getData = (prop: string) => {
   return dynamicComputedMap.value[prop]
@@ -625,37 +638,44 @@ const submitFun = async () => {
   formRef.value?.validate((valid: boolean, fields: any) => {
     if (valid) {
       loading.value = true
-      emits('submit', { ...dataFinal.value }, async (flag: boolean | Promise<any> = true, cb:(flag:boolean,data:any[])=>void = () => {}) => {
-        if (flag instanceof Promise) {
-          try {
-            const res = await (flag as Promise<any>)
-            flag = res[props.code] == props.status
-            // console.log(props.status);
-            cb && cb(true, res);
-          } catch (e) {
-            flag = false
-            cb && cb(false, e as any);
+      emits(
+        'submit',
+        { ...dataFinal.value },
+        async (
+          flag: boolean | Promise<any> = true,
+          cb: (flag: boolean, data: any[]) => void = () => {}
+        ) => {
+          if (flag instanceof Promise) {
+            try {
+              const res = await (flag as Promise<any>)
+              flag = res[props.code] == props.status
+              // console.log(props.status);
+              cb && cb(true, res)
+            } catch (e) {
+              flag = false
+              cb && cb(false, e as any)
+            }
+          }
+          if (flag) {
+            ElMessage({
+              message: props.message,
+              grouping: true,
+              duration: props.duration,
+              type: 'success',
+              showClose: props.duration! > 0,
+              onClose: () => {
+                loading.value = false
+                cancelFun()
+                if (typeof props.autoUpdate != 'undefined') {
+                  props.autoUpdate()
+                }
+              },
+            })
+          } else {
+            loading.value = false
           }
         }
-        if (flag) {
-          ElMessage({
-            message: props.message,
-            grouping: true,
-            duration: props.duration,
-            type: 'success',
-            showClose: props.duration! > 0,
-            onClose: () => {
-              loading.value = false
-              cancelFun()
-              if (typeof props.autoUpdate != 'undefined') {
-                props.autoUpdate()
-              }
-            },
-          })
-        } else {
-          loading.value = false
-        }
-      })
+      )
     }
   })
 }
@@ -663,7 +683,8 @@ defineExpose({
   init,
   close: cancelFun,
   updateData,
-  getData,submit: submitFun
+  getData,
+  submit: submitFun,
 })
 </script>
 
@@ -680,5 +701,9 @@ defineExpose({
     grid-template-columns: repeat(v-bind(editFormGridTemplateColumns), 1fr);
     //v-bind(editFormGridTemplateColumns);
   }
+}
+.editItems{
+  display:flex;
+  flex-wrap: wrap;
 }
 </style>

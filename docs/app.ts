@@ -9,7 +9,7 @@ import type {
 import {ref,onMounted} from 'vue'
 export default function useAppConfig(){
   const changeFun = (e) => {
-    editColumn.value[4].options = e
+    // editColumn.value[4].options = e
   }
   const searchInputNumberChange=(e)=>{
     search.value[2].options = e
@@ -21,6 +21,7 @@ export default function useAppConfig(){
       type: 'input',
       inputType: 'text',
       isRequired: true,
+
     } as inputInnerType,
     {
       prop: 'textarea',
@@ -29,18 +30,29 @@ export default function useAppConfig(){
       inputType: 'textarea',
     } as inputInnerType,
     {
+      prop: 'showPassword',
+      label: '校验密码输入框',
+      type: 'switch', span: 1
+    } as switchInnerType,
+    {
       prop: 'password',
       label: '密码输入框',
       type: 'input',
-      disabled: (data: any) => data['number'] % 2 == 0,
-      inputType: 'password',
+      isRequired:true,
+      dynamicRequired: (data) => data.showPassword,
+      inputType: 'password', span: 1
     } as inputInnerType,
+    {
+      prop: 'showNumber',
+      label: '显示数字输入框',
+      type: 'switch', span: 1
+    } as switchInnerType,
     {
       prop: 'number',
       label: '数字输入框',
       type: 'input',
-      min: 1,
-      inputType: 'number',
+      min: 1, showFun: (data) => data.showNumber,
+      inputType: 'number', span: 1,
       change: changeFun
     } as inputInnerType,
     {
