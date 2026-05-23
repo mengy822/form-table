@@ -224,8 +224,13 @@ export default function useAppConfig(){
     { prop: 'no', label: 'no', hidden: true, visible: false },
     {
       prop: 'no~text', label: '文本输入框', list: [
-        // { prop: 'text', label: '文本输入框1' },
-        // { prop: 'text', label: '文本输入框2' }
+        {
+          prop: 'no', label: '序号', list: [
+            { prop: 'no', label: '序号1' },
+            { prop: 'no', label: '序号2' }
+          ]
+},
+        { prop: 'text', label: '文本输入框2' }
       ]
     },
     { prop: 'textarea', label: '文本域输入框' },

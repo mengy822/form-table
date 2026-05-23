@@ -13,7 +13,7 @@ export function useListenDomChange(callback: Function, delay: number = 100) {
     const newHeight = getHeight(element);
     // console.log(1);
     if (Math.abs(lastHeight - newHeight) > 0.5) {
-      console.log('高度变化:', lastHeight, '->', newHeight);
+      // console.log('高度变化:', lastHeight, '->', newHeight);
       lastHeight = newHeight;
       callback();
       return true;

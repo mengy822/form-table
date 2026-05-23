@@ -1076,7 +1076,7 @@ const autoHeight = (key: string) => {
         '.table-plus',
         ...props.autoHeightExcludeClassName,
       ])
-      console.log(dom)
+      // console.log(dom)
       // console.log(height)
       heightInner.value =
         height -

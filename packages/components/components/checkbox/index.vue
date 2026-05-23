@@ -70,7 +70,7 @@ import { ElCheckbox, ElCheckboxGroup, ElCheckboxButton } from 'element-plus'
 import { type PropType, ref, computed } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { type checkboxInnerType } from '../form/types'
-import { checkExistence } from '@/components/js/utils'
+import { checkExistence } from '../../js/utils'
 const props = defineProps({
   language: {
     type: Object,

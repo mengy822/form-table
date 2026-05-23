@@ -69,7 +69,7 @@ export default {
 import { computed, type PropType, ref } from 'vue'
 import { type radioInnerType } from '../form/types'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
-import { checkExistence } from '@/components/js/utils';
+import { checkExistence } from '../../js/utils';
 const props = defineProps({
   language: {
     type: Object,

@@ -63,6 +63,7 @@ const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
   request('/test', e).then((res: any) => {
     // total.value = res.total
     // data.value = res.data
+    // console.log(JSON.stringify(res.data))
     cb(res.data,res.total)
   })
 }
@@ -78,13 +79,12 @@ const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
       @search="query"
     ></MyForm>
     <!-- <MyTabelV2 ref="tableRef" :columns="table"> </MyTabelV2> -->
-    <MyTableV3
+    <MyTable
       baseClass=".app1"
       :simpTransVar="1"
       ref="tableRef"
       :table-column="table"
       :data-list-fun="tableQuery"
-      :has-detail="(data) => data['number'] % 2 === 0"
       @detail="detail"
       @update="update"
       @remove="remove"
@@ -98,7 +98,7 @@ const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
 <!--          :inactive-value="'关闭'"-->
 <!--        ></el-switch>-->
 <!--      </template>-->
-    </MyTableV3>
+    </MyTable>
     <MyEdit ref="editRef" :column="editColumn" @submit="submitFun"></MyEdit>
     <MyDetail :des-column="3" ref="detailRef" :column="table"></MyDetail>
   </div>
