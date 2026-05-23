@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted, nextTick, onBeforeUnmount } from 'vue';
 import * as echarts from 'echarts';
 import { registerChart, unregisterChart } from './linkageManager';
 import { addWindowResize, removeWindowResize } from '../utils/echarts';
@@ -112,7 +112,7 @@ onMounted(() => {
   });
 });
 
-onUnmounted(() => {
+onBeforeUnmount(() => {
   removeWindowResize(props.listen);
   if (enableLinkage.value && chart) {
     unregisterChart(props.linkageGroup, chatId.value);
@@ -137,3 +137,4 @@ defineExpose({ chart, resize: () => chart?.resize() });
   height: 100%;
 }
 </style>
+

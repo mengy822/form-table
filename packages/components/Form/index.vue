@@ -198,7 +198,7 @@
 
 <script setup lang="ts" name="MyForm">
 import { getName } from '../js/utils'
-import { ref, watch, computed, nextTick, onMounted, onUnmounted, provide, onActivated, onDeactivated } from 'vue'
+import { ref, watch, computed, nextTick, onMounted, onUnmounted, provide, onActivated, onDeactivated, onBeforeUnmount } from 'vue'
 // import { RefreshLeft, ArrowUp, ArrowDown, Search } from '@element-plus/icons-vue'
 import type { button, queryInnerType, refresh, search, searchRefresh } from '../js/types'
 import Input from '../components/input/index.vue'
@@ -454,7 +454,7 @@ const searchComputed = computed(() => {
 onMounted(() => {
   window.addEventListener('resize', formItemWidthComputedListenerHandler)
 })
-onUnmounted(() => {
+onBeforeUnmount(() => {
   window.removeEventListener('resize', formItemWidthComputedListenerHandler)
 })
 onActivated(() => {
@@ -481,7 +481,7 @@ const formItemWidthComputed = (search: typeof searchComputed.value, callback = (
     const formPlusMainWidth = formPlusMain.value?.clientWidth
     const inputWidths: { [key: string]: number } = {}
     const buttonsWidth = buttons.value![0]?.clientWidth ?? 0
-    console.log(1)
+    // console.log(1)
     for (const key in dynamicRefMap.value) {
       const computedStyle = getComputedStyle(dynamicRefMap.value[key].$el)
 

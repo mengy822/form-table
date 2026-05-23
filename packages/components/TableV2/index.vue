@@ -148,6 +148,7 @@ import {
   useAttrs,
   resolveComponent,
   h,
+  onBeforeUnmount,
 } from 'vue'
 import pagination from '../components/Pagination/index.vue'
 import RightToolbar from '../components/RightToolbar/index.vue'
@@ -699,7 +700,7 @@ onMounted(() => {
   heightChange()
 })
 
-onUnmounted(() => {
+onBeforeUnmount(() => {
   needAutoHeight.value = false
 })
 onDeactivated(() => {

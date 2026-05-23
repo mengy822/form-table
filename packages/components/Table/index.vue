@@ -353,6 +353,7 @@ import {
   getCurrentInstance,
   nextTick,
   onActivated,
+  onBeforeUnmount,
   onDeactivated,
   onMounted,
   onUnmounted,
@@ -983,7 +984,7 @@ onMounted(() => {
   // hasUpdateListener.value = typeof props.onUpdate === 'function'
   heightChange()
 })
-onUnmounted(() => {
+onBeforeUnmount(() => {
   needAutoHeight.value = false
 })
 onDeactivated(() => {

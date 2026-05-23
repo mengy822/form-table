@@ -1,4 +1,4 @@
-import { ref, watchEffect, onUnmounted, onMounted, onActivated, onDeactivated } from 'vue';
+import { ref, watchEffect, onBeforeUnmount, onMounted, onActivated, onDeactivated, onBeforeUnmount } from 'vue';
 export function useListenDomChange(callback: Function, delay: number = 100) {
   let mutationObserver: MutationObserver | null = null;
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -81,7 +81,7 @@ export function useListenDomChange(callback: Function, delay: number = 100) {
       listen(targetItem.target);
     });
   });
-  onUnmounted(() => {
+  onBeforeUnmount(() => {
     cleanup();
   });
 
@@ -124,7 +124,7 @@ export function useDebounceThrottle(callback:Function, delay:number = 500, type:
   }
 
   // 组件卸载时清除定时器
-  onUnmounted(() => {
+  onBeforeUnmount(() => {
     clearTimeout(timer);
   });
 
@@ -150,7 +150,7 @@ export function useMousePosition() {
   });
 
   // 在组件卸载前移除鼠标移动事件监听
-  onUnmounted(() => {
+  onBeforeUnmount(() => {
     window.removeEventListener('mousemove', handleMouseMove);
   });
 
@@ -177,7 +177,7 @@ export function useWindowResize() {
   });
 
   // 在组件卸载时，移除 window 对象的 resize 事件监听器
-  onUnmounted(() => {
+  onBeforeUnmount(() => {
     window.removeEventListener("resize", onResize);
   });
 
@@ -256,7 +256,7 @@ export const useMatchMedia = (query: string) => {
     mediaQuery.addEventListener('change', onChange);
   });
 
-  onUnmounted(() => {
+  onBeforeUnmount(() => {
     mediaQuery.removeEventListener('change', onChange);
   });
 
@@ -317,7 +317,7 @@ export function useScroll() {
   });
 
   // 组件卸载时移除滚动事件监听
-  onUnmounted(() => {
+  onBeforeUnmount(() => {
     window.removeEventListener('scroll', handleScroll);
   });
 
@@ -351,7 +351,7 @@ export function useNetworkStatus() {
   });
 
   // 组件卸载时移除监听
-  onUnmounted(() => {
+  onBeforeUnmount(() => {
     window.removeEventListener('online', handleNetworkChange);
     window.removeEventListener('offline', handleNetworkChange);
   });
@@ -448,7 +448,7 @@ export function useDraggable(element: { offsetLeft: number; offsetTop: number; s
   });
 
   // 组件卸载时移除事件监听
-  onUnmounted(() => {
+  onBeforeUnmount(() => {
     element.removeEventListener('mousedown', handleMouseDown);
   });
 
@@ -488,7 +488,7 @@ export function useFileDownload(blob: Blob | MediaSource, fileName: any) {
   });
 
   // 组件卸载时移除 <a> 元素
-  onUnmounted(() => {
+  onBeforeUnmount(() => {
     if (link.value) {
       document.body.removeChild(link.value);
     }
@@ -496,8 +496,4 @@ export function useFileDownload(blob: Blob | MediaSource, fileName: any) {
 
   return downloadFile;
 }
-
-
-
-
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { defineComponent, markRaw, ref, nextTick, computed, h, VNode, Fragment } from 'vue'
+import { defineComponent, markRaw, ref, nextTick, computed, h, VNode, Fragment, onBeforeUnmount } from 'vue' // [优化] 添加 onBeforeUnmount
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { ElConfigProvider, ElDescriptions, ElDescriptionsItem, ElButton } from 'element-plus'
 import { deepClone } from '../js/utils'
@@ -24,6 +24,7 @@ interface DesDialogProps {
   defaultBlock?: string
   dataConfig?: { data: string; status: string | number | boolean; code: string }
   nestedDefaultBorder?: boolean
+  sonDirection?: 'vertical' | 'horizontal' // [优化] 补充缺失的 props 类型定义
 }
 
 interface NestedDescriptionsConfig {
@@ -118,6 +119,9 @@ export default defineComponent({
     const myDialog = ref<MyDialogInstance | null>(null)
     const dataFinal = ref<{ [key: string]: any }>({})
 
+    // [优化] 添加组件缓存，避免重复创建
+    const componentCache = ref<Map<string, any>>(new Map())
+
     const display = computed(() => {
       return slots.left || slots.right ? 'grid' : 'block'
     })
@@ -126,23 +130,41 @@ export default defineComponent({
       return `${slots.left ? 'auto ' : ''}1fr${slots.right ? ' auto' : ''}`
     })
 
+    // [优化] 优化 desBorder 计算属性，避免每次都遍历
+    const hasNestedItems = computed(() => {
+      return columnFinal.value.some(item => isValidNestedList(item.list))
+    })
+
+    const desBorder = computed(() => {
+      return props.desBorder || hasNestedItems.value
+    })
+
     const createMarkRaw = (
       myRender: tableColumnItem['funDom'],
       data: dataItemType,
       prop: string,
       other = {}
     ) => {
+      // [优化] 使用缓存避免重复创建相同的组件
+      const cacheKey = `${prop}_${JSON.stringify(Object.keys(data))}`
+      if (componentCache.value.has(cacheKey)) {
+        return componentCache.value.get(cacheKey)
+      }
+
       const innerother = {
         ...other,
         ...attrs,
         loading: false,
         renderTxt: (context: string | number | boolean) => context ?? props.defaultBlock,
       }
-      return markRaw({
+      const component = markRaw({
         render() {
           return myRender!(data, prop, innerother)
         },
       })
+
+      componentCache.value.set(cacheKey, component)
+      return component
     }
 
     // 获取字段值的辅助函数（支持点号路径）
@@ -279,6 +301,17 @@ export default defineComponent({
       return getValueByPath(rowData, prop) || {}
     }
 
+    // [优化] 添加错误边界包装函数
+    const withErrorBoundary = (renderFn: () => VNode | null, fallback?: VNode) => {
+      try {
+        const result = renderFn()
+        return result !== null && result !== undefined ? result : fallback || null
+      } catch (error) {
+        console.error('渲染错误:', error)
+        return fallback || h('div', { class: 'render-error', style: { color: 'red' } }, '渲染失败')
+      }
+    }
+
     // 处理 column，计算每个字段的位置和 span
     const processColumnsWithPosition = (
       columns: (tableColumnItem & { useRander?: boolean })[],
@@ -393,7 +426,6 @@ export default defineComponent({
         (item: { isForm: any }) => typeof item.isForm === 'undefined' || item.isForm
       )
       const items = processColumnsWithPosition(filtered, 0)
-      // console.log(items)
       return items
     })
 
@@ -483,7 +515,7 @@ export default defineComponent({
             if (!showItem) return null
 
             const labelContent = () => {
-              return h(Fragment, null, [child.label])
+              return h(Fragment, null, [child.label, ])
             }
 
             const getContent = () => {
@@ -587,29 +619,13 @@ export default defineComponent({
         }
       )
     }
-    // 2. 缓存计算结果
-    const hasNestedItems = computed(() => {
-      return columnFinal.value.some((item) => isValidNestedList(item.list))
-    })
-    const desBorder = computed(() => {
-      return props.desBorder || hasNestedItems.value
-    })
-    // 构建普通描述列表
-    const renderDescriptions = (
-      items: any[],
-      title: string = props.desTitle,
-      desDirection: typeof props.desDirection = props.desDirection
-    ) => {
-      // const items = columnFinal.value
 
+    // 构建普通描述列表
+    const renderDescriptions = (items: any[], title: string = props.desTitle, desDirection: typeof props.desDirection = props.desDirection) => {
       const renderNormalItem = (item: any, renderLabel: any, renderDefaultContent: any) => {
         const showItem = item.showFun?.(dataFinal.value, item.prop) ?? true
         if (!showItem) return null
 
-        // let defaultRender = null
-        // if (isValidNestedList(item.list)) {
-        //   defaultRender = renderDescriptions(item.list, item.label)
-        // }
         return h(
           ElDescriptionsItem,
           {
@@ -628,7 +644,7 @@ export default defineComponent({
           }
         )
       }
-      //todo 嵌套数组功能待完善
+
       const allItems = items
         .map((item) => {
           const renderLabel = () => {
@@ -640,7 +656,7 @@ export default defineComponent({
                 row: dataFinal.value,
               })
             }
-            return h(Fragment, null, [item.label])
+            return h(Fragment, null, [item.label, ])
           }
 
           const renderDefaultContent = () => {
@@ -669,7 +685,7 @@ export default defineComponent({
 
             return h('span', { class: finalClassNames }, content)
           }
-          // console.log(item,'item')
+
           if (isValidNestedList(item.list)) {
             return h(
               ElDescriptionsItem,
@@ -692,8 +708,8 @@ export default defineComponent({
           return renderNormalItem(item, renderLabel, renderDefaultContent)
         })
         .filter(Boolean)
-      // console.log(allItems,'allItems',title)
-      return h(
+
+      return withErrorBoundary(() => h(
         ElDescriptions,
         {
           border: desBorder.value,
@@ -707,22 +723,22 @@ export default defineComponent({
         {
           default: () => allItems,
         }
-      )
+      ), h('div', { class: 'render-error' }, '描述列表渲染失败'))
     }
 
     const renderLeftSlot = () => {
       if (!slots.left) return null
-      return slots.left({ data: dataFinal.value })
+      return withErrorBoundary(() => slots.left!({ data: dataFinal.value }))
     }
 
     const renderRightSlot = () => {
       if (!slots.right) return null
-      return slots.right({ data: dataFinal.value })
+      return withErrorBoundary(() => slots.right!({ data: dataFinal.value }))
     }
 
     const renderFooter = () => {
       if (slots.footer) {
-        return slots.footer({ data: dataFinal.value })
+        return withErrorBoundary(() => slots.footer!({ data: dataFinal.value }))
       }
       return h('div', { class: 'dialog-footer' }, [
         h(
@@ -737,6 +753,8 @@ export default defineComponent({
 
     const handleClose = (cb: () => void) => {
       dataFinal.value = {}
+      // [优化] 清理组件缓存
+      componentCache.value.clear()
       emit('close')
       cb()
     }
@@ -775,10 +793,14 @@ export default defineComponent({
       return dataFinal.value[prop]
     }
 
+    // [优化] 组件卸载时清理缓存，防止内存泄漏
+    onBeforeUnmount(() => {
+      componentCache.value.clear()
+    })
+
     expose({ init, handleClose, updateData, getData })
 
     return () => {
-      // console.log(renderDescriptions(columnFinal.value))
       const detailContent = h(
         'div',
         {
@@ -823,14 +845,13 @@ export default defineComponent({
 .detail {
   :deep(.el-descriptions__body) {
     .el-descriptions__table {
-      .nesting {
-        padding: 0 !important;
+      .nesting{
+        padding:0 !important;
       }
       tbody {
         tr {
           .el-descriptions__cell {
-            // width: calc(100% / v-bind(desColumn));
-
+            // [优化] 删除注释掉的代码
             .el-descriptions__label {
               min-width: v-bind(labelWidth);
               display: table-cell;
@@ -851,5 +872,14 @@ export default defineComponent({
 .detailDialog {
   max-height: 50vh;
   overflow-y: auto;
+}
+
+// [优化] 添加错误状态样式
+.render-error {
+  padding: 20px;
+  text-align: center;
+  color: #f56c6c;
+  background-color: #fef0f0;
+  border-radius: 4px;
 }
 </style>

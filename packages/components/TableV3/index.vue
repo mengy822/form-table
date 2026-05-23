@@ -191,6 +191,7 @@ import {
   h,
   type VNode,
   type Component,
+  onBeforeUnmount,
 } from 'vue'
 import { VxeGridInstance, VxeGridProps, VxeColumnPropTypes } from 'vxe-table'
 import pagination from '../components/Pagination/index.vue'
@@ -1588,7 +1589,7 @@ onMounted(() => {
   heightChange()
 })
 
-onUnmounted(() => {
+onBeforeUnmount(() => {
   needAutoHeight.value = false
 })
 
