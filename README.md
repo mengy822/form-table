@@ -1,11 +1,21 @@
 ![封面](https://i-blog.csdnimg.cn/direct/f4eb7b4a21fe4e2fb803e851857d6eab.png)
 
-[👉前往github](https://github.com/mengy822/form-table)
+[👉 前往 GitHub](https://github.com/mengy822/form-table)
 
+> **最新更新时间**：2026-05-23
+
+## 本次更新内容
+
+| 更新组件 | 更新内容 |
+|:--------|:--------|
+| **MyEdit** | 新增 `desColumn` 属性，支持表单项按列布局；每个表单项支持 `span` 属性控制宽度占比；弹框内容区最大高度调整为 `50vh` 并支持滚动 |
+| **MyDetail** | 新增嵌套描述列表支持（无限层级）、支持点号路径访问、支持多字段组合显示（`,`, `~`, `-`, `/`）、新增 `sonDirection` 和 `nestedDefaultBorder` 属性、支持 `nestedConfig` 单独配置嵌套样式 |
+
+---
 
 # 介绍
 
-基于 [Element-Plus](https://element-plus.org/zh-CN) 的 [Vue3](https://cn.vuejs.org/) 版本的表单/表格组件库，提供搜索表单、表格、虚拟表格、详情、编辑弹框、导入弹框等核心功能，支持高度自定义配置。
+基于 [Element-Plus](https://element-plus.org/zh-CN) 的 [Vue3](https://cn.vuejs.org/) 版本的表单/表格组件库，提供搜索表单、表格、虚拟表格、详情、编辑弹框、导入弹框、ECharts 图表等核心功能，支持高度自定义配置。
 
 ---
 
@@ -394,35 +404,33 @@ const handleCustomEvent = ({ eventName, data }, callback) => {
 |:-------- |:-----|:-----|:-----|
 | language | Object | zhCn | 语言包 |
 | width | String | '50%' | 弹框宽度 |
-| title | String | '详情' | 弹框标题（可选） |
-| desBorder | Boolean | false | 描述列表是否带有边框 |
+| labelWidth | String | '72px' | 标签宽度 |
+| title | String | '详情' | 弹框标题 |
+| desBorder | Boolean | false | 描述列表是否带有边框（当有嵌套时自动为 true） |
 | desColumn | Number | 2 | 描述列表列数 |
 | desDirection | String | 'horizontal' | 排列方向 |
+| **sonDirection** | String | 'vertical' | **嵌套描述列表排列方向** |
 | desSize | String | '' | 描述列表尺寸 |
 | desTitle | String | '' | 描述列表标题文本 |
 | desExtra | String | '' | 描述列表操作区文本 |
 | column | Array | 必填 | 详情列配置 |
 | defaultBlock | String | '-' | 默认空白占位符 |
 | dataConfig | Object | { data: 'data', status: 200, code: 'code' } | 数据格式配置 |
+| **nestedDefaultBorder** | Boolean | true | **嵌套描述列表默认边框** |
 
 > column 字段
 
 | 字段 | 类型 | 默认值 | 说明 |
 |:-----|:-----|:-----|:-----|
-| prop | String | 必填 | 绑定的字段 |
+| prop | String | 必填 | 支持 `a.b.c` 点号路径，支持 `,`、`~`、`-`、`/` 分隔符组合多个字段 |
 | label | String | 必填 | 显示的文本 |
 | span | Number | 1 | 列的数量 |
 | rowspan | Number | 1 | 跨行的数量 |
-| width | Number | — | 列宽度 |
-| minWidth | Number | — | 列最小宽度 |
-| align | String | 'left' | 对齐方式 |
-| labelAlign | String | — | 标签对齐方式 |
+| list | Array | — | **子项配置，支持无限层级嵌套** |
+| **nestedConfig** | Object | — | **嵌套配置**：`{ border, column, direction, size }` |
 | fun | Function | 内置方法 | 显示内容方法 |
 | classFun | Function | — | 定制类 |
-| className | String | — | 内容自定义类名 |
-| labelClassName | String | — | 标签自定义类名 |
 | showFun | Function | — | 是否显示 |
-| list | Array | — | 子项配置 |
 | unit | String/Function | '' | 单位 |
 | decimalPlaces | Number | 0 | 小数位数 |
 | useRander | Boolean | false | 是否使用渲染函数 |
@@ -440,24 +448,56 @@ const handleCustomEvent = ({ eventName, data }, callback) => {
 3. 使用
 
 ```html
-<MyDetail ref="detailRef" :column="detailColumns"></MyDetail>
+<MyDetail ref="detailRef" :column="detailColumns" :des-column="2" />
 ```
 
 ```javascript
 const detailRef = ref(null)
 
 const detailColumns = ref([
+  // 普通字段
   { prop: 'userName', label: '用户名', span: 1 },
   { prop: 'email', label: '邮箱', span: 1 },
-  { 
-    prop: 'status', 
-    label: '状态',
-    fun: (row) => row.status === 1 ? '启用' : '禁用'
+  
+  // 多字段组合
+  { prop: 'createTime~updateTime', label: '更新记录', span: 2 },
+  
+  // 嵌套描述列表
+  {
+    prop: 'address',
+    label: '地址信息',
+    span: 2,
+    list: [
+      { prop: 'province', label: '省份', span: 1 },
+      { prop: 'city', label: '城市', span: 1 },
+      { prop: 'district', label: '区县', span: 1 },
+      { prop: 'detail', label: '详细地址', span: 1 }
+    ],
+    nestedConfig: {
+      border: true,
+      column: 2,
+      direction: 'horizontal'
+    }
   },
-  { 
-    prop: 'createTime', 
-    label: '创建时间',
-    fun: (row, prop, { renderTxt }) => renderTxt(row[prop])
+  
+  // 多级嵌套
+  {
+    prop: 'company',
+    label: '公司信息',
+    span: 2,
+    list: [
+      { prop: 'name', label: '公司名称', span: 1 },
+      { prop: 'phone', label: '联系电话', span: 1 },
+      {
+        prop: 'contact',
+        label: '联系人',
+        span: 2,
+        list: [
+          { prop: 'name', label: '姓名', span: 1 },
+          { prop: 'mobile', label: '手机号', span: 1 }
+        ]
+      }
+    ]
   }
 ])
 
@@ -500,8 +540,21 @@ const handleDetail = (row) => {
 | status | Number/Boolean/String | 200 | 成功状态码 |
 | code | String | 'code' | 状态码字段 |
 | dataConfig | Object | { data: 'data', status: 200, code: 'code' } | 数据格式配置 |
+| **desColumn** | Number | 1 | **列数**，与 `span` 配合实现多列布局 |
 
 > column 字段支持类型：`inputInnerType` | `dateInnerType` | `selectInnerType` | `switchInnerType` | `checkboxInnerType` | `radioInnerType` | `fileInnerType`
+
+**column 字段布局说明**：
+
+| 字段 | 类型 | 默认值 | 说明 |
+|:-----|:-----|:-----|:-----|
+| span | Number | props.desColumn | 表单项所占列宽比例（基于 `desColumn` 总列数计算百分比） |
+| column | Number | 1 | 表单项所在列位置（从 1 开始） |
+
+布局规则：
+- `desColumn` 控制表单总列数（如设为 2，则每行最多 2 个表单项）
+- 每个表单项的 `span` 控制宽度占比（如 `desColumn=2`，`span=1` 占 50%，`span=2` 占 100%）
+- 每个表单项的 `column` 控制起始列位置（用于换行控制）
 
 2. 事件
 
@@ -531,6 +584,7 @@ const handleDetail = (row) => {
   ref="editRef"
   :column="editColumns"
   :label-width="'100px'"
+  :des-column="2"
   :auto-update="refreshTable"
   @submit="handleSubmit"
 />
@@ -539,47 +593,46 @@ const handleDetail = (row) => {
 ```javascript
 const editRef = ref(null)
 
+// 2 列表单布局示例
 const editColumns = ref([
+  // 第一列（占 1/2 宽度）
   {
     prop: 'userName',
     label: '用户名',
     type: 'input',
     inputType: 'text',
     isRequired: true,
-    maxlength: 50
+    column: 1,
+    span: 1
   },
+  // 第二列（占 1/2 宽度）
   {
     prop: 'email',
     label: '邮箱',
     type: 'input',
     inputType: 'text',
-    isRequired: true
-  },
-  {
-    prop: 'status',
-    label: '状态',
-    type: 'select',
-    options: [
-      { label: '启用', value: 1 },
-      { label: '禁用', value: 0 }
-    ],
     isRequired: true,
-    isDefault: true
+    column: 2,
+    span: 1
   },
+  // 占满整行（column 自动换行，span: 2 占满）
+  {
+    prop: 'address',
+    label: '地址',
+    type: 'input',
+    inputType: 'text',
+    span: 2
+  },
+  // 日期范围（占满整行）
   {
     label: '有效期',
     prop: 'dateRange',
     type: 'date',
     dateType: 'daterange',
     aliases: 'startDate,endDate',
-    isRequired: true
+    span: 2
   },
-  {
-    label: '年份',
-    prop: 'years',
-    type: 'date',
-    dateType: 'years'
-  },
+  // 多选下拉（转为逗号字符串）
   {
     label: '角色',
     prop: 'roles',
@@ -589,7 +642,8 @@ const editColumns = ref([
     options: [
       { label: '管理员', value: 'admin' },
       { label: '普通用户', value: 'user' }
-    ]
+    ],
+    span: 1
   }
 ])
 
@@ -599,14 +653,6 @@ const refreshTable = () => {
 
 const handleSubmit = (data, callback) => {
   callback(saveUser(data))
-}
-
-const handleAdd = () => {
-  editRef.value?.init({})
-}
-
-const handleEdit = (row) => {
-  editRef.value?.init(row)
 }
 ```
 
@@ -664,10 +710,6 @@ const handleImport = (data, callback) => {
   formData.append('file', data.file)
   callback(importExcel(formData))
 }
-
-const openImport = () => {
-  importRef.value?.init({})
-}
 ```
 
 ---
@@ -704,15 +746,8 @@ const openImport = () => {
 </MyDialog>
 ```
 
-```javascript
-const dialogRef = ref(null)
-
-const openDialog = (data) => {
-  dialogRef.value?.init(data)
-}
-```
-
 ---
+
 ## Echarts 图表组件
 
 基于 ECharts 封装的图表组件，支持图表联动功能（图例、tooltip、点击联动）。
@@ -738,7 +773,7 @@ const openDialog = (data) => {
 
 | 方法名 | 参数 | 说明 |
 |:-------- |:-----|:-----|
-| chart | — | 获取 ECharts 实例(可能不正确,建议通过@chart-ready 事件获取) |
+| chart | — | 获取 ECharts 实例 |
 | resize | — | 手动调整图表大小 |
 
 4. 联动功能说明
@@ -799,6 +834,31 @@ const handleChartReady = (chartId, chart) => {
   console.log(`图表 ${chartId} 初始化完成`, chart)
 }
 ```
+
+6. 多个图表联动示例
+
+```html
+<template>
+  <!-- 至少需要 2 个图表才能触发联动，使用默认联动组 -->
+  <Echarts 
+    :chart-id="'chart-line'" 
+    :options="lineOptions" 
+    height="300px"
+  />
+  <Echarts 
+    :chart-id="'chart-bar'" 
+    :options="barOptions" 
+    height="300px"
+  />
+  <Echarts 
+    :chart-id="'chart-pie'" 
+    :options="pieOptions" 
+    height="300px"
+  />
+</template>
+```
+
+---
 
 # 子组件
 
