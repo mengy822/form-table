@@ -1,5 +1,15 @@
 <script lang="ts">
-import { defineComponent, markRaw, ref, nextTick, computed, h, VNode, Fragment, onBeforeUnmount } from 'vue' // [优化] 添加 onBeforeUnmount
+import {
+  defineComponent,
+  markRaw,
+  ref,
+  nextTick,
+  computed,
+  h,
+  VNode,
+  Fragment,
+  onBeforeUnmount,
+} from 'vue' // [优化] 添加 onBeforeUnmount
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { ElConfigProvider, ElDescriptions, ElDescriptionsItem, ElButton } from 'element-plus'
 import { deepClone } from '../js/utils'
@@ -132,7 +142,7 @@ export default defineComponent({
 
     // [优化] 优化 desBorder 计算属性，避免每次都遍历
     const hasNestedItems = computed(() => {
-      return columnFinal.value.some(item => isValidNestedList(item.list))
+      return columnFinal.value.some((item) => isValidNestedList(item.list))
     })
 
     const desBorder = computed(() => {
@@ -193,7 +203,7 @@ export default defineComponent({
       const contents: string[] = []
       const classNamesList: string[] = []
 
-      props.forEach((propPath) => {
+      props.forEach((propPath: string) => {
         let value: any
         if (column.fun) {
           value = column.fun(rowData, propPath.trim(), other)
@@ -274,32 +284,11 @@ export default defineComponent({
       return { content, classNames }
     }
 
-    const getNestedDescriptionsConfig = (
-      item: tableColumnItem & { nestedConfig?: NestedDescriptionsConfig }
-    ): NestedDescriptionsConfig => {
-      let defaultColumn = 1
-      if (isValidNestedList(item.list)) {
-        const directItems = item.list.filter((child) => !isValidNestedList(child.list))
-        defaultColumn = Math.min(directItems.length, 4)
-        if (defaultColumn === 0) defaultColumn = 1
-      }
-
-      return {
-        border: item.nestedConfig?.border ?? props.nestedDefaultBorder,
-        column: item.nestedConfig?.column ?? defaultColumn,
-        direction: item.nestedConfig?.direction ?? props.desDirection,
-        size: item.nestedConfig?.size ?? props.desSize,
-      }
-    }
 
     const hasNestedData = (item: tableColumnItem): boolean => {
       return isValidNestedList(item.list)
     }
 
-    // 获取嵌套数据（支持点号路径）
-    const getNestedData = (rowData: any, prop: string): any => {
-      return getValueByPath(rowData, prop) || {}
-    }
 
     // [优化] 添加错误边界包装函数
     const withErrorBoundary = (renderFn: () => VNode | null, fallback?: VNode) => {
@@ -315,7 +304,8 @@ export default defineComponent({
     // 处理 column，计算每个字段的位置和 span
     const processColumnsWithPosition = (
       columns: (tableColumnItem & { useRander?: boolean })[],
-      startIndex: number = 0
+      startIndex: number = 0,
+      nest:boolean=false
     ): (tableColumnItem & {
       useRander?: boolean
       isNestedParent?: boolean
@@ -344,8 +334,9 @@ export default defineComponent({
 
             result[result.length - 1].span = remainingSpan + prevItem.span
           }
+          if(!nest)
           item.span = props.desColumn
-          result.push({ ...item, list: processColumnsWithPosition(item.list) })
+          result.push({ ...item, list: processColumnsWithPosition(item.list,0,true) })
           continue
         } else {
           let defaultSpan = 1
@@ -364,10 +355,10 @@ export default defineComponent({
             const separator = SEPARATORS.find((sep) => prop.indexOf(sep) > -1)
 
             if (separator) {
-              const props = prop.split(separator)
+              const itemprops = prop.split(separator)
               const contents: string[] = []
 
-              props.forEach((propPath) => {
+              itemprops.forEach((propPath) => {
                 let propss = [propPath.trim()]
                 if (propPath.indexOf('.') > -1) {
                   propss = propPath.split('.')
@@ -420,208 +411,23 @@ export default defineComponent({
 
       return result
     }
-
+    const deepColumn = computed(() => {
+      return deepClone(props.column)
+    })
     const columnFinal = computed(() => {
-      const filtered = deepClone(props.column).filter(
+      const filtered = deepColumn.value.filter(
         (item: { isForm: any }) => typeof item.isForm === 'undefined' || item.isForm
       )
       const items = processColumnsWithPosition(filtered, 0)
       return items
     })
 
-    // 渲染嵌套的描述列表
-    const renderNestedDescriptions = (
-      item: tableColumnItem & { nestedConfig?: NestedDescriptionsConfig },
-      rowData: any,
-      depth: number = 0
-    ): VNode | null => {
-      if (!isValidNestedList(item.list)) return null
-
-      const childData = getNestedData(rowData, item.prop)
-      const nestedConfig = getNestedDescriptionsConfig(item)
-
-      const directChildren = item.list.filter((child: any) => !isValidNestedList(child.list))
-      const nestedChildren = item.list.filter((child: any) => isValidNestedList(child.list))
-
-      const childItems = directChildren
-        .filter((child: any) => typeof child.isForm === 'undefined' || child.isForm)
-        .map((child: any) => {
-          child.align = child.align ?? 'left'
-          child.span = child.span ?? 1
-          child.rowspan = child.rowspan ?? 1
-          if (!child.showFun) child.showFun = () => true
-          child.unit = child.unit ?? ''
-
-          if (!child.fun) {
-            child.fun = (row: any, prop: string, other?: any) => {
-              const separator = SEPARATORS.find((sep) => prop.indexOf(sep) > -1)
-
-              if (separator) {
-                const props = prop.split(separator)
-                const contents: string[] = []
-                props.forEach((propPath) => {
-                  let propss = [propPath.trim()]
-                  if (propPath.indexOf('.') > -1) {
-                    propss = propPath.split('.')
-                  }
-                  let lscontent = row[propss[0]]
-                  for (let j = 1; j < propss.length; j++) {
-                    const item1 = propss[j]
-                    lscontent = (lscontent as ObjectType)?.[item1] || undefined
-                  }
-                  const content = String(
-                    typeof lscontent === 'number' && child.decimalPlaces && child.decimalPlaces > 0
-                      ? (lscontent as number).toFixed(child.decimalPlaces)
-                      : lscontent ?? props.defaultBlock
-                  )
-                  const unit =
-                    typeof child.unit === 'string'
-                      ? child.unit
-                      : (child.unit && child.unit(row, propPath.trim(), other)) ?? ''
-                  contents.push(content !== props.defaultBlock ? content + unit : content)
-                })
-                return contents.join(separator)
-              }
-
-              let propss = [prop]
-              if (prop.indexOf('.') > -1) {
-                propss = prop.split('.')
-              }
-              let lscontent = row[propss[0]]
-              for (let j = 1; j < propss.length; j++) {
-                const item1 = propss[j]
-                lscontent = (lscontent as ObjectType)?.[item1] || undefined
-              }
-              const content = String(
-                typeof lscontent === 'number' && child.decimalPlaces && child.decimalPlaces > 0
-                  ? (lscontent as number).toFixed(child.decimalPlaces)
-                  : lscontent ?? props.defaultBlock
-              )
-              const unit =
-                typeof child.unit === 'string'
-                  ? child.unit
-                  : (child.unit && child.unit(row, prop, other)) ?? ''
-              return content !== props.defaultBlock ? content + unit : content
-            }
-          }
-
-          return child
-        })
-
-      const renderChildItems = () => {
-        return childItems
-          .map((child: any) => {
-            const showItem = child.showFun?.(childData, child.prop) ?? true
-            if (!showItem) return null
-
-            const labelContent = () => {
-              return h(Fragment, null, [child.label, ])
-            }
-
-            const getContent = () => {
-              const contentSlot = slots[child.prop]
-              if (contentSlot) {
-                return contentSlot({
-                  prop: child.prop,
-                  nowData: getNestedData(childData, child.prop),
-                  row: childData,
-                })
-              }
-
-              if (child.funDom && child.useRander) {
-                const Component = createMarkRaw(child.funDom, childData, child.prop)
-                return h(Component)
-              }
-
-              const { content, classNames } = getColumnData(child, childData, attrs)
-              const finalClassNames = [
-                `span span_${child.prop}`,
-                `span_${child.prop}_${getNestedData(childData, child.prop)}`,
-                classNames,
-              ]
-                .filter(Boolean)
-                .join(' ')
-
-              return h('span', { class: finalClassNames }, content)
-            }
-
-            return h(
-              ElDescriptionsItem,
-              {
-                label: labelContent,
-                span: child.span,
-                rowspan: child.rowspan,
-                width: child.width,
-                align: child.align,
-                labelAlign: child.labelAlign,
-                className: child.className,
-                labelClassName: child.labelClassName,
-              },
-              {
-                default: getContent,
-                label: labelContent,
-              }
-            )
-          })
-          .filter(Boolean)
-      }
-
-      const renderNestedChildren = () => {
-        return nestedChildren
-          .map((child: any) => {
-            const showItem = child.showFun?.(childData, child.prop) ?? true
-            if (!showItem) return null
-
-            return h(
-              'div',
-              {
-                class: 'nested-descriptions-item',
-                style: { marginTop: '16px' },
-              },
-              [renderNestedDescriptions(child, childData, depth + 1)]
-            )
-          })
-          .filter(Boolean)
-      }
-
-      const hasDeepNesting = nestedChildren.length > 0
-
-      if (hasDeepNesting) {
-        return h('div', { class: 'nested-descriptions-wrapper' }, [
-          h(
-            ElDescriptions,
-            {
-              border: nestedConfig.border,
-              column: nestedConfig.column,
-              direction: nestedConfig.direction,
-              size: nestedConfig.size,
-              class: `nested-descriptions depth-${depth}`,
-            },
-            {
-              default: () => renderChildItems(),
-            }
-          ),
-          ...renderNestedChildren(),
-        ])
-      }
-
-      return h(
-        ElDescriptions,
-        {
-          border: nestedConfig.border,
-          column: nestedConfig.column,
-          direction: nestedConfig.direction,
-          size: nestedConfig.size,
-          class: `nested-descriptions depth-${depth}`,
-        },
-        {
-          default: () => renderChildItems(),
-        }
-      )
-    }
-
     // 构建普通描述列表
-    const renderDescriptions = (items: any[], title: string = props.desTitle, desDirection: typeof props.desDirection = props.desDirection) => {
+    const renderDescriptions = (
+      items: any[],
+      title: string = props.desTitle,
+      desDirection: typeof props.desDirection = props.desDirection
+    ) => {
       const renderNormalItem = (item: any, renderLabel: any, renderDefaultContent: any) => {
         const showItem = item.showFun?.(dataFinal.value, item.prop) ?? true
         if (!showItem) return null
@@ -656,7 +462,7 @@ export default defineComponent({
                 row: dataFinal.value,
               })
             }
-            return h(Fragment, null, [item.label, ])
+            return h(Fragment, null, [item.label])
           }
 
           const renderDefaultContent = () => {
@@ -709,21 +515,25 @@ export default defineComponent({
         })
         .filter(Boolean)
 
-      return withErrorBoundary(() => h(
-        ElDescriptions,
-        {
-          border: desBorder.value,
-          column: props.desColumn,
-          direction: desDirection,
-          size: props.desSize,
-          title: title,
-          extra: props.desExtra,
-          class: 'detail',
-        },
-        {
-          default: () => allItems,
-        }
-      ), h('div', { class: 'render-error' }, '描述列表渲染失败'))
+      return withErrorBoundary(
+        () =>
+          h(
+            ElDescriptions,
+            {
+              border: desBorder.value,
+              column: props.desColumn,
+              direction: desDirection,
+              size: props.desSize,
+              title: title,
+              extra: props.desExtra,
+              class: 'detail',
+            },
+            {
+              default: () => allItems,
+            }
+          ),
+        h('div', { class: 'render-error' }, '描述列表渲染失败')
+      )
     }
 
     const renderLeftSlot = () => {
@@ -845,8 +655,8 @@ export default defineComponent({
 .detail {
   :deep(.el-descriptions__body) {
     .el-descriptions__table {
-      .nesting{
-        padding:0 !important;
+      .nesting {
+        padding: 0 !important;
       }
       tbody {
         tr {
