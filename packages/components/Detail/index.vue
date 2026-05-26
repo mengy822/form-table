@@ -12,10 +12,10 @@ import {
 } from 'vue' // [优化] 添加 onBeforeUnmount
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { ElConfigProvider, ElDescriptions, ElDescriptionsItem, ElButton } from 'element-plus'
-import { deepClone } from '../js/utils'
+import { deepClone, getDomComputed, getComputedStyle} from '../js/utils'
 import MyDialog from '../Dialog/index.vue'
-import { dataItemType, tableColumnItem } from '../ObjectType'
-import { ObjectType } from '../js/types'
+import { dataItemType, ObjectType, } from '../js/types'
+import { tableColumnItem } from '../Table/index.vue'
 
 type MyDialogInstance = InstanceType<typeof MyDialog>
 
@@ -128,7 +128,7 @@ export default defineComponent({
   setup(props, { slots, emit, attrs, expose }) {
     const myDialog = ref<MyDialogInstance | null>(null)
     const dataFinal = ref<{ [key: string]: any }>({})
-
+    const maxWidth = ref(400)
     // [优化] 添加组件缓存，避免重复创建
     const componentCache = ref<Map<string, any>>(new Map())
 
@@ -284,11 +284,9 @@ export default defineComponent({
       return { content, classNames }
     }
 
-
     const hasNestedData = (item: tableColumnItem): boolean => {
       return isValidNestedList(item.list)
     }
-
 
     // [优化] 添加错误边界包装函数
     const withErrorBoundary = (renderFn: () => VNode | null, fallback?: VNode) => {
@@ -305,7 +303,7 @@ export default defineComponent({
     const processColumnsWithPosition = (
       columns: (tableColumnItem & { useRander?: boolean })[],
       startIndex: number = 0,
-      nest:boolean=false
+      nest: boolean = false
     ): (tableColumnItem & {
       useRander?: boolean
       isNestedParent?: boolean
@@ -334,9 +332,8 @@ export default defineComponent({
 
             result[result.length - 1].span = remainingSpan + prevItem.span
           }
-          if(!nest)
-          item.span = props.desColumn
-          result.push({ ...item, list: processColumnsWithPosition(item.list,0,true) })
+          if (!nest) item.span = props.desColumn
+          result.push({ ...item, list: processColumnsWithPosition(item.list, 0, true) })
           continue
         } else {
           let defaultSpan = 1
@@ -591,6 +588,13 @@ export default defineComponent({
       dataFinal.value = { ...finaldata }
       myDialog.value?.init()
       nextTick(() => {
+        const baseClassStyle = getComputedStyle(document.querySelector('.detailDialog'))
+        // console.log(getDomComputed(baseClassStyle, 'height') ,className)
+        maxWidth.value =
+          getDomComputed(baseClassStyle, 'width') / props.desColumn -
+          Number(props.labelWidth.replace('px', '')) +
+          'px'
+
         openCb(dataFinal.value)
       })
     }
@@ -638,6 +642,10 @@ export default defineComponent({
                 width: props.width,
                 title: props.title,
                 onBeforeClose: handleClose,
+                style: {
+                  '--label-width': props.labelWidth,
+                  '--maxWidth': maxWidth.value,
+                },
               },
               {
                 default: () => detailContent,
@@ -663,14 +671,16 @@ export default defineComponent({
           .el-descriptions__cell {
             // [优化] 删除注释掉的代码
             .el-descriptions__label {
-              min-width: v-bind(labelWidth);
+              min-width: var(--labelWidth);
               display: table-cell;
+              vertical-align: top;
             }
 
             .el-descriptions__content {
               display: table-cell;
               word-break: break-all;
               word-wrap: break-word;
+              vertical-align: top;
             }
           }
         }
@@ -691,5 +701,8 @@ export default defineComponent({
   color: #f56c6c;
   background-color: #fef0f0;
   border-radius: 4px;
+}
+:deep(.el-descriptions__content) {
+  max-width: var(--maxWidth);
 }
 </style>
