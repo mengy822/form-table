@@ -1,15 +1,18 @@
+# 组件库文档
+
 ![封面](https://i-blog.csdnimg.cn/direct/f4eb7b4a21fe4e2fb803e851857d6eab.png)
 
 [👉 前往 GitHub](https://github.com/mengy822/form-table)
 
-> **最新更新时间**：2026-05-23
+> **最新更新时间**：2026-05-26
 
 ## 本次更新内容
 
 | 更新组件 | 更新内容 |
 |:--------|:--------|
-| **MyEdit** | 新增 `desColumn` 属性，支持表单项按列布局；每个表单项支持 `span` 属性控制宽度占比；弹框内容区最大高度调整为 `50vh` 并支持滚动 |
-| **MyDetail** | 新增嵌套描述列表支持（无限层级）、支持点号路径访问、支持多字段组合显示（`,`, `~`, `-`, `/`）、新增 `sonDirection` 和 `nestedDefaultBorder` 属性、支持 `nestedConfig` 单独配置嵌套样式 |
+| **MyEdit/MyForm** | `isRequired` 支持 `boolean`、`Function`、`string`（内置校验规则）三种类型；新增 `numberAuto` 数字范围校验 |
+| **MyTable** | 新增 `dataConfig` 数据源配置；删除事件 callback 支持 `(url, params, method)` 参数约定；导出事件 callback 支持 `(url, params, fileName, methods)` 参数约定 |
+| **MyEdit/MyDetail** | 新增 `dataConfig` 数据源配置；`init` 方法支持传入 Promise 并显示加载效果 |
 
 ---
 
@@ -58,7 +61,49 @@
 | error_${prop} | 自定义错误信息 | prop, data |
 | ${prop} | 自定义输入框 | prop, data |
 
-4. 使用
+4. isRequired 校验规则说明
+
+`isRequired` 支持以下三种类型：
+
+| 类型 | 说明 | 示例 |
+|:-----|:-----|:-----|
+| `boolean` | 默认校验（必填/非必填） | `isRequired: true` |
+| `Function` | 自定义校验函数 | `isRequired: (rule, value, callback) => { ... }` |
+| `string` | 内置校验规则 | `isRequired: 'phone'` |
+
+**内置校验规则列表：**
+
+| 规则名称 | 说明 | 适用场景 |
+|:---------|:-----|:---------|
+| `notEmpty` | 必填(自动生成字符串) | 通用必填 |
+| `strRequired` | 字符串必填 | 文本输入框 |
+| `strNoSpace` | 字符串无空格 | 用户名、账号 |
+| `phone` | 手机号校验 | 手机号输入框 |
+| `idNo` | 身份证校验 | 身份证号输入框 |
+| `str` | 字符串（非必填） | 非必填文本 |
+| `number` | 数字--正整数 | 年龄、数量 |
+| `numberZero` | 数字--正整数（可为0） | 包含0的正整数 |
+| `numberAuto` | 数字范围校验 | 根据 `min`/`max`/`decimalPlaces` 限制 |
+| `decimal` | 数字--小数两位 | 金额、价格 |
+| `ruleIp` | 校验设备IP | IP地址 |
+| `ruleExtCellEmun` | 校验拓展枚举 | 枚举值校验 |
+| `password` | 密码设置 | 密码输入框 |
+
+**`numberAuto` 使用示例：**
+
+```javascript
+{
+  prop: 'score',
+  label: '分数',
+  type: 'input',
+  inputType: 'number',
+  min: 0,
+  max: 100,
+  isRequired: 'numberAuto'
+}
+```
+
+5. 使用
 
 ```html
 <MyForm
@@ -115,6 +160,14 @@ const handleSearch = (params) => {
 
 ## 表格 (MyTable)
 
+### 基础表格
+
+![基础表格](https://i-blog.csdnimg.cn/direct/3c0e06e412fa4ca0874e6727846a5751.png)
+
+### 多级表头
+
+![多级表头](https://i-blog.csdnimg.cn/direct/ed09c4d3ca244b738bde25d7a1f3d977.png)
+
 1. 属性
 
 | 属性名 | 类型 | 默认值 | 说明 |
@@ -170,6 +223,7 @@ const handleSearch = (params) => {
 | treeProps | Object | { children: 'children', hasChildren: 'hasChildren' } | 树形结构配置 |
 | tableColumn | Array | 必填 | 表格列配置 |
 | dataListFun | Function | undefined | 数据加载函数 |
+| dataLoadFun | Function | undefined | 请求函数（用于 URL 方式） |
 | dataConfig | Object | { rows: 'rows', total: 'total', extra: 'extra' } | 数据格式配置 |
 | total | Number | 0 | 数据总数 |
 | removeMessage | String | '您确定删除该数据吗? 警告:该操作不可逆,请慎重操作' | 删除提示 |
@@ -195,7 +249,7 @@ const handleSearch = (params) => {
 | defaultBlock | String | '-' | 默认空白占位符 |
 | status | Number/Boolean/String | 200 | 成功状态码 |
 | code | String | 'code' | 状态码字段 |
-| downFun | Function | undefined | 导出下载方法 |
+| downFun | Function | undefined | 自定义下载方法（用于导出） |
 | sortable | Boolean | true | 是否支持排序 |
 | sortableConfig | Object | { descending: 'descending', ascending: 'ascending' } | 排序配置 |
 | searchSortableConfig | Object | { fieId: 'fieId', fieVal: 'fieVal' } | 搜索排序配置 |
@@ -236,23 +290,48 @@ const handleSearch = (params) => {
 - 嵌套对象：`prop: 'user.profile.name'` 访问 `user.profile.name`
 - 多字段组合：支持 `,`、`~`、`-`、`/` 作为分隔符，如 `prop: 'createTime~endTime'`
 
-2. 事件
+2. 数据源配置 (dataConfig)
+
+当接口返回的数据结构与默认格式不一致时，可通过 `dataConfig` 配置映射关系。
+
+**默认格式：**
+
+```javascript
+dataConfig: {
+  rows: 'rows',   // 数据列表字段名
+  total: 'total', // 总数字段名
+  extra: 'extra'  // 额外数据字段名
+}
+```
+
+**配置示例：**
+
+```javascript
+// 自定义数据格式
+const dataConfig = {
+  rows: 'dataList',    // 数据列表字段名为 dataList
+  total: 'totalCount', // 总数字段名为 totalCount
+  extra: 'ext'         // 额外数据字段名为 ext
+}
+```
+
+3. 事件
 
 | 事件名 | 触发时机 | 参数 | 说明 |
 |:-------- |:-----|:-----|:-----|
 | add | 新增按钮点击 | — | 新增事件 |
-| update | 修改按钮点击 | row | 修改事件 |
-| detail | 详情按钮点击 | row | 详情事件 |
-| remove | 删除按钮点击 | row, callback | 删除事件（callback 传入接口 Promise） |
+| update | 修改按钮点击 | row, callback | 修改事件（callback 可选） |
+| detail | 详情按钮点击 | row, callback | 详情事件（callback 可选） |
+| remove | 删除按钮点击 | row, callback | 删除事件，callback 支持 `(url, params, method)` 参数约定 |
 | batch-remove | 批量删除点击 | selectedRows, callback | 批量删除事件 |
-| export | 导出按钮点击 | exportData, callback | 导出事件 |
+| export | 导出按钮点击 | exportData, callback | 导出事件，callback 支持 `(url, params, fileName, methods)` 参数约定 |
 | import | 导入按钮点击 | callback | 导入事件 |
 | add-son | 新增子节点点击 | parentRow, callback | 新增子节点事件 |
 | custom-event | 调用 handleNeedConfirmEvent 后用户确认时触发 | { eventName, data }, callback | 自定义需要确认的事件 |
 | expand-change | 树形表格展开/折叠 | row, expanded | 展开/折叠事件 |
 | current-change | 当前行变化 | row | 当前行变化事件 |
 
-3. 插槽
+4. 插槽
 
 | 插槽名 | 说明 | 参数 |
 |:---|:----|:----|
@@ -270,13 +349,15 @@ const handleSearch = (params) => {
 | remove | 自定义删除按钮 | data, index, text, link, loading |
 | ${prop} | 表格列自定义内容 | row, prop, index, nowData, loading |
 
-4. 使用
+5. 使用
 
 ```html
 <MyTable
   ref="tableRef"
   :table-column="tableColumns"
   :data-list-fun="getList"
+  :data-load-fun="request"
+  :data-config="dataConfig"
   :base-class="'.app-main'"
   @add="handleAdd"
   @update="handleEdit"
@@ -285,19 +366,16 @@ const handleSearch = (params) => {
   @export="handleExport"
   @custom-event="handleCustomEvent"
 >
+  <!-- 自定义状态列（插槽名与 prop 或 slot 属性值相同） -->
   <template #status="{ row }">
     <el-tag :type="row.status === 1 ? 'success' : 'danger'">
       {{ row.status === 1 ? '启用' : '禁用' }}
     </el-tag>
   </template>
   
+  <!-- 操作列额外按钮 -->
   <template #operationAfter="{ data, loading }">
-    <el-button 
-      link 
-      type="primary" 
-      :loading="loading"
-      @click="handleCustomAction(data, tableRef)"
-    >
+    <el-button link type="primary" :loading="loading" @click="handleCustom(data)">
       重置密码
     </el-button>
   </template>
@@ -310,6 +388,13 @@ import { ref } from 'vue'
 const tableRef = ref(null)
 const editDialogRef = ref(null)
 const detailDialogRef = ref(null)
+
+// 数据格式配置（如接口格式与默认不一致）
+const dataConfig = {
+  rows: 'dataList',
+  total: 'totalCount',
+  extra: 'ext'
+}
 
 const tableColumns = ref([
   { prop: 'userName', label: '用户名', width: 120, fixed: 'left' },
@@ -330,6 +415,7 @@ const tableColumns = ref([
   { prop: 'remark', label: '备注' }
 ])
 
+// 数据加载函数
 const getList = (params, callback) => {
   callback(
     new Promise((resolve) => {
@@ -342,27 +428,62 @@ const getList = (params, callback) => {
   )
 }
 
+// 配置 dataLoadFun（用于 URL 方式）
+const request = (config) => {
+  return axios(config)
+}
+
+// 新增
 const handleAdd = () => {
   editDialogRef.value?.init({})
 }
 
-const handleEdit = (row) => {
-  editDialogRef.value?.init(row)
+// 修改（推荐格式：传入 Promise 显示加载效果）
+const handleEdit = (row, callback) => {
+  editDialogRef.value?.init(getInfo(row.id), undefined, (e) => {
+    callback()
+  })
 }
 
-const handleDetail = (row) => {
-  detailDialogRef.value?.init(row)
+// 详情（推荐格式：传入 Promise 显示加载效果）
+const handleDetail = (row, callback) => {
+  detailDialogRef.value?.init(getInfo(row.id), (e) => {
+    callback()
+  })
 }
 
+// 删除（callback 支持 Promise、URL 等方式）
 const handleDelete = (row, callback) => {
+  // 方式一：传入 Promise
   callback(deleteUser(row.id))
+  
+  // 方式二：传入 URL + 参数（POST 请求）
+  // callback('/api/user/delete', { id: row.id })
+  
+  // 方式三：传入 URL + 参数 + 指定方法
+  // callback('/api/user/delete', { id: row.id }, 'DELETE')
+  
+  // 方式四：传入 URL + 空参数（GET 请求）
+  // callback('/api/user/delete/' + row.id)
 }
 
+// 导出
 const handleExport = (exportData, callback) => {
   callback('/api/export', exportData, '用户数据.xlsx', 'post')
 }
 
-const handleCustomAction = (row, tableRef) => {
+// 自定义下载方法（可选）
+const customDownload = (url, params, fileName, methods) => {
+  axios({ method: methods, url, params, responseType: 'blob' }).then(res => {
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(res.data)
+    link.download = fileName
+    link.click()
+  })
+}
+
+// 需要确认的自定义操作
+const handleCustom = (row, tableRef) => {
   tableRef?.handleNeedConfirmEvent({
     data: row,
     eventName: 'resetPassword',
@@ -374,6 +495,7 @@ const handleCustomAction = (row, tableRef) => {
   })
 }
 
+// 自定义事件处理
 const handleCustomEvent = ({ eventName, data }, callback) => {
   if (eventName === 'resetPassword') {
     callback(resetPassword(data.id))
@@ -398,6 +520,14 @@ const handleCustomEvent = ({ eventName, data }, callback) => {
 
 ## 详情 (MyDetail)
 
+### 普通详情
+
+![普通详情](https://i-blog.csdnimg.cn/direct/03ef218f056241329539ff113161846c.png)
+
+### 嵌套详情
+
+![嵌套详情](https://i-blog.csdnimg.cn/direct/896ca0f059ec40c699d1acb23d923323.png)
+
 1. 属性
 
 | 属性名 | 类型 | 默认值 | 说明 |
@@ -406,17 +536,17 @@ const handleCustomEvent = ({ eventName, data }, callback) => {
 | width | String | '50%' | 弹框宽度 |
 | labelWidth | String | '72px' | 标签宽度 |
 | title | String | '详情' | 弹框标题 |
-| desBorder | Boolean | false | 描述列表是否带有边框（当有嵌套时自动为 true） |
+| desBorder | Boolean | false | 描述列表是否带有边框（有嵌套时自动为 true） |
 | desColumn | Number | 2 | 描述列表列数 |
 | desDirection | String | 'horizontal' | 排列方向 |
-| **sonDirection** | String | 'vertical' | **嵌套描述列表排列方向** |
+| sonDirection | String | 'vertical' | 嵌套排列方向 |
 | desSize | String | '' | 描述列表尺寸 |
 | desTitle | String | '' | 描述列表标题文本 |
 | desExtra | String | '' | 描述列表操作区文本 |
 | column | Array | 必填 | 详情列配置 |
 | defaultBlock | String | '-' | 默认空白占位符 |
 | dataConfig | Object | { data: 'data', status: 200, code: 'code' } | 数据格式配置 |
-| **nestedDefaultBorder** | Boolean | true | **嵌套描述列表默认边框** |
+| nestedDefaultBorder | Boolean | true | 嵌套默认边框 |
 
 > column 字段
 
@@ -426,8 +556,8 @@ const handleCustomEvent = ({ eventName, data }, callback) => {
 | label | String | 必填 | 显示的文本 |
 | span | Number | 1 | 列的数量 |
 | rowspan | Number | 1 | 跨行的数量 |
-| list | Array | — | **子项配置，支持无限层级嵌套** |
-| **nestedConfig** | Object | — | **嵌套配置**：`{ border, column, direction, size }` |
+| list | Array | — | 子项配置，支持无限层级嵌套 |
+| nestedConfig | Object | — | 嵌套配置：`{ border, column, direction, size }` |
 | fun | Function | 内置方法 | 显示内容方法 |
 | classFun | Function | — | 定制类 |
 | showFun | Function | — | 是否显示 |
@@ -435,7 +565,29 @@ const handleCustomEvent = ({ eventName, data }, callback) => {
 | decimalPlaces | Number | 0 | 小数位数 |
 | useRander | Boolean | false | 是否使用渲染函数 |
 
-2. 插槽
+2. 数据源配置 (dataConfig)
+
+**默认格式：**
+
+```javascript
+dataConfig: {
+  data: 'data',   // 数据字段名
+  status: 200,    // 成功状态码
+  code: 'code'    // 状态码字段名
+}
+```
+
+**配置示例：**
+
+```javascript
+const dataConfig = {
+  data: 'result',
+  status: 0,
+  code: 'retCode'
+}
+```
+
+3. 插槽
 
 | 插槽名 | 说明 | 参数 |
 |:---|:----|:----|
@@ -445,10 +597,29 @@ const handleCustomEvent = ({ eventName, data }, callback) => {
 | label_${prop} | 单项的标签 | prop, nowData, row |
 | ${prop} | 单项的内容 | prop, nowData, row |
 
-3. 使用
+4. init 方法说明
+
+`init` 方法支持传入 Promise 或普通数据，传入 Promise 时弹框会显示加载效果：
+
+```javascript
+// 方式一：传入普通数据
+detailRef.value?.init({ id: 1, name: '张三' })
+
+// 方式二：传入 Promise（推荐，会有加载效果）
+detailRef.value?.init(getInfo(row.id), (data) => {
+  console.log('详情数据加载完成', data)
+})
+```
+
+5. 使用
 
 ```html
-<MyDetail ref="detailRef" :column="detailColumns" :des-column="2" />
+<MyDetail 
+  ref="detailRef" 
+  :column="detailColumns" 
+  :des-column="2"
+  :data-config="dataConfig"
+/>
 ```
 
 ```javascript
@@ -462,7 +633,7 @@ const detailColumns = ref([
   // 多字段组合
   { prop: 'createTime~updateTime', label: '更新记录', span: 2 },
   
-  // 嵌套描述列表
+  // 嵌套描述列表（一级嵌套）
   {
     prop: 'address',
     label: '地址信息',
@@ -480,7 +651,7 @@ const detailColumns = ref([
     }
   },
   
-  // 多级嵌套
+  // 多级嵌套（无限层级）
   {
     prop: 'company',
     label: '公司信息',
@@ -501,14 +672,21 @@ const detailColumns = ref([
   }
 ])
 
-const handleDetail = (row) => {
-  detailRef.value?.init(row)
+// 查看详情（推荐格式）
+const handleDetail = (row, callback) => {
+  detailRef.value?.init(getInfo(row.id), (e) => {
+    callback()
+  })
 }
 ```
 
 ---
 
 ## 新增/修改 (MyEdit)
+
+### 表单多列情况 (span < desColumn)
+
+![表单多列情况](https://i-blog.csdnimg.cn/direct/776a2b939d9f4497b79242f8361f406c.png)
 
 1. 属性
 
@@ -540,30 +718,35 @@ const handleDetail = (row) => {
 | status | Number/Boolean/String | 200 | 成功状态码 |
 | code | String | 'code' | 状态码字段 |
 | dataConfig | Object | { data: 'data', status: 200, code: 'code' } | 数据格式配置 |
-| **desColumn** | Number | 1 | **列数**，与 `span` 配合实现多列布局 |
+| desColumn | Number | 1 | 表单总列数，与 `span` 配合实现多列布局 |
 
 > column 字段支持类型：`inputInnerType` | `dateInnerType` | `selectInnerType` | `switchInnerType` | `checkboxInnerType` | `radioInnerType` | `fileInnerType`
+
+**isRequired 校验规则说明**（同 MyForm）
 
 **column 字段布局说明**：
 
 | 字段 | 类型 | 默认值 | 说明 |
 |:-----|:-----|:-----|:-----|
 | span | Number | props.desColumn | 表单项所占列宽比例（基于 `desColumn` 总列数计算百分比） |
-| column | Number | 1 | 表单项所在列位置（从 1 开始） |
 
 布局规则：
 - `desColumn` 控制表单总列数（如设为 2，则每行最多 2 个表单项）
 - 每个表单项的 `span` 控制宽度占比（如 `desColumn=2`，`span=1` 占 50%，`span=2` 占 100%）
-- 每个表单项的 `column` 控制起始列位置（用于换行控制）
+- 表单项按数组顺序自动换行排列
 
-2. 事件
+2. 数据源配置 (dataConfig)
+
+同 MyDetail，默认格式为 `{ data: 'data', status: 200, code: 'code' }`
+
+3. 事件
 
 | 事件名 | 触发时机 | 参数 | 说明 |
 |:-------- |:-----|:-----|:-----|
 | submit | 确定按钮点击 | data, callback | 保存事件 |
 | close | 弹窗关闭 | — | 关闭事件 |
 
-3. 插槽
+4. 插槽
 
 | 插槽名 | 说明 | 参数 |
 |:---|:----|:----|
@@ -577,7 +760,21 @@ const handleDetail = (row) => {
 | label_${prop} | 标签内容 | prop, data |
 | error_${prop} | 错误信息内容 | prop, data |
 
-4. 使用
+5. init 方法说明
+
+`init` 方法支持传入 Promise 或普通数据，传入 Promise 时弹框会显示加载效果：
+
+```javascript
+// 方式一：传入普通数据
+editRef.value?.init({ id: 1, name: '张三' })
+
+// 方式二：传入 Promise（推荐，会有加载效果）
+editRef.value?.init(getInfo(row.id), undefined, (data) => {
+  console.log('初始化完成', data)
+})
+```
+
+6. 使用
 
 ```html
 <MyEdit
@@ -585,6 +782,7 @@ const handleDetail = (row) => {
   :column="editColumns"
   :label-width="'100px'"
   :des-column="2"
+  :data-config="dataConfig"
   :auto-update="refreshTable"
   @submit="handleSubmit"
 />
@@ -592,6 +790,13 @@ const handleDetail = (row) => {
 
 ```javascript
 const editRef = ref(null)
+
+// 数据格式配置
+const dataConfig = {
+  data: 'result',
+  status: 0,
+  code: 'retCode'
+}
 
 // 2 列表单布局示例
 const editColumns = ref([
@@ -602,7 +807,7 @@ const editColumns = ref([
     type: 'input',
     inputType: 'text',
     isRequired: true,
-    column: 1,
+    maxlength: 50,
     span: 1
   },
   // 第二列（占 1/2 宽度）
@@ -612,10 +817,9 @@ const editColumns = ref([
     type: 'input',
     inputType: 'text',
     isRequired: true,
-    column: 2,
     span: 1
   },
-  // 占满整行（column 自动换行，span: 2 占满）
+  // 占满整行（span: 2 占满）
   {
     prop: 'address',
     label: '地址',
@@ -623,13 +827,14 @@ const editColumns = ref([
     inputType: 'text',
     span: 2
   },
-  // 日期范围（占满整行）
+  // 日期范围（占满整行，自动拆分为两个字段）
   {
     label: '有效期',
     prop: 'dateRange',
     type: 'date',
     dateType: 'daterange',
     aliases: 'startDate,endDate',
+    isRequired: true,
     span: 2
   },
   // 多选下拉（转为逗号字符串）
@@ -644,6 +849,17 @@ const editColumns = ref([
       { label: '普通用户', value: 'user' }
     ],
     span: 1
+  },
+  // 数字范围校验
+  {
+    prop: 'score',
+    label: '分数',
+    type: 'input',
+    inputType: 'number',
+    min: 0,
+    max: 100,
+    isRequired: 'numberAuto',
+    span: 1
   }
 ])
 
@@ -653,6 +869,18 @@ const refreshTable = () => {
 
 const handleSubmit = (data, callback) => {
   callback(saveUser(data))
+}
+
+// 新增
+const handleAdd = () => {
+  editRef.value?.init({})
+}
+
+// 修改（推荐格式）
+const handleEdit = (row, callback) => {
+  editRef.value?.init(getInfo(row.id), undefined, (e) => {
+    callback()
+  })
 }
 ```
 
@@ -746,6 +974,14 @@ const handleImport = (data, callback) => {
 </MyDialog>
 ```
 
+```javascript
+const dialogRef = ref(null)
+
+const openDialog = (data) => {
+  dialogRef.value?.init(data)
+}
+```
+
 ---
 
 ## Echarts 图表组件
@@ -778,45 +1014,27 @@ const handleImport = (data, callback) => {
 
 4. 联动功能说明
 
-当满足以下条件时，图表之间会实现联动效果（图例联动、Tooltip 联动、点击联动）：
+当满足以下条件时，图表之间会自动实现联动：
+- 传入 `chartId`（同一页面内唯一）
+- 多个图表使用相同的 `linkageGroup`（只有一个联动组时可忽略）
+- **同一组内至少有 2 个图表**
 
-- 传入 `chartId`（同一页面内需唯一）
-- 多个图表使用相同的 `linkage-group`（页面只有一个联动组时可忽略，使用默认值即可）
-- **同一联动组内的图表实例数量大于 2**
-
-> **注意**：
-> - 传递 `chartId` 即自动开启联动功能
-> - 页面只有一个联动组时，`linkageGroup` 可忽略，使用默认值 `'default'` 即可
-> - 用户需自行保证 `chartId` 在同一页面内是唯一的
-> - 联动效果需要同一组内至少有 2 个图表实例才会生效
+联动效果包括：
+- **图例联动**：点击任一图表的图例，同组所有图表对应系列同时显示/隐藏
+- **Tooltip 联动**：鼠标悬停时，同组所有图表同步显示对应位置的提示框
+- **点击联动**：点击数据点时，同组所有图表触发相应事件
 
 5. 使用
 
 ```html
 <!-- 不开启联动（未传入 chartId） -->
-<Echarts 
-  :options="chartOptions" 
-  height="350px" 
-  width="100%" 
-/>
+<Echarts :options="chartOptions" height="350px" width="100%" />
 
 <!-- 开启联动：只需传递 chartId（使用默认联动组） -->
-<Echarts 
-  :chart-id="'chart-a'" 
-  :options="chartAOptions" 
-  height="350px" 
-  width="100%" 
-  @chart-ready="handleChartReady"
-/>
+<Echarts :chart-id="'chart-a'" :options="chartAOptions" height="350px" width="100%" />
 
 <!-- 开启联动：指定联动组 -->
-<Echarts 
-  :chart-id="'chart-b'" 
-  :options="chartBOptions" 
-  linkage-group="my-group" 
-  height="350px" 
-  width="100%" 
-/>
+<Echarts :chart-id="'chart-b'" :options="chartBOptions" linkage-group="my-group" height="350px" width="100%" />
 ```
 
 ```javascript
@@ -830,32 +1048,17 @@ const chartAOptions = ref({
   series: [{ type: 'line', data: [120, 200, 150, 80] }]
 })
 
-const handleChartReady = (chartId, chart) => {
-  console.log(`图表 ${chartId} 初始化完成`, chart)
-}
+// 多图表联动示例
+const lineOptions = ref({...})
+const barOptions = ref({...})
+const pieOptions = ref({...})
 ```
 
-6. 多个图表联动示例
-
 ```html
-<template>
-  <!-- 至少需要 2 个图表才能触发联动，使用默认联动组 -->
-  <Echarts 
-    :chart-id="'chart-line'" 
-    :options="lineOptions" 
-    height="300px"
-  />
-  <Echarts 
-    :chart-id="'chart-bar'" 
-    :options="barOptions" 
-    height="300px"
-  />
-  <Echarts 
-    :chart-id="'chart-pie'" 
-    :options="pieOptions" 
-    height="300px"
-  />
-</template>
+<!-- 至少需要 2 个图表才能触发联动 -->
+<Echarts :chart-id="'chart-line'" :options="lineOptions" height="300px" />
+<Echarts :chart-id="'chart-bar'" :options="barOptions" height="300px" />
+<Echarts :chart-id="'chart-pie'" :options="pieOptions" height="300px" />
 ```
 
 ---
@@ -882,7 +1085,7 @@ const handleChartReady = (chartId, chart) => {
 | for | String | 和原生标签相同能力 | — |
 | validateStatus | String | formitem 校验的状态 | — |
 | isDefault | Boolean | 是否有默认选中 | false |
-| isRequired | Boolean/Function | 是否必填 | false |
+| isRequired | Boolean/Function/String | 是否必填（支持内置校验规则） | false |
 | size | String | 组件尺寸 | — |
 | disabled | Boolean/Function | 是否禁用 | false |
 | clearable | Boolean | 是否有清除按钮 | true |
@@ -891,6 +1094,21 @@ const handleChartReady = (chartId, chart) => {
 > **isDefault 行为说明**：
 > - Checkbox/Radio/Select：自动选中第一个可用选项
 > - Date：单个日期设为当前时间；日期范围设为今天 00:00:00 到 23:59:59
+
+> **isRequired 内置校验规则**：
+> - `notEmpty`：必填(自动生成字符串)
+> - `strRequired`：字符串必填
+> - `strNoSpace`：字符串无空格
+> - `phone`：手机号校验
+> - `idNo`：身份证校验
+> - `str`：字符串（非必填）
+> - `number`：正整数
+> - `numberZero`：正整数（可为0）
+> - `numberAuto`：数字范围校验（根据 min/max/decimalPlaces 限制）
+> - `decimal`：小数两位
+> - `ruleIp`：IP地址校验
+> - `ruleExtCellEmun`：拓展枚举校验
+> - `password`：密码设置
 
 ---
 
@@ -1041,4 +1259,3 @@ const querySearchAllAsync = (keyword, callback, extraParams) => {
 | Input | multiple: false | 转为逗号分隔字符串 |
 
 > **注意**：Select 多选不支持 aliases 拆分为独立字段。
-
