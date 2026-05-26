@@ -12,9 +12,9 @@ import {
 } from 'vue' // [优化] 添加 onBeforeUnmount
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { ElConfigProvider, ElDescriptions, ElDescriptionsItem, ElButton } from 'element-plus'
-import { deepClone, getDomComputed, getComputedStyle} from '../js/utils'
+import { deepClone, getDomComputed, getComputedStyle } from '../js/utils'
 import MyDialog from '../Dialog/index.vue'
-import { dataItemType, ObjectType, } from '../js/types'
+import { dataItemType, ObjectType } from '../js/types'
 import { tableColumnItem } from '../Table/index.vue'
 
 type MyDialogInstance = InstanceType<typeof MyDialog>
@@ -303,7 +303,8 @@ export default defineComponent({
     const processColumnsWithPosition = (
       columns: (tableColumnItem & { useRander?: boolean })[],
       startIndex: number = 0,
-      nest: boolean = false
+      nest: boolean = false,
+      nowDesColumn:number=props.desColumn
     ): (tableColumnItem & {
       useRander?: boolean
       isNestedParent?: boolean
@@ -312,7 +313,7 @@ export default defineComponent({
       const result: (tableColumnItem & {
         useRander?: boolean
         isNestedParent?: boolean
-        colIndex: number,
+        colIndex: number
       })[] = []
       let currentIndex = startIndex
       let desColumn = 0
@@ -326,22 +327,24 @@ export default defineComponent({
         if (hasNested) {
           // 嵌套字段本身不占位，不加入结果
           // 让前一项占满剩余空间
-          if (result.length > 0) {
+          if (result.length > 0&&!nest) {
             const prevItem = result[result.length - 1]
-            const remainingSpan = props.desColumn - desColumn
+            const remainingSpan = nowDesColumn - desColumn
 
-            result[result.length - 1].span = remainingSpan + prevItem.span||0
+            result[result.length - 1].span = remainingSpan + (prevItem.span || 0)
           }
-          if (!nest) item.span = props.desColumn
-          result.push({ ...item, list: processColumnsWithPosition(item.list, 0, true) })
+          item.span=item.span??1
+          if (!nest) item.span = nowDesColumn
+
+          result.push({ ...item,colIndex:1, list: processColumnsWithPosition((item.list||[]), 0, true,(item.list||[])[0].desColumn??props.desColumn) })
           continue
         } else {
           let defaultSpan = 1
-          if (isValidNestedList(item.list)) defaultSpan = props.desColumn
+          if (isValidNestedList(item.list)) defaultSpan = nowDesColumn
           item.span = item.span ?? defaultSpan
-          desColumn = item.span % props.desColumn
+          desColumn = item.span % nowDesColumn
         }
-
+// console.log(item.span,item.label,nowDesColumn,!nest)
         item.rowspan = item.rowspan ?? 1
         if (!item.showFun) item.showFun = () => true
 
@@ -423,7 +426,8 @@ export default defineComponent({
     const renderDescriptions = (
       items: any[],
       title: string = props.desTitle,
-      desDirection: typeof props.desDirection = props.desDirection
+      desDirection: typeof props.desDirection = props.desDirection,
+      desColumn: typeof props.desColumn = props.desColumn
     ) => {
       const renderNormalItem = (item: any, renderLabel: any, renderDefaultContent: any) => {
         const showItem = item.showFun?.(dataFinal.value, item.prop) ?? true
@@ -503,7 +507,7 @@ export default defineComponent({
                 labelClassName: item.labelClassName,
               },
               {
-                default: () => renderDescriptions(item.list, '', props.sonDirection),
+                default: () => renderDescriptions(item.list, '', props.sonDirection,item.list[0].desColumn??props.desColumn),
                 label: renderLabel,
               }
             )
@@ -518,12 +522,13 @@ export default defineComponent({
             ElDescriptions,
             {
               border: desBorder.value,
-              column: props.desColumn,
+              column: desColumn,
               direction: desDirection,
               size: props.desSize,
               title: title,
               extra: props.desExtra,
               class: 'detail',
+              labelWidth: props.labelWidth
             },
             {
               default: () => allItems,
@@ -660,29 +665,28 @@ export default defineComponent({
 </script>
 
 <style scoped lang="scss">
-.detail {
-  :deep(.el-descriptions__body) {
-    .el-descriptions__table {
-      .nesting {
-        padding: 0 !important;
-      }
-      tbody {
-        tr {
-          .el-descriptions__cell {
-            // [优化] 删除注释掉的代码
-            .el-descriptions__label {
-              min-width: var(--labelWidth);
-              display: table-cell;
-              vertical-align: top;
-            }
+:deep(.el-descriptions__body) {
+  .el-descriptions__table {
+    .nesting {
+      // padding: 0 !important;
+    }
+    tbody {
+      tr {
+        .el-descriptions__label {
+          min-width: var(--label-width);
+          // display: table-cell;
+          // vertical-align: top;
+        }
 
-            .el-descriptions__content {
-              display: table-cell;
-              word-break: break-all;
-              word-wrap: break-word;
-              vertical-align: top;
-            }
-          }
+        .el-descriptions__content {
+          display: table-cell;
+          word-break: break-all;
+          word-wrap: break-word;
+          vertical-align: top;
+          width: calc(var(--maxWidth) - 0);
+        }
+        .el-descriptions__cell {
+          // [优化] 删除注释掉的代码
         }
       }
     }
@@ -702,7 +706,7 @@ export default defineComponent({
   background-color: #fef0f0;
   border-radius: 4px;
 }
-:deep(.el-descriptions__content) {
-  max-width: var(--maxWidth);
-}
+// :deep(.el-descriptions__content) {
+//   max-width: var(--maxWidth);
+// }
 </style>

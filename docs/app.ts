@@ -6,12 +6,12 @@ import type {
   selectInnerType,
   switchInnerType,
 } from 'ftv3'
-import {ref,onMounted} from 'vue'
-export default function useAppConfig(){
+import { ref, onMounted } from 'vue'
+export default function useAppConfig() {
   const changeFun = (e) => {
     // editColumn.value[4].options = e
   }
-  const searchInputNumberChange=(e)=>{
+  const searchInputNumberChange = (e) => {
     search.value[2].options = e
   }
   const editColumn = ref([
@@ -38,7 +38,7 @@ export default function useAppConfig(){
       prop: 'password',
       label: '密码输入框',
       type: 'input',
-      isRequired:true,
+      isRequired: true,
       dynamicRequired: (data) => data.showPassword,
       inputType: 'password', span: 1
     } as inputInnerType,
@@ -238,10 +238,23 @@ export default function useAppConfig(){
       prop: 'no~text', label: '文本输入框', list: [
         {
           prop: 'no', label: '序号', list: [
-            { prop: 'no', label: '序号1' },
-            { prop: 'no', label: '序号2' }
+            {
+              prop: 'no', label: '序号1', desColumn: 2, list: [
+                { prop: 'no', label: '序号1-1', desColumn: 1 },
+                { prop: 'no', label: '序号1-2' }
+              ]
+            },
+            {
+              prop: 'no', label: '序号2', desColumn: 2, list: [
+                { prop: 'no', label: '序号2-1', desColumn: 2 },
+                { prop: 'no', label: '序号2-2' },
+                { prop: 'no', label: '序号2-3' },
+                { prop: 'no', label: '序号2-4' },
+                { prop: 'no', label: '序号2-5' },
+              ]
+            }
           ]
-},
+        },
         { prop: 'text', label: '文本输入框2' }
       ]
     },
@@ -414,7 +427,7 @@ export default function useAppConfig(){
     type: 'input',
     inputType: 'number',
     span: 5,
-    change:searchInputNumberChange
+    change: searchInputNumberChange
   } as inputInnerType, { isRequired: true, prop: 'input', label: 'input', type: 'input', span: 5 },
   {
     prop: 'select',
@@ -437,46 +450,46 @@ export default function useAppConfig(){
   ])
 
 
-  onMounted(()=>{
+  onMounted(() => {
     for (let i = 0; i < 0; i++) {
-    search.value.push({
-      // isRequired: true,
-      prop: 'inputNumber' + i,
-      label: 'number' + i,
-      max: 10,
-      type: 'input',
-      inputType: 'number',
-      span: 5,
-    } as inputInnerType)
       search.value.push({
-      // isRequired: true,
-      prop: 'input' + i,
-      label: 'input' + i,
-      type: 'input',
-      span: 5,
-    })
+        // isRequired: true,
+        prop: 'inputNumber' + i,
+        label: 'number' + i,
+        max: 10,
+        type: 'input',
+        inputType: 'number',
+        span: 5,
+      } as inputInnerType)
       search.value.push({
-      prop: 'select' + i,
-      label: 'select' + i,
-      type: 'select',
-      options: 10,
-      multiple: true,
-      span: 5,
-    } as selectInnerType)
+        // isRequired: true,
+        prop: 'input' + i,
+        label: 'input' + i,
+        type: 'input',
+        span: 5,
+      })
+      search.value.push({
+        prop: 'select' + i,
+        label: 'select' + i,
+        type: 'select',
+        options: 10,
+        multiple: true,
+        span: 5,
+      } as selectInnerType)
 
       search.value.push({
-      prop: 'daterange' + i,
-      label: 'daterange' + i,
-      type: 'date',
-      dateType: 'daterange',
-      valueFormat: 'YYYY-MM-DD',
-      format: 'YYYY-MM-DD',
-      span: 8,
-      aliases: 'start' + i + ',end' + i,
-    } as dateInnerType)
-  }
+        prop: 'daterange' + i,
+        label: 'daterange' + i,
+        type: 'date',
+        dateType: 'daterange',
+        valueFormat: 'YYYY-MM-DD',
+        format: 'YYYY-MM-DD',
+        span: 8,
+        aliases: 'start' + i + ',end' + i,
+      } as dateInnerType)
+    }
   })
-  return{
+  return {
     editColumn, table, search, request
   }
 }

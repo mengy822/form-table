@@ -681,6 +681,8 @@ export interface tableColumnItem {
   showOverflow?: boolean
   width?: number
   span?: number
+  rowspan?: number
+  desColumn?: number
   unit?:
     | string
     | ((
