@@ -128,7 +128,7 @@ export default defineComponent({
   setup(props, { slots, emit, attrs, expose }) {
     const myDialog = ref<MyDialogInstance | null>(null)
     const dataFinal = ref<{ [key: string]: any }>({})
-    const maxWidth = ref(400)
+    const maxWidth = ref('400px')
     // [优化] 添加组件缓存，避免重复创建
     const componentCache = ref<Map<string, any>>(new Map())
 
@@ -199,11 +199,11 @@ export default defineComponent({
       separator: Separator,
       other?: any
     ): { content: string; classNames: string } => {
-      const props = column.prop.split(separator)
+      const itemprops = column.prop.split(separator)
       const contents: string[] = []
       const classNamesList: string[] = []
 
-      props.forEach((propPath: string) => {
+      itemprops.forEach((propPath: string) => {
         let value: any
         if (column.fun) {
           value = column.fun(rowData, propPath.trim(), other)
@@ -312,7 +312,7 @@ export default defineComponent({
       const result: (tableColumnItem & {
         useRander?: boolean
         isNestedParent?: boolean
-        colIndex: number
+        colIndex: number,
       })[] = []
       let currentIndex = startIndex
       let desColumn = 0
@@ -330,7 +330,7 @@ export default defineComponent({
             const prevItem = result[result.length - 1]
             const remainingSpan = props.desColumn - desColumn
 
-            result[result.length - 1].span = remainingSpan + prevItem.span
+            result[result.length - 1].span = remainingSpan + prevItem.span||0
           }
           if (!nest) item.span = props.desColumn
           result.push({ ...item, list: processColumnsWithPosition(item.list, 0, true) })

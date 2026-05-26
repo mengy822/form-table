@@ -680,6 +680,7 @@ export interface tableColumnItem {
   isForm?: boolean
   showOverflow?: boolean
   width?: number
+  span?: number
   unit?:
     | string
     | ((
