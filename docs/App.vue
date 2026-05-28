@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { MyTable,MyTableV2,MyTableV3, MyForm, MyEdit, MyDetail,type MyTableInstance } from 'ftv3'
+import { MyTable,MyTableV2, MyForm, MyEdit, MyDetail,type MyTableInstance } from 'ftv3'
 import useAppConfig from './app'
 import type {inputInnerType , selectInnerType , dateInnerType} from './app'
 import { ElTable } from 'element-plus'
 import { ref, onMounted, computed } from 'vue'
+import { loadingHooks } from 'ftv3'
 
 const tableRef=ref<MyTableInstance>()
 const data = ref([])
@@ -41,11 +42,13 @@ const dataForm = ref({
 
 const detailRef = ref()
 const editRef = ref()
-
+const useLoading=loadingHooks.useLoadingCursor()
 
 const submitFun = (e: (typeof editColumn.value)[number]['prop'], callback: Function) => {
   console.log(e, '保存')
+  useLoading.startLoading()
   setTimeout(() => {
+    useLoading.stopLoading()
     callback()
   }, 20 * 1000)
 }

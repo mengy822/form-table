@@ -1,4 +1,4 @@
-import { ref, watchEffect, onBeforeUnmount, onMounted, onActivated, onDeactivated, onBeforeUnmount } from 'vue';
+import { ref, watchEffect, onBeforeUnmount, onMounted, onActivated, onDeactivated } from 'vue';
 export function useListenDomChange(callback: Function, delay: number = 100) {
   let mutationObserver: MutationObserver | null = null;
   let timer: ReturnType<typeof setTimeout> | null = null;

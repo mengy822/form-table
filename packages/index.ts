@@ -10,6 +10,10 @@ import UploadFile from './components/components/File/index.vue';
 import Echarts from './components/Echarts/index.vue';
 import type { inputInnerType, dateInnerType, selectInnerType, fileInnerType, switchInnerType, radioInnerType, checkboxInnerType } from './components/components/form/types';
 import { parseTime } from './components/js/utils';
+import * as utilHook from './components/utils/hooks'
+import * as computedDataHook from './components/utils/hooks/MyComputedData.js'
+import * as loadingHook from './components/utils/hooks/useLoadingCursor.js'
+
 String.prototype.formatDate = function (fmt) {
   const date = new Date(this);
   return date.format(fmt);
@@ -19,6 +23,10 @@ Date.prototype.format = function (fmt) {
 
   return parseTime(date, fmt);
 };
+export const utilHooks = utilHook;
+export const loadingHooks = loadingHook;
+export const computedDataHooks = computedDataHook;
+
 export type MyTableInstance = InstanceType<typeof Table>;
 export type MyTableV2Instance = InstanceType<typeof TableV2>;
 export type MyTableV3Instance = InstanceType<typeof TableV3>;

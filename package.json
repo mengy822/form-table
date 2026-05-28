@@ -44,6 +44,7 @@
     "xe-utils": "^4.0.4"
   },
   "devDependencies": {
+    "echarts": "6.0.0",
     "@element-plus/icons-vue": "^2.3.2",
     "@tsconfig/node22": "^22.0.0",
     "@types/node": "^22.9.0",
