@@ -76,10 +76,10 @@ import { checkExistence, getName } from '../../js/utils'
 const remoteOptions = ref()
 const selectOptions = computed(() => {
   const opts = checkExistence(remoteOptions.value) ? remoteOptions.value : dataFinal.value.options
-  console.warn(
-    '部分数据错误,取消渲染',
-    opts.filter((item: { value: null }) => item.value == null || typeof item.value == 'undefined')
+  const errorData = opts.filter(
+    (item: { value: null }) => item.value == null || typeof item.value == 'undefined'
   )
+  if (errorData.length > 0) console.warn('部分数据错误,取消渲染', errorData)
   return opts.filter(
     (item: { value: null }) => item.value != null && typeof item.value != 'undefined'
   )
@@ -177,9 +177,13 @@ const dataFinal = computed(() => {
     disabled: 'disabled',
     options: 'options',
   }
-  if (!keyConfig || !keyConfig.hasOwnProperty('label') || !keyConfig.hasOwnProperty('value')||
-   !keyConfig.hasOwnProperty('disabled')
-  || !keyConfig.hasOwnProperty('options')) {
+  if (
+    !keyConfig ||
+    !keyConfig.hasOwnProperty('label') ||
+    !keyConfig.hasOwnProperty('value') ||
+    !keyConfig.hasOwnProperty('disabled') ||
+    !keyConfig.hasOwnProperty('options')
+  ) {
     keyConfig.value = {
       label: 'label',
       value: 'value',
