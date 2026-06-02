@@ -307,12 +307,10 @@ export default defineComponent({
       nowDesColumn:number=props.desColumn
     ): (tableColumnItem & {
       useRander?: boolean
-      isNestedParent?: boolean
       colIndex: number
     })[] => {
       const result: (tableColumnItem & {
         useRander?: boolean
-        isNestedParent?: boolean
         colIndex: number
       })[] = []
       let currentIndex = startIndex
@@ -321,7 +319,6 @@ export default defineComponent({
         const item = { ...columns[i] }
         const hasNested = hasNestedData(item)
 
-        item.isNestedParent = hasNested
         item.align = item.align ?? 'left'
 
         if (hasNested) {
@@ -427,7 +424,8 @@ export default defineComponent({
       items: any[],
       title: string = props.desTitle,
       desDirection: typeof props.desDirection = props.desDirection,
-      desColumn: typeof props.desColumn = props.desColumn
+      desColumn: typeof props.desColumn = props.desColumn,
+      labelWidth:typeof props.labelWidth = props.labelWidth,
     ) => {
       const renderNormalItem = (item: any, renderLabel: any, renderDefaultContent: any) => {
         const showItem = item.showFun?.(dataFinal.value, item.prop) ?? true
@@ -507,7 +505,7 @@ export default defineComponent({
                 labelClassName: item.labelClassName,
               },
               {
-                default: () => renderDescriptions(item.list, '', props.sonDirection,item.list[0].desColumn??props.desColumn),
+                default: () => renderDescriptions(item.list, '', props.sonDirection,item['desColumn'],item['labelWidth']),
                 label: renderLabel,
               }
             )
@@ -528,7 +526,7 @@ export default defineComponent({
               title: title,
               extra: props.desExtra,
               class: 'detail',
-              labelWidth: props.labelWidth
+              labelWidth: labelWidth
             },
             {
               default: () => allItems,

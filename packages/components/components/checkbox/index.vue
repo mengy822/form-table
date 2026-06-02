@@ -27,7 +27,7 @@
               :value="item[keyConfig.value] ?? item[keyConfig.label]"
               :true-value="dataFinal.config?.trueValue"
               :false-value="dataFinal.config?.falseValue"
-              :disabled="item.disabled ?? dataFinal.config?.disabled ?? false"
+              :disabled="item.disabled ?? dataFinal.config?.disabled"
               :name="dataFinal.config?.name ?? ''"
               :checked="dataFinal.config?.checked ?? false"
               :border="dataFinal.config?.border"
@@ -49,7 +49,7 @@
               :value="item[keyConfig.value] ?? item[keyConfig.label]"
               :true-value="dataFinal.config?.trueValue"
               :false-value="dataFinal.config?.falseValue"
-              :disabled="item.disabled ?? dataFinal.config?.disabled ?? false"
+              :disabled="item.disabled ?? dataFinal.config?.disabled"
               :name="dataFinal.config?.name ?? ''"
               :checked="dataFinal.config?.checked ?? false"
               >{{ item[keyConfig.label] }}</el-checkbox-button

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MyTable,MyTableV2, MyForm, MyEdit, MyDetail,type MyTableInstance } from 'ftv3'
+import { MyTable,MyTableV2,MyTableV3, MyForm, MyEdit, MyDetail,type MyTableInstance } from 'ftv3'
 import useAppConfig from './app'
 import type {inputInnerType , selectInnerType , dateInnerType} from './app'
 import { ElTable } from 'element-plus'

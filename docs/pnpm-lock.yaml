@@ -14,9 +14,6 @@ importers:
       ftv3:
         specifier: file:../packages
         version: file:../packages
-      vxe-pc-ui:
-        specifier: 4.13.29
-        version: 4.13.29(vue@3.5.22(typescript@5.9.3))
       vxe-table:
         specifier: ^4.18.13
         version: 4.18.13(vue@3.5.22(typescript@5.9.3))

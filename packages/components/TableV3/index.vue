@@ -193,10 +193,11 @@ import {
   type Component,
   onBeforeUnmount,
 } from 'vue'
-import { VxeGridInstance, VxeGridProps, VxeColumnPropTypes } from 'vxe-table'
+import { VxeGridInstance, VxeGridProps, VxeColumnPropTypes, VxeGrid } from 'vxe-table'
 import pagination from '../components/Pagination/index.vue'
 import RightToolbar from '../components/RightToolbar/index.vue'
 import TableOperations, { type SlotContentItem } from '../components/TableOperations/index.vue'
+import { VxeUI } from 'vxe-table'
 import {
   Delete,
   Download,
@@ -337,7 +338,7 @@ export interface TableProps {
   dataList: Array<ObjectType> | undefined
   dataListFun?: (
     query: Record<string, Primitive>,
-    cb: (res: string | Promise<ObjectType> | Primitive[], ...obj: Primitive[]) => void,
+    cb: (res: string | Promise<ObjectType> | Primitive[], ...obj: Primitive[]) => void
   ) => void
   dataLoadFun?: FunctionType
   dataConfig: { rows: string; total: string; extra: string }
@@ -646,7 +647,7 @@ watch(
   () => {
     queryParams.value = { ...queryParams.value, ...props.queryParam }
   },
-  { deep: true, immediate: true },
+  { deep: true, immediate: true }
 )
 
 // 动态列配置
@@ -726,20 +727,18 @@ const formatCellValue = (row: ObjectType, col: tableColumnItem, rowIndex: number
     const fundatas: string[] = []
     propArr.forEach((item) => {
       const val =
-        type === 'number' ? (row[item] ?? props.defaultBlock) : row[item] || props.defaultBlock
+        type === 'number' ? row[item] ?? props.defaultBlock : row[item] || props.defaultBlock
       fundatas.push(String(val))
     })
     content = fundatas.join(nowSeparator)
   } else {
     content = String(
-      type === 'number'
-        ? (row[col.prop] ?? props.defaultBlock)
-        : row[col.prop] || props.defaultBlock,
+      type === 'number' ? row[col.prop] ?? props.defaultBlock : row[col.prop] || props.defaultBlock
     )
   }
 
   const unit =
-    typeof col.unit === 'string' ? col.unit : (col.unit?.(row, col.prop, { index: rowIndex }) ?? '')
+    typeof col.unit === 'string' ? col.unit : col.unit?.(row, col.prop, { index: rowIndex }) ?? ''
   return content !== props.defaultBlock ? content + unit : content
 }
 
@@ -949,7 +948,7 @@ const loadFunComputed = computed(() => {
 const getChildrenList = async (
   row: ObjectType,
   treeNode: unknown,
-  resolve: (data: ObjectType[]) => void,
+  resolve: (data: ObjectType[]) => void
 ) => {
   if (treeConfigRef.value) {
     dataExpandMap.value[String(row[treeConfigRef.value.id])] = { row, treeNode, resolve }
@@ -1023,7 +1022,7 @@ watch(
     if (newVal) window.addEventListener('resize', heightChange)
     else window.removeEventListener('resize', heightChange)
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 // ======================== 事件处理 ========================
@@ -1060,7 +1059,7 @@ const handleCheckboxChange = ({
     if (idx === -1) multipleSelection.value.push(row)
   } else {
     multipleSelection.value = multipleSelection.value.filter(
-      (r) => JSON.stringify(r) !== JSON.stringify(row),
+      (r) => JSON.stringify(r) !== JSON.stringify(row)
     )
   }
 
@@ -1416,7 +1415,7 @@ const toggleSelection = (rows?: ObjectType[]) => {
     rows.forEach((row) => {
       tableRef.value?.setCheckboxRow(row, true)
       const idx = multipleSelection.value.findIndex(
-        (r) => JSON.stringify(r) === JSON.stringify(row),
+        (r) => JSON.stringify(r) === JSON.stringify(row)
       )
       if (idx === -1) multipleSelection.value.push(row)
     })
@@ -1498,7 +1497,7 @@ const canHiddenColumns = computed({
         visible: item.visible ?? true,
         hidden: item.hidden,
         index: index,
-        maxWidth: item.width ? false : (item.maxWidth ?? props.maxWidth),
+        maxWidth: item.width ? false : item.maxWidth ?? props.maxWidth,
       }))
       .filter((item) => !item.hidden)
   },
@@ -1539,19 +1538,19 @@ interface MyTableEmits {
   (
     eventName: 'remove',
     row: ObjectType,
-    callback?: (flag?: string | boolean | Promise<ObjectType>, ...obj: Primitive[]) => void,
+    callback?: (flag?: string | boolean | Promise<ObjectType>, ...obj: Primitive[]) => void
   ): void
   (eventName: 'update:showSearch', visible: boolean): void
   (
     eventName: 'batch-remove',
     selectedRows: ObjectType[],
-    callback?: (flag?: string | boolean | Promise<ObjectType>, ...obj: Primitive[]) => void,
+    callback?: (flag?: string | boolean | Promise<ObjectType>, ...obj: Primitive[]) => void
   ): void
   (eventName: 'import', callback?: (flag?: boolean) => void): void
   (
     eventName: 'export',
     exportData: { [key: string]: Primitive; multipleSelection: ObjectType[] },
-    callback?: (url?: string, params?: object, fileName?: string, methods?: string) => void,
+    callback?: (url?: string, params?: object, fileName?: string, methods?: string) => void
   ): void
   (eventName: 'dataLoadCompleted', datas: ObjectType[], total: number): void
   (eventName: 'expand-change', row: ObjectType, expanded: boolean | ObjectType[]): void
@@ -1560,7 +1559,7 @@ interface MyTableEmits {
   (
     eventName: 'custom-event',
     row: { eventName: string; data: ObjectType },
-    callback?: (flag?: string | boolean | Promise<ObjectType>, ...obj: Primitive[]) => void,
+    callback?: (flag?: string | boolean | Promise<ObjectType>, ...obj: Primitive[]) => void
   ): void
   (eventName: 'selection-change', selection: ObjectType[]): void
 }
@@ -1579,7 +1578,7 @@ onMounted(() => {
       if (
         funInfo.parameterCount > 0 &&
         funInfo.parameters.find(
-          (item: { name: string }) => item.name === 'cb' || item.name === 'callback',
+          (item: { name: string }) => item.name === 'cb' || item.name === 'callback'
         )
       ) {
         proxyPropsParamsInfo.value[emit] = true
@@ -1606,7 +1605,7 @@ watch(
   () => {
     loading.value = false
   },
-  { deep: true, immediate: true },
+  { deep: true, immediate: true }
 )
 
 // ======================== 暴露方法 ========================

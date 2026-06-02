@@ -235,18 +235,18 @@ export default function useAppConfig() {
   const table = ref([
     { prop: 'no', label: 'no', hidden: true, visible: false },
     {
-      prop: 'no~text', label: '文本输入框', list: [
+      prop: 'no~text', label: '文本输入框', labelWidth: '150px', list: [
         {
-          prop: 'no', label: '序号', list: [
+          prop: 'no', label: '序号', span: 2, desColumn: 2, list: [
             {
-              prop: 'no', label: '序号1', desColumn: 2, list: [
-                { prop: 'no', label: '序号1-1', desColumn: 1 },
+              prop: 'no', label: '序号1', desColumn: 1, list: [
+                { prop: 'no', label: '序号1-1' },
                 { prop: 'no', label: '序号1-2' }
               ]
             },
             {
-              prop: 'no', label: '序号2', desColumn: 2, list: [
-                { prop: 'no', label: '序号2-1', desColumn: 2 },
+              prop: 'no', label: '序号2', desColumn: 3, list: [
+                { prop: 'no', label: '序号2-1' },
                 { prop: 'no', label: '序号2-2' },
                 { prop: 'no', label: '序号2-3' },
                 { prop: 'no', label: '序号2-4' },
@@ -255,7 +255,7 @@ export default function useAppConfig() {
             }
           ]
         },
-        { prop: 'text', label: '文本输入框2' }
+        { prop: 'text', span: 1,  label: '文本输入框2' }
       ]
     },
     { prop: 'textarea', label: '文本域输入框' },

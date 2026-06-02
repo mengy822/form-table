@@ -10,13 +10,15 @@ import 'element-plus/dist/index.css'
 
 // 1. 导入核心库 和 国际化（按需引入默认不带国际化）
 // import {
-//   VXETable,        // 核心对象（用于全局配置）
-//   Table,           // 表格主组件 vxe-table
-//   Column,          // 表格列 vxe-column
-//   Colgroup,        // 列组 vxe-colgroup（可选，如果你需要多级表头）
-//   Grid,
-//   Toolbar
+//   VxeUI,
+
 // } from 'vxe-table'
+// const VxeTooltip=ElTooltip
+// VxeTooltip.name ='VxeTooltip'
+// console.log(VxeTooltip.name, ElTooltip.name)
+// VxeUI.component(VxeTooltip)
+// const check=VxeUI.hasComponent('VxeTooltip')
+// console.log(check)
 // import VxeUITable from 'vxe-table'
 // import VXETable from 'vxe-table'
 // 2. 导入样式（必须）
