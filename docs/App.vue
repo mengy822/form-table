@@ -63,6 +63,7 @@ const query = (e: any) => {
 const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
   // dataForm.value = { ...e }
   console.log(e, '表格查询')
+  e.pageSize=Number(e.inputNumber)
   request('/test', e).then((res: any) => {
     // total.value = res.total
     // data.value = res.data
@@ -86,6 +87,7 @@ const tableQuery=(e:any,cb:((datas:any[],total:number)=>void))=>{
       baseClass=".app1"
       :simpTransVar="1"
       ref="tableRef"
+      has-selection
       :table-column="table"
       :data-list-fun="tableQuery"
       @detail="detail"

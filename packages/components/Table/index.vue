@@ -70,11 +70,11 @@
         </slot>
       </template>
       <el-table
+        v-virtual="virtualScrollConfig"
         class="table-plus-main"
         :height="height || heightInner || maxHeight"
         :max-height="maxHeight || maxHeightInner || height"
         v-loading="loading"
-        :data="dataListComputed"
         @selection-change="handleSelectionChange"
         :tree-props="treeProps"
         ref="tableRef"
@@ -113,13 +113,14 @@
         >
           <template #default="scope">
             {{
-              queryParams.pageSize * (queryParams.pageNum - 1) + ((scope && scope.$index) || 0) + 1
+              queryParams.pageSize * (queryParams.pageNum - 1) +
+              (getRealIndex(scope && scope.$index) || 0)
             }}
           </template>
         </el-table-column>
         <MyTableColumn
           :defaultBlock="defaultBlock"
-          :searchValue="queryParams"
+          :data="dataListComputed"
           :tableColumnFinal="tableColumnFinal"
           :align="align"
           v-bind="$attrs"
@@ -137,145 +138,6 @@
             </slot>
           </template>
           <template #default="scope">
-            <!-- <slot
-              v-if="slots['operationBefore']"
-              name="operationBefore"
-              :data="scope.row"
-              :index="scope.$index"
-              :text="hasOperationText"
-              :link="hasOperationLink"
-              :loading="operationLoading"
-            ></slot>
-            <slot name="addSon" :data="scope.row">
-              <el-tooltip
-                :disabled="hasOperationName"
-                :content="`${getOperationLabel(hasAddSon, scope, '新增')}`"
-                placement="top"
-                v-if="
-                  typeof hasAddSon === 'function'
-                    ? hasAddSon(scope.row)
-                    : hasAddSon && proxyProps[`onAddSon`]
-                "
-              >
-                <el-button
-                  :text="hasOperationText"
-                  :link="hasOperationLink"
-                  :type="hasAddSonType"
-                  :loading="operationLoading"
-                  :icon="hasAddSonIcon"
-                  @click.stop="handleAddSon(scope.row)"
-                >
-                  {{ getOperationLabel(hasAddSon, scope, '新增') }}
-                </el-button>
-              </el-tooltip>
-            </slot>
-            <slot
-              v-if="slots['operationAfterAddSon']"
-              name="operationAfterAddSon"
-              :data="scope.row"
-              :index="scope.$index"
-              :text="hasOperationText"
-              :link="hasOperationLink"
-              :loading="operationLoading"
-            ></slot>
-            <slot name="detail" :data="scope.row">
-              <el-tooltip
-                :disabled="hasOperationName"
-                :content="`${getOperationLabel(hasDetail, scope, '详情')}`"
-                placement="top"
-                v-if="
-                  typeof hasDetail === 'function'
-                    ? hasDetail(scope.row)
-                    : hasDetail && proxyProps[`onDetail`]
-                "
-              >
-                <el-button
-                  :text="hasOperationText"
-                  :link="hasOperationLink"
-                  :type="hasDetailType"
-                  :loading="operationLoading"
-                  :icon="hasDetailIcon"
-                  @click.stop="handleDetail(scope.row)"
-                >
-                  {{ getOperationLabel(hasDetail, scope, '详情') }}
-                </el-button>
-              </el-tooltip>
-            </slot>
-            <slot
-              v-if="slots['operationAfterDetail']"
-              name="operationAfterDetail"
-              :data="scope.row"
-              :index="scope.$index"
-              :text="hasOperationText"
-              :link="hasOperationLink"
-              :loading="operationLoading"
-            ></slot>
-            <slot name="update" :data="scope.row">
-              <el-tooltip
-                :disabled="hasOperationName"
-                :content="`${getOperationLabel(hasUpdate, scope, '修改')}`"
-                placement="top"
-                v-if="
-                  typeof hasUpdate === 'function'
-                    ? hasUpdate(scope.row)
-                    : hasUpdate && proxyProps[`onUpdate`]
-                "
-              >
-                <el-button
-                  :text="hasOperationText"
-                  :link="hasOperationLink"
-                  :type="hasUpdateType"
-                  :loading="operationLoading"
-                  :icon="hasUpdateIcon"
-                  @click.stop="handleUpdate(scope.row)"
-                >
-                  {{ getOperationLabel(hasUpdate, scope, '修改') }}
-                </el-button>
-              </el-tooltip>
-            </slot>
-            <slot
-              v-if="slots['operationAfterUpdate']"
-              name="operationAfterUpdate"
-              :data="scope.row"
-              :index="scope.$index"
-              :text="hasOperationText"
-              :link="hasOperationLink"
-              :loading="operationLoading"
-            ></slot>
-            <slot name="remove" :data="scope.row">
-              <el-tooltip
-                :disabled="hasOperationName"
-                :content="`${getOperationLabel(hasRemove, scope, '删除')}`"
-                placement="top"
-                v-if="
-                  typeof hasRemove === 'function'
-                    ? hasRemove(scope.row)
-                    : hasRemove && proxyProps[`onRemove`]
-                "
-              >
-                <el-button
-                  :text="hasOperationText"
-                  :link="hasOperationLink"
-                  :type="hasRemoveType"
-                  :loading="operationLoading"
-                  :icon="hasRemoveIcon"
-                  @click.stop="handleRemove(scope.row)"
-                >
-                  {{ getOperationLabel(hasRemove, scope, '删除') }}
-                </el-button>
-              </el-tooltip>
-            </slot>
-            <slot
-              v-if="slots['operationAfter']"
-              name="operationAfter"
-              :data="scope.row"
-              :index="scope.$index"
-              :text="hasOperationText"
-              :link="hasOperationLink"
-              :loading="operationLoading"
-            ></slot>
-          </template> -->
-
             <TableOperations
               :align="operationAlign"
               :scope="scope"
@@ -346,6 +208,7 @@
 </template>
 
 <script setup lang="ts" name="MyTable">
+import vVirtual from '../../directive/virtualTable'
 import {
   type Component,
   computed,
@@ -381,6 +244,7 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { useListenDomChange } from '../utils/hooks'
 import { handleFileDownload, request } from '../js'
 import { ObjectType } from '../js/types'
+import { scrollParams, virtualConfig } from '@/directive/types'
 
 interface IsTreeConfig {
   id: string
@@ -901,6 +765,9 @@ const props = withDefaults(defineProps<TableProps>(), {
   message: '操作成功',
   defaultBlock: '-',
 })
+const rowKeyComputed=computed(()=>{
+  return props.rowKey
+})
 //表格实例
 const tableRef = ref<TableInstance>()
 const heightInner = ref(0)
@@ -916,12 +783,32 @@ const totalComputed = computed({
     totalInner.value = val
   },
 })
+const startIndex = ref(0) // 当前渲染的起始索引
+// 获取真实索引
+const getRealIndex = (visibleIndex: number) => {
+  return startIndex.value + visibleIndex + 1
+}
+const virtualScrollConfig = ref<virtualConfig>({
+  isVirtual: true, // 启用虚拟滚动
+  count: 20, // 可视区域显示20行（固定值）
+  bufferSize: 10, // 缓冲区5行
+  rowHeight: 40, // 默认行高40px
+  onScroll: (info: scrollParams) => {
+    startIndex.value = info.startIndex
+  },
+  isDebug:true
+})
 const extra = ref()
 const dataListComputed = computed({
   get: () => {
-    return props.dataList || dataListInner.value
+    const val = props.dataList || dataListInner.value
+    //@ts-ignore
+    props.dataList&&props.dataList.length>0&&tableRef.value?._virtualScrollUpdateData?.(val)
+    return val
   },
   set: (val) => {
+    //@ts-ignore
+    tableRef.value?._virtualScrollUpdateData?.(val)
     dataListInner.value = val
   },
 })
@@ -1454,6 +1341,9 @@ const onSort = (data: {
   prop: string
   order: 'descending' | 'ascending' | undefined
 }): void => {
+  if(data.column.sortable==true){
+    return
+  }
   if (typeof data.order !== 'undefined') {
     sortPropData.value[data.prop] = props.sortableConfig[data.order]
   } else {
@@ -1522,6 +1412,7 @@ const refreshAllExpandMenuData = () => {
     refreshLoadTree(String(dataId))
   }
 }
+
 const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = false) => {
   loading.value = true
   if (typeof queryParam == 'undefined') {

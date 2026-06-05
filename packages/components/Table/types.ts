@@ -1,3 +1,4 @@
+import { TableColumnCtx } from "element-plus"
 import { Component, CSSProperties, VNode } from "vue"
 
 // 定义 Props 类型（提取为独立接口，增强可读性和复用性）
@@ -156,39 +157,99 @@ export interface dataItemType {
 }
 export type ButtonType = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info' | ''
 export interface tableColumnItem {
-    prop: string
-    label: string
-    isTable?: boolean
-    isForm?: boolean
-    showOverflow?: boolean
-    width?: number
-    unit?: string //单位
-    hidden?: boolean
-    visible?: boolean
-    align?: 'center' | 'left' | 'right'
-    fixed?: false | true | 'left' | 'right'
-    selectable?: boolean
-    maxWidth?: boolean
-    fun?: (
+  prop: string
+  label: string
+  isTable?: boolean
+  isForm?: boolean
+  showOverflow?: boolean
+  width?: number
+  hidden?: boolean
+  visible?: boolean
+  align?: 'center' | 'left' | 'right'
+  fixed?: false | true | 'left' | 'right'
+  selectable?: boolean
+  sort?: boolean | 'custom'
+  sortable?: boolean | 'custom'
+  maxWidth?: boolean
+  filters?: boolean|{text:string,value:string|number|boolean}[]
+  ilike?:boolean;
+  filterMethod?: (value: any, row: any, column: TableColumnCtx) => boolean
+  filterPlacement?:
+    | 'top'
+    | 'top-start'
+    | 'top-end'
+    | 'bottom'
+    | 'bottom-start'
+    | 'bottom-end'
+    | 'left'
+    | 'left-start'
+    | 'left-end'
+    | 'right'
+    | 'right-start'
+    | 'right-end'
+  filterMultiple?: boolean
+  filterClassName?: string
+  tooltipFormatter?: (data: { row: any; column: TableColumnCtx; cellValue: any }) => VNode | string
+  decimalPlaces?: number
+  type?: 'number' | 'string'
+  unit?:
+    | string
+    | ((
         row: dataItemType,
         prop: string,
         other?: {
-            index?: number;
-            tableColumnFinal?: tableColumnItem[];
-            [key: string]: any;
-        }
-    ) => string;
-    funDom?: VNode | Component
-    classFun?: (row: dataItemType, prop: string,
+          index?: number
+          tableColumnFinal?: tableColumnItem[]
+          [key: string]: any
+        },
+      ) => string) //单位
+  fun?: (
+    row: dataItemType,
+    prop: string,
+    other?: {
+      index?: number
+      tableColumnFinal?: tableColumnItem[]
+      [key: string]: any
+    },
+  ) => string
+  funDom?: (
+    row: dataItemType,
+    prop: string,
+    other?: {
+      index?: number
+      tableColumnFinal?: tableColumnItem[]
+      searchValue?: { [key: string]: any }
+      [key: string]: any
+    },
+  ) => VNode | Component
+  classFun?: (
+    row: dataItemType,
+    prop: string,
+    other?: {
+      index?: number
+      tableColumnFinal?: tableColumnItem[]
+      [key: string]: any
+    },
+  ) => string
+  showFun?: (
+    row?: queryParamType | any,
+    other?: {
+      index?: number
+      tableColumnFinal?: tableColumnItem[]
+      searchValue?: { [key: string]: any }
+      [key: string]: any
+    },
+  ) => boolean
+  slot?: string
+  // render?: any
+  header?:
+    | string
+    | ((
+        column: tableColumnItem,
         other?: {
-            index?: number;
-            tableColumnFinal?: tableColumnItem[];
-            [key: string]: any;
-        }
-    ) => string
-    showFun?: (row?: queryParamType | any) => boolean
-    slot?: string
-    // render?: any
-    header?: string;
-    list?: tableColumnItem[];
+          [key: string]: any
+        },
+      ) => string | VNode | Component)
+
+  list?: tableColumnItem[]
 }

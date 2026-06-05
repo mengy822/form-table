@@ -234,31 +234,57 @@ export default function useAppConfig() {
 
   const table = ref([
     { prop: 'no', label: 'no', hidden: true, visible: false },
+    // {
+    //   prop: 'no~text',
+    //   label: '文本输入框',
+    //   labelWidth: '150px',
+    //   list: [
+    //     {
+    //       prop: 'no',
+    //       label: '序号',
+    //       span: 2,
+    //       desColumn: 2,
+    //       list: [
+    //         {
+    //           prop: 'no',
+    //           label: '序号1',
+    //           desColumn: 1,
+    //           list: [
+    //             { prop: 'no', label: '序号1-1', sort: true, width: 120 },
+    //             { prop: 'no', label: '序号1-2' },
+    //           ],
+    //         },
+    //         {
+    //           prop: 'no',
+    //           label: '序号2',
+    //           desColumn: 3,
+    //           list: [
+    //             { prop: 'no', label: '序号2-1' },
+    //             { prop: 'no', label: '序号2-2' },
+    //             { prop: 'no', label: '序号2-3' },
+    //             { prop: 'no', label: '序号2-4' },
+    //             { prop: 'no', label: '序号2-5' },
+    //           ],
+    //         },
+    //       ],
+    //     },
+    //     { prop: 'text', span: 1, label: '文本输入框2' },
+    //   ],
+    // },
     {
-      prop: 'no~text', label: '文本输入框', labelWidth: '150px', list: [
-        {
-          prop: 'no', label: '序号', span: 2, desColumn: 2, list: [
-            {
-              prop: 'no', label: '序号1', desColumn: 1, list: [
-                { prop: 'no', label: '序号1-1' },
-                { prop: 'no', label: '序号1-2' }
-              ]
-            },
-            {
-              prop: 'no', label: '序号2', desColumn: 3, list: [
-                { prop: 'no', label: '序号2-1' },
-                { prop: 'no', label: '序号2-2' },
-                { prop: 'no', label: '序号2-3' },
-                { prop: 'no', label: '序号2-4' },
-                { prop: 'no', label: '序号2-5' },
-              ]
-            }
-          ]
-        },
-        { prop: 'text', span: 1,  label: '文本输入框2' }
-      ]
+      prop: 'textarea',
+      label: '文本域输入框',
+      filters: [
+        { text: '0.a', value: '0.a' },
+        { text: '0.b', value: '0.b' },
+        { text: '0.c', value: '0.c' },
+
+        // 0.1 到 0.3
+        { text: '0.1', value: '0.1' },
+        { text: '0.2', value: '0.2' },
+        { text: '0.3', value: '0.3' },
+      ],ilike:true
     },
-    { prop: 'textarea', label: '文本域输入框' },
     { prop: 'password', label: '密码输入框' },
     { prop: 'number', label: '数字输入框' },
     { prop: 'year', label: '日期-年' },
@@ -290,10 +316,16 @@ export default function useAppConfig() {
       visible: true,
       fun: (row: { [x: string]: string }, prop: any) => row['startMouth'] + '/' + row['endMouth'],
     },
-    { prop: 'switch', label: '开关', hidden: true, visible: !false, fun: (row: any, prop: string) => row[prop] ? '开启' : '关闭', },
+    {
+      prop: 'switch',
+      label: '开关',
+      hidden: true,
+      visible: !false,
+      fun: (row: any, prop: string) => (row[prop] ? '开启' : '关闭'),
+    },
     { prop: 'checkboxNumber', label: '多选框数字', hidden: true, visible: true },
     { prop: 'radioNumber', label: '单选框数字', hidden: true, visible: false },
-    { prop: 'selectNumber', label: '选择器数字', hidden: true, visible: true },
+    { prop: 'selectNumber', label: '选择器数字', hidden: true, visible: true, filters: true },
     { prop: 'checkbox', label: '多选框', hidden: true, visible: false },
     { prop: 'radio', label: '单选框', hidden: true, visible: true },
     { prop: 'select', label: '选择器', hidden: true, visible: false },

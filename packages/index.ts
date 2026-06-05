@@ -13,7 +13,7 @@ import { parseTime } from './components/js/utils';
 import * as utilHook from './components/utils/hooks'
 import * as computedDataHook from './components/utils/hooks/MyComputedData.js'
 import * as loadingHook from './components/utils/hooks/useLoadingCursor.js'
-
+import virualTable from './directive/virtualTable'
 String.prototype.formatDate = function (fmt) {
   const date = new Date(this);
   return date.format(fmt);
@@ -49,3 +49,4 @@ export const MyImport: typeof Import = Import;
 export const MyDialog: typeof Dialog = Dialog;
 export const MyUploadFile: typeof UploadFile = UploadFile;
 export const MyEcharts: typeof Echarts = Echarts;
+export const virual = virualTable
