@@ -304,7 +304,7 @@ export default defineComponent({
       columns: (tableColumnItem & { useRander?: boolean })[],
       startIndex: number = 0,
       nest: boolean = false,
-      nowDesColumn:number=props.desColumn
+      nowDesColumn: number = props.desColumn
     ): (tableColumnItem & {
       useRander?: boolean
       colIndex: number
@@ -324,16 +324,25 @@ export default defineComponent({
         if (hasNested) {
           // 嵌套字段本身不占位，不加入结果
           // 让前一项占满剩余空间
-          if (result.length > 0&&!nest) {
+          if (result.length > 0 && !nest) {
             const prevItem = result[result.length - 1]
             const remainingSpan = nowDesColumn - desColumn
 
             result[result.length - 1].span = remainingSpan + (prevItem.span || 0)
           }
-          item.span=item.span??1
+          item.span = item.span ?? 1
           if (!nest) item.span = nowDesColumn
 
-          result.push({ ...item,colIndex:1, list: processColumnsWithPosition((item.list||[]), 0, true,(item.list||[])[0].desColumn??props.desColumn) })
+          result.push({
+            ...item,
+            colIndex: 1,
+            list: processColumnsWithPosition(
+              item.list || [],
+              0,
+              true,
+              (item.list || [])[0].desColumn ?? props.desColumn
+            ),
+          })
           continue
         } else {
           let defaultSpan = 1
@@ -341,7 +350,7 @@ export default defineComponent({
           item.span = item.span ?? defaultSpan
           desColumn = item.span % nowDesColumn
         }
-// console.log(item.span,item.label,nowDesColumn,!nest)
+        // console.log(item.span,item.label,nowDesColumn,!nest)
         item.rowspan = item.rowspan ?? 1
         if (!item.showFun) item.showFun = () => true
 
@@ -425,7 +434,7 @@ export default defineComponent({
       title: string = props.desTitle,
       desDirection: typeof props.desDirection = props.desDirection,
       desColumn: typeof props.desColumn = props.desColumn,
-      labelWidth:typeof props.labelWidth = props.labelWidth,
+      labelWidth: typeof props.labelWidth = props.labelWidth
     ) => {
       const renderNormalItem = (item: any, renderLabel: any, renderDefaultContent: any) => {
         const showItem = item.showFun?.(dataFinal.value, item.prop) ?? true
@@ -474,7 +483,7 @@ export default defineComponent({
               })
             }
 
-            if (item.funDom && item.useRander) {
+            if (item.funDom) {
               const Component = createMarkRaw(item.funDom, dataFinal.value, item.prop)
               return h(Component)
             }
@@ -505,7 +514,14 @@ export default defineComponent({
                 labelClassName: item.labelClassName,
               },
               {
-                default: () => renderDescriptions(item.list, '', props.sonDirection,item['desColumn'],item['labelWidth']),
+                default: () =>
+                  renderDescriptions(
+                    item.list,
+                    '',
+                    props.sonDirection,
+                    item['desColumn'],
+                    item['labelWidth']
+                  ),
                 label: renderLabel,
               }
             )
@@ -526,7 +542,7 @@ export default defineComponent({
               title: title,
               extra: props.desExtra,
               class: 'detail',
-              labelWidth: labelWidth
+              labelWidth: labelWidth,
             },
             {
               default: () => allItems,
@@ -560,7 +576,9 @@ export default defineComponent({
         ),
       ])
     }
-
+    const close = () => {
+      myDialog.value?.handleClose()
+    }
     const handleClose = (cb: () => void) => {
       dataFinal.value = {}
       // [优化] 清理组件缓存
@@ -615,7 +633,7 @@ export default defineComponent({
       componentCache.value.clear()
     })
 
-    expose({ init, handleClose, updateData, getData })
+    expose({ init, close, updateData, getData })
 
     return () => {
       const detailContent = h(
@@ -677,7 +695,7 @@ export default defineComponent({
         }
 
         .el-descriptions__content {
-          display: table-cell;
+          //display: table-cell;
           word-break: break-all;
           word-wrap: break-word;
           vertical-align: top;

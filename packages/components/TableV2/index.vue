@@ -777,16 +777,19 @@ const autoHeight = (key: string) => {
   if (!needAutoHeight.value) return
   // console.log('重建dom', props.baseClass, new Date().getTime());
   nextTick(() => {
+    const baseClass = props.baseClass;
     if (props.baseClass && typeof props.height == 'undefined') {
-      const tableHeaderHeight = getHeight('.el-card__header') //+ getHeight('.el-table__header-wrapper');
-      const pageHeight = getHeight('.pagination-container')
+      const tableHeaderHeight = getHeight(`${baseClass} .el-card__header`); //+ getHeight('.el-table__header-wrapper');
+      const pageHeight = getHeight(`${baseClass} .pagination-container`);
+      // const { paddingTop: bodyPaddingTop, paddingBottom: bodyPaddingBottom } = getComputedStyle(`${baseClass} .table-plus .el-card__body`);
+      const { borderTopWidth, borderBottomWidth } = getComputedStyle(`${baseClass} .table-plus .el-card__header`);
+
       const {
         paddingTop: bodyPaddingTop,
         paddingRight: bodyPaddingRight,
         paddingLeft: bodyPaddingLeft,
         paddingBottom: bodyPaddingBottom,
-      } = getComputedStyle('.table-plus .el-card__body')
-      const { borderTopWidth, borderBottomWidth } = getComputedStyle('.table-plus .el-card__header')
+      } = getComputedStyle(`${baseClass} .table-plus .el-card__body`)
       const { width } = getComputedStyle('.table-plus')
       widthInner.value =
         Number(width.replace('px', '')) -

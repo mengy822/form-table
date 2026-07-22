@@ -36,7 +36,7 @@ export default {
 }
 </script>
 <script setup lang='ts' name='switch'>
-import { type PropType, computed, ref, useSlots } from 'vue'
+import { type PropType, computed, ref, useSlots, nextTick, watch } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import type { switchInnerType } from '../form/types'
 import {getName} from '../../js/utils'
@@ -70,14 +70,25 @@ const bindValue = computed({
   },
   set(val) {
     // if (props.modelValue != val) {
-      change(val);
+      updateModelValue(val);
+      // change(val);
     // }
   }
 });
+watch(
+  () => bindValue.value,
+  () => {
+    change(bindValue.value);
+  }
+);
 const change = (e: typeof props.modelValue) => {
-  dataFinal.value && dataFinal.value.change && dataFinal.value.change(e)
-  emits('update:modelValue', e)
-}
+  nextTick(() => {
+    dataFinal.value && dataFinal.value.change && dataFinal.value.change(e);
+  });
+};
+const updateModelValue = (e: typeof props.modelValue) => {
+  emits('update:modelValue', e);
+};
 const _ref = ref()
 defineExpose({
   _ref,

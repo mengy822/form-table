@@ -67,7 +67,7 @@ export default {
 </script>
 <script setup name="checkbox" lang="ts">
 import { ElCheckbox, ElCheckboxGroup, ElCheckboxButton } from 'element-plus'
-import { type PropType, ref, computed } from 'vue'
+import { type PropType, ref, computed, nextTick } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { type checkboxInnerType } from '../form/types'
 import { checkExistence } from '../../js/utils'
@@ -144,14 +144,25 @@ const bindValue = computed({
   },
   set(val) {
     // if (props.modelValue != val) {
-    change(val)
+    updateModelValue(val)
+    //change(val)
     // }
   },
 })
-const change = (value: typeof props.modelValue) => {
-  dataFinal.value && dataFinal.value.change && dataFinal.value.change(value)
-  emits('update:modelValue', value)
-}
+watch(
+  () => bindValue.value,
+  () => {
+    change(bindValue.value);
+  }
+);
+const change = (e: typeof props.modelValue) => {
+  nextTick(() => {
+    dataFinal.value && dataFinal.value.change && dataFinal.value.change(e);
+  });
+};
+const updateModelValue = (e: typeof props.modelValue) => {
+  emits('update:modelValue', e);
+};
 const _ref = ref()
 defineExpose({
   _ref,

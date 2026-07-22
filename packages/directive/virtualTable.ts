@@ -29,9 +29,16 @@ const virtualScrollDirective = {
     const options = binding.value || { originData: [] }
     const tableInstance = el.__vueParentComponent?.proxy
     if (!tableInstance) return
+    const parentIdKey = '_parentId'
+    const levelKey = '_level'
+    const childrenKey = 'children'
+    const hasChildrenKey = 'hasChildren'
+    const originalTableInstance = tableInstance['$']
     const isDebug = options.isDebug
     let originData = options.originData || tableInstance.$attrs?.originData || []
     let originalDataBackup: any[] = []
+    let originalDataSortBackup: any[] = []
+    let originDataChild: { [key: number | string]: any } = {}
     let isFilter = false
     if (options.onInit && (!originData || originData.length === 0)) {
       const result = options.onInit((data: any[]) => {
@@ -56,7 +63,6 @@ const virtualScrollDirective = {
     const states = tableInstance.store?.states
     const tableData = states?.data
     if (!tableData) return
-
     if (!options.isVirtual) {
       tableData.value = originData
       return
@@ -66,6 +72,8 @@ const virtualScrollDirective = {
       tableInstance.rowKey || tableInstance.$props?.rowKey || tableInstance.$attrs?.rowKey || 'id'
     const getRowKey =
       typeof rowKey === 'function' ? rowKey : (row: { [x: string]: any }) => row[rowKey]
+    const treeProps =
+      tableInstance.treeProps || tableInstance.$props?.treeProps || tableInstance.$attrs?.treeProps
 
     const config = {
       rowHeight: options.rowHeight || 40,
@@ -120,38 +128,308 @@ const virtualScrollDirective = {
     const clearAll = () => {
       selectedKeys.clear()
       updateSelection()
+      return []
+    }
+    const log = (...args: (string | any[])[]) => {
+      isDebug && console.log(...args)
+    }
+    const interceptorLog = (event: any, ...args: any[]) => {
+      log(`${event} 🔒 拦截器:`, args)
+    }
+    const originLoad = tableInstance.load
+    originalTableInstance.props.load = (row: any, treeNode: any, resolve: any) => {
+      const id = row[rowKey]
+      const child = originDataChild[id]
+      if (child && child.length > 0) {
+        resolve(child)
+      } else {
+        originLoad(row, treeNode, (res: any[]) => {
+          originDataChild[id] = res
+          resolve(res)
+        })
+      }
+    }
+    let isExpanded = false
+    let isExpandedRow: { [key: string]: any } = {}
+
+    const childOpen: { [key: string]: boolean } = {}
+
+    const hasChildren = (row: { [x: string]: any }) => {
+      return (
+        (!!row[treeProps[childrenKey]] && row[treeProps[childrenKey]].length > 0) ||
+        row[treeProps[hasChildrenKey]] == true
+      )
+    }
+    const flattenTreeToChildrenMap = (data: any[], parentId = undefined, level = 0) => {
+      const map: { [key: string]: any } = {}
+      const stack = [
+        ...data.map((node) => ({
+          node,
+          parentId: node[parentIdKey] || parentId,
+          level: node[levelKey] || level,
+        })),
+      ]
+
+      while (stack.length) {
+        const { node, parentId: nodeParentId, level: nodeLevel } = stack.pop()
+        const children = node[treeProps[childrenKey]]
+
+        // 添加 _level 和 _parentId 到当前节点
+        node[levelKey] = nodeLevel
+        node[parentIdKey] = nodeParentId
+
+        if (children && children.length > 0) {
+          // 记录当前节点的子节点
+          map[node[rowKey]] = children
+
+          // 将子节点加入栈，继续处理（level + 1，当前节点ID作为parentId）
+          for (let i = children.length - 1; i >= 0; i--) {
+            stack.push({
+              node: children[i],
+              parentId: node[rowKey],
+              level: nodeLevel + 1,
+            })
+          }
+
+          // 删除当前节点的 children 属性
+          delete node[treeProps[childrenKey]]
+          node[treeProps[hasChildrenKey]] = true
+        }
+      }
+
+      return map
+    }
+    const createTreeChild = (data) => {
+      Object.assign(originDataChild, flattenTreeToChildrenMap(data))
     }
 
+    const getVisibleData = (oriData = originData) => {
+      let data = [...oriData.slice(config.currentStart, config.currentEnd)]
+      const allNodeMap = new Map(oriData.map((item) => [item[rowKey], item]))
+
+      // 收集需要展开的父节点ID
+      const parentsToExpand = new Set()
+
+      for (const item of data) {
+        let parentId = item[parentIdKey]
+        while (parentId && allNodeMap.has(parentId)) {
+          parentsToExpand.add(parentId)
+          parentId = allNodeMap.get(parentId)?.[parentIdKey]
+        }
+      }
+
+      // 按层级排序（浅→深）
+      const sortedParents = [...parentsToExpand].sort((a, b) => {
+        const levelA = allNodeMap.get(a)?.[levelKey] ?? 0
+        const levelB = allNodeMap.get(b)?.[levelKey] ?? 0
+        return levelA - levelB
+      })
+
+      // 补充缺失的父节点到 data 中
+      for (const parentId of sortedParents) {
+        if (!data.some((item) => item[rowKey] === parentId)) {
+          const parentNode = allNodeMap.get(parentId)
+          if (parentNode) {
+            // 找到第一个子节点的位置，插入到前面
+            const firstChildIndex = data.findIndex((item) => item[parentIdKey] === parentId)
+            if (firstChildIndex !== -1) {
+              data.splice(firstChildIndex, 0, parentNode)
+            } else {
+              data.push(parentNode)
+            }
+          }
+        }
+      }
+
+      // 重新构建当前页的映射（因为 data 可能已变化）
+      const dataNodeMap = new Map(data.map((item) => [item[rowKey], item]))
+
+      // 逐层展开
+      for (const parentId of sortedParents) {
+        const parentNode = dataNodeMap.get(parentId)
+        if (!parentNode) continue
+
+        if (store.states.treeData.value[parentId]) {
+          store.states.treeData.value[parentId].expanded = true
+        } else {
+          store.states.treeData.value[parentId] = {
+            children: [],
+            lazy: true,
+            level: parentNode[levelKey] || 0,
+            expanded: true,
+            loaded: false,
+            loading: false,
+            display: true,
+          }
+        }
+
+        const children = data.filter((item) => item[parentIdKey] === parentId)
+        tableInstance.updateKeyChildren(parentId, children)
+        tableInstance.toggleRowExpansion(parentNode, true)
+        data = data.filter((item) => item[parentIdKey] !== parentId)
+      }
+
+      createTreeChild(data)
+      return data
+    }
+
+
+    const updateView = (oriData = originData) => {
+      const savedScrollTop = scrollContainer.scrollTop
+
+      const visibleData = getVisibleData(oriData)
+      tableData.value.splice(0, tableData.value.length, ...visibleData)
+      updateSelection(visibleData)
+
+      if (tableEl) {
+        tableEl.style.paddingTop = `${config.currentStart * config.rowHeight}px`
+        tableEl.style.paddingBottom = `${(originData.length - config.currentEnd) * config.rowHeight}px`
+      }
+
+      options.onScroll?.({
+        scrollTop: config.scrollTop,
+        startIndex: config.currentStart,
+        endIndex: config.currentEnd,
+        totalCount: originData.length,
+      })
+      // 关键：补偿滚动位置
+      const compensatedScrollTop = savedScrollTop + 1
+      // 使用 requestAnimationFrame 确保在浏览器调整滚动位置后立即纠正
+      // requestAnimationFrame(() => {
+      //   if (scrollContainer.scrollTop !== compensatedScrollTop) {
+      //     scrollContainer.scrollTop = compensatedScrollTop
+      //   }
+      // })
+    }
+
+    const calculateRange = (scrollTop: number) => ({
+      startIndex: Math.max(Math.floor(scrollTop / config.rowHeight) - config.bufferSize, 0),
+      endIndex: Math.min(
+        Math.floor(scrollTop / config.rowHeight) + config.visibleCount + config.bufferSize,
+        originData.length,
+      ),
+    })
+
+    const scrollToRow = (rowIndex: number) => {
+      if (rowIndex < 0 || rowIndex >= originData.length) return
+      const targetScrollTop = rowIndex * config.rowHeight
+      scrollContainer.scrollTop = targetScrollTop
+      const { startIndex, endIndex } = calculateRange(targetScrollTop)
+      if (config.currentStart !== startIndex || config.currentEnd !== endIndex) {
+        config.currentStart = startIndex
+        config.currentEnd = endIndex
+        log('scrollToRow 触发视图更新')
+        updateView()
+      }
+    }
+
+    let rafId: number | null = null
+    const handleScroll = (scrollTop: number) => {
+      if (rafId) return
+      rafId = requestAnimationFrame(() => {
+        config.scrollTop = scrollTop
+        const { startIndex, endIndex } = calculateRange(config.scrollTop)
+
+        if (config.currentStart !== startIndex || config.currentEnd !== endIndex) {
+          config.currentStart = startIndex
+          config.currentEnd = endIndex
+          log('handleScroll 触发视图更新')
+          updateView()
+        }
+        rafId = null
+      })
+    }
+
+    const refresh = () => {
+      config.currentStart = 0
+      config.currentEnd = Math.min(config.visibleCount + config.bufferSize, originData.length)
+      scrollContainer.scrollTop = 0
+      log('refresh 触发视图更新')
+      updateView()
+    }
+
+    // 初始化
+    config.currentEnd = Math.min(config.visibleCount + config.bufferSize, originData.length)
+    log('初始化 触发视图更新')
+    updateView()
+
+    let resizeObserver = null
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => refresh())
+      //@ts-ignore
+      resizeObserver.observe(scrollContainer)
+    }
+    // 滚动到底部 - 修复
+    const scrollToBottom = () => {
+      // 计算最大滚动距离
+      const maxScrollTop = originData.length * config.rowHeight - scrollContainer.clientHeight
+      scrollContainer.scrollTop = Math.max(0, maxScrollTop)
+    }
+
+    // 滚动到顶部 - 修复
+    const scrollToTop = () => {
+      scrollContainer.scrollTop = 0
+    }
+    // 添加手动更新数据的方法
+    const updateData = (newData: any[]) => {
+      if (!newData || !Array.isArray(newData)) return
+
+      originData = newData
+      selectedKeys.clear() // 可选：清空选中状态
+
+      // 重新计算范围
+      config.currentStart = 0
+      config.currentEnd = Math.min(config.visibleCount + config.bufferSize, originData.length)
+      config.scrollTop = 0
+
+      // 更新视图
+      log('updateData 触发视图更新')
+      updateView()
+
+      // 重置滚动位置
+      if (scrollContainer) {
+        scrollContainer.scrollTop = 0
+      }
+    }
     // region 事件拦截
     const interceptorsMap: interceptorsMapType = {
       'sort-change': (value: { prop: any; order: any }) => {
-        isDebug && console.log('sort-change 🔒 拦截器:', value)
+        interceptorLog('sort-change', value)
         const { prop, order } = value
+        if (originalDataSortBackup.length === 0) {
+          originalDataSortBackup = [...originData]
+        }
         switch (order) {
           case 'ascending':
-            isDebug && console.log('sort-change ascending 触发视图更新')
+            log('sort-change ascending 触发视图更新')
             updateView(
-              originData.toSorted(
-                (a: { [x: string]: number }, b: { [x: string]: number }) => a[prop] - b[prop],
-              ),
+              originData
+                .filter((item: { [x: string]: any }) => item[levelKey] === 0 || typeof item[levelKey] === 'undefined')
+                .sort(
+                  (a: { [x: string]: number }, b: { [x: string]: number }) => a[prop] - b[prop],
+                ),
             )
             break
           case 'descending':
-            isDebug && console.log('sort-change descending 触发视图更新')
+            log('sort-change descending 触发视图更新')
             updateView(
-              originData.toSorted(
-                (a: { [x: string]: number }, b: { [x: string]: number }) => b[prop] - a[prop],
-              ),
+              originData
+                .filter((item: { [x: string]: any }) => item[levelKey] === 0 || typeof item[levelKey] === 'undefined')
+                .sort(
+                  (a: { [x: string]: number }, b: { [x: string]: number }) => b[prop] - a[prop],
+                ),
             )
             break
           default:
-            isDebug && console.log('sort-change default 触发视图更新')
+            log('sort-change default 触发视图更新')
+            originData = [...originalDataSortBackup]
+            originalDataSortBackup.length = 0
             updateView(originData)
             break
         }
       },
       select: (value, row) => {
-        isDebug && console.log('select 🔒 拦截器:', value, '行数据:', row)
+        interceptorLog('select', value, '行数据:', row)
         const isSelect = value.includes(row)
         if (isSelect) selectedKeys.add(getRowKey(row))
         else selectedKeys.delete(getRowKey(row))
@@ -159,27 +437,28 @@ const virtualScrollDirective = {
         // console.log(selectedKeys)
       },
       'select-all': (value) => {
-        isDebug && console.log('select-all 🔒 拦截器:', value)
+        interceptorLog('select-all', value)
         const valueLength = value.length
         let data
         if (valueLength === 0) {
-          data = clearAll()
+          data = [clearAll()]
         } else {
-          data = selectAll()
+          data = [selectAll()]
         }
+        tableInstance.$emit?.('selection-change')
         return data
       },
       'selection-change': (value) => {
-        isDebug && console.log('select-all 🔒 拦截器:', value)
+        interceptorLog('select-change', value)
         const selectedRows = originData.filter((row: any) => selectedKeys.has(getRowKey(row)))
         return [selectedRows || []]
       },
       scroll: (value: { scrollLeft: number; scrollTop: number }) => {
-        // isDebug && console.log('scroll 🔒 拦截器:', value)
+        // interceptorLoglog('scroll', value)
         handleScroll(value.scrollTop)
       },
       'filter-change': (value) => {
-        isDebug && console.log('filter-change 🔒 拦截器:', value)
+        interceptorLog('filter-change', value)
         const filterCondition: any[][] = Object.values(value)
         const isNowFilter = !!filterCondition.find(
           (filterConditionItem: any[]) => filterConditionItem.length > 0,
@@ -210,7 +489,48 @@ const virtualScrollDirective = {
 
         refresh()
       },
-
+      'expand-change': (row, expanded) => {
+        interceptorLog('expand-change', row, expanded)
+        if (typeof expanded === 'boolean') {
+          //树
+          const index = originData.findIndex(
+            (item: { [x: string]: any }) => item[rowKey] === row[rowKey],
+          )
+          if (!expanded) {
+            const sortedParents = []
+            let id = row[rowKey]
+            let childSize = originData.filter((item: { [x: string]: any }) => item[parentIdKey] == id).length
+            while (childSize > 0) {
+              originData.splice(index + 1, childSize)
+              sortedParents.push(id)
+              const child = originData.filter((item: { [x: string]: any }) => item[parentIdKey] == id)
+              childSize = child.length
+              id = child[0]?.[parentIdKey]
+            }
+            sortedParents.sort().forEach((item) => {
+              tableInstance.updateKeyChildren(item, [])
+              store.states.treeData.value[item].loaded = false
+            })
+          } else {
+            if (!originData.find((item: { [x: string]: any }) => item[parentIdKey] === row[rowKey])) {
+              originData.splice(
+                index + 1,
+                0,
+                ...originDataChild[row[rowKey]].map((item: { [x: string]: any }) => {
+                  item[levelKey] = (row[levelKey] || 0) + 1
+                  item[parentIdKey] = row[rowKey]
+                  return item
+                }),
+              )
+            }
+          }
+          isExpanded = expanded
+          isExpandedRow = row
+          childOpen[row[rowKey]] = expanded
+          updateView()
+        } else {
+        }
+      },
       ...(options.interceptorsMap || {}),
     }
 
@@ -260,7 +580,7 @@ const virtualScrollDirective = {
             if (interceptor) {
               const result = interceptor(...args)
               if (result === false) {
-                isDebug && console.log(`⛔ 事件被阻止: ${event}`)
+                log(`⛔ 事件被阻止: ${event}`)
                 return
               }
               const types = ['[object Array]', '[object Object]']
@@ -268,15 +588,14 @@ const virtualScrollDirective = {
                 if (Array.isArray(result)) {
                   // 返回数组：完全替换
                   args = result
-                  isDebug && console.log(`🔄 参数数组被替换: ${event}`, args)
+                  log(`🔄 参数数组被替换: ${event}`, args)
                 } else if (args.length === 1) {
                   // 单参数场景：允许直接返回值
                   args = [result]
-                  isDebug && console.log(`🔄 单参数被替换: ${event}`, args)
+                  log(`🔄 单参数被替换: ${event}`, args)
                 } else {
                   // 多参数场景：不支持非数组返回值
-                  isDebug &&
-                    console.info(`⚠️ 多参数事件 ${event} 的拦截器返回了非数组，已忽略`, result)
+                  log(`⚠️ 多参数事件 ${event} 的拦截器返回了非数组，已忽略`, result)
                 }
               }
             }
@@ -287,7 +606,7 @@ const virtualScrollDirective = {
           targetInstance.__interceptorInstalled = true
           targetInstance.__originalEmit = originalEmit
 
-          isDebug && console.log('✅ 事件拦截器安装成功', Object.keys(interceptorsMap))
+          log('✅ 事件拦截器安装成功', Object.keys(interceptorsMap))
           return
         }
       }
@@ -302,116 +621,6 @@ const virtualScrollDirective = {
 
     installInterceptor()
     //endregion
-
-    const getVisibleData = (oriData = originData) =>
-      oriData.slice(config.currentStart, config.currentEnd)
-    const updateView = (oriData = originData) => {
-      const visibleData = getVisibleData(oriData)
-      tableData.value.splice(0, tableData.value.length, ...visibleData)
-      updateSelection(visibleData)
-
-      if (tableEl) {
-        tableEl.style.paddingTop = `${config.currentStart * config.rowHeight}px`
-        tableEl.style.paddingBottom = `${(originData.length - config.currentEnd) * config.rowHeight}px`
-      }
-
-      options.onScroll?.({
-        scrollTop: config.scrollTop,
-        startIndex: config.currentStart,
-        endIndex: config.currentEnd,
-        totalCount: originData.length,
-      })
-    }
-
-    const calculateRange = (scrollTop: number) => ({
-      startIndex: Math.max(Math.floor(scrollTop / config.rowHeight) - config.bufferSize, 0),
-      endIndex: Math.min(
-        Math.floor(scrollTop / config.rowHeight) + config.visibleCount + config.bufferSize,
-        originData.length,
-      ),
-    })
-
-    const scrollToRow = (rowIndex: number) => {
-      if (rowIndex < 0 || rowIndex >= originData.length) return
-      const targetScrollTop = rowIndex * config.rowHeight
-      scrollContainer.scrollTop = targetScrollTop
-      const { startIndex, endIndex } = calculateRange(targetScrollTop)
-      if (config.currentStart !== startIndex || config.currentEnd !== endIndex) {
-        config.currentStart = startIndex
-        config.currentEnd = endIndex
-        isDebug && console.log('scrollToRow 触发视图更新')
-        updateView()
-      }
-    }
-
-    let rafId: number | null = null
-    const handleScroll = (scrollTop: number) => {
-      if (rafId) return
-      rafId = requestAnimationFrame(() => {
-        config.scrollTop = scrollTop
-        const { startIndex, endIndex } = calculateRange(config.scrollTop)
-
-        if (config.currentStart !== startIndex || config.currentEnd !== endIndex) {
-          config.currentStart = startIndex
-          config.currentEnd = endIndex
-          isDebug && console.log('handleScroll 触发视图更新')
-          updateView()
-        }
-        rafId = null
-      })
-    }
-
-    const refresh = () => {
-      config.currentStart = 0
-      config.currentEnd = Math.min(config.visibleCount + config.bufferSize, originData.length)
-      scrollContainer.scrollTop = 0
-      isDebug && console.log('refresh 触发视图更新')
-      updateView()
-    }
-
-    // 初始化
-    config.currentEnd = Math.min(config.visibleCount + config.bufferSize, originData.length)
-    isDebug && console.log('初始化 触发视图更新')
-    updateView()
-
-    let resizeObserver = null
-    if (typeof ResizeObserver !== 'undefined') {
-      resizeObserver = new ResizeObserver(() => refresh())
-      //@ts-ignore
-      resizeObserver.observe(scrollContainer)
-    }
-    // 滚动到底部 - 修复
-    const scrollToBottom = () => {
-      // 计算最大滚动距离
-      const maxScrollTop = originData.length * config.rowHeight - scrollContainer.clientHeight
-      scrollContainer.scrollTop = Math.max(0, maxScrollTop)
-    }
-
-    // 滚动到顶部 - 修复
-    const scrollToTop = () => {
-      scrollContainer.scrollTop = 0
-    }
-    // 添加手动更新数据的方法
-    const updateData = (newData: any[]) => {
-      if (!newData || !Array.isArray(newData)) return
-
-      originData = newData
-      selectedKeys.clear() // 可选：清空选中状态
-
-      // 重新计算范围
-      config.currentStart = 0
-      config.currentEnd = Math.min(config.visibleCount + config.bufferSize, originData.length)
-      config.scrollTop = 0
-
-      // 更新视图
-      isDebug && console.log('updateData 触发视图更新')
-      updateView()
-
-      // 重置滚动位置
-      if (scrollContainer) {
-        scrollContainer.scrollTop = 0
-      }
-    }
 
     // 暴露方法
     el._virtualScrollUpdateData = updateData

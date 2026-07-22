@@ -27,6 +27,22 @@ export const utilHooks = utilHook;
 export const loadingHooks = loadingHook;
 export const computedDataHooks = computedDataHook;
 
+import Input from './components/components/input/index.vue'
+import Select from './components/components/select/index.vue'
+import Checkbox from './components/components/checkbox/index.vue'
+import Switch from './components/components/switch/index.vue'
+import Radio from './components/components/radio/index.vue'
+import File from './components/components/File/index.vue'
+import MDate from './components/components/date/index.vue'
+
+// 导出组件类型
+export type MyInputInstance = InstanceType<typeof Input>;
+export type MySelectInstance = InstanceType<typeof Select>;
+export type MyCheckboxInstance = InstanceType<typeof Checkbox>;
+export type MySwitchInstance = InstanceType<typeof Switch>;
+export type MyRadioInstance = InstanceType<typeof Radio>;
+export type MyFileInstance = InstanceType<typeof File>;
+export type MyDateInstance = InstanceType<typeof MDate>;
 export type MyTableInstance = InstanceType<typeof Table>;
 export type MyTableV2Instance = InstanceType<typeof TableV2>;
 export type MyTableV3Instance = InstanceType<typeof TableV3>;
@@ -39,6 +55,13 @@ export type MyUploadFileInstance = InstanceType<typeof UploadFile>;
 export type MyEchartsInstance = InstanceType<typeof Echarts>;
 export { inputInnerType, dateInnerType, selectInnerType, fileInnerType, switchInnerType, radioInnerType, checkboxInnerType };
 // 导出My前缀的组件并添加明确类型注解
+export const MyInput: typeof Input = Input;
+export const MySelect: typeof Select = Select;
+export const MyCheckbox: typeof Checkbox = Checkbox;
+export const MySwitch: typeof Switch = Switch;
+export const MyRadio: typeof Radio = Radio;
+export const MyFile: typeof File = File;
+export const MyDate: typeof MDate = MDate;
 export const MyForm: typeof Form = Form;
 export const MyTable: typeof Table = Table;
 export const MyTableV2: typeof TableV2 = TableV2;

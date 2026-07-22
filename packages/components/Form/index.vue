@@ -77,7 +77,7 @@
                         </template>
                       </Input>
                       <MyDate
-                        :data="item "
+                        :data="item"
                         v-if="item.type === 'date'"
                         v-model="dynamicComputedMap[item.prop]"
                       >
@@ -87,7 +87,7 @@
                       </MyDate>
 
                       <Select
-                        :data="item "
+                        :data="item"
                         v-if="item.type === 'select'"
                         v-model="dynamicComputedMap[item.prop]"
                       >
@@ -96,7 +96,7 @@
                         </template>
                       </Select>
                       <Switch
-                        :data="item "
+                        :data="item"
                         v-if="item.type === 'switch'"
                         v-model="dynamicComputedMap[item.prop]"
                       >
@@ -105,7 +105,7 @@
                         </template>
                       </Switch>
                       <CheckBox
-                        :data="item "
+                        :data="item"
                         v-if="item.type === 'checkbox'"
                         v-model="dynamicComputedMap[item.prop]"
                       >
@@ -114,7 +114,7 @@
                         </template>
                       </CheckBox>
                       <Radio
-                        :data="item "
+                        :data="item"
                         v-if="item.type === 'radio'"
                         v-model="dynamicComputedMap[item.prop]"
                       >
@@ -198,7 +198,19 @@
 
 <script setup lang="ts" name="MyForm">
 import { getName } from '../js/utils'
-import { ref, watch, computed, nextTick, onMounted, onUnmounted, provide, onActivated, onDeactivated, onBeforeUnmount } from 'vue'
+import { Search, RefreshLeft } from '@element-plus/icons-vue'
+import {
+  ref,
+  watch,
+  computed,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  provide,
+  onActivated,
+  onDeactivated,
+  onBeforeUnmount,
+} from 'vue'
 // import { RefreshLeft, ArrowUp, ArrowDown, Search } from '@element-plus/icons-vue'
 import type { button, queryInnerType, refresh, search, searchRefresh } from '../js/types'
 import Input from '../components/input/index.vue'
@@ -224,40 +236,40 @@ import { getDomComputed, getComputedStyle } from '../js/utils'
 // 定义 Props 类型接口
 interface SearchFormProps {
   /** 语言配置 */
-  language: object
+  language?: object
 
   /** 不需要触发变更检查的组件类型 */
-  notNeedChangeCheck: string[]
+  notNeedChangeCheck?: string[]
 
   /** 是否显示搜索区域 */
-  showSearch: boolean
+  showSearch?: boolean
 
   /** 是否默认执行搜索 */
-  defaultSearch: boolean
+  defaultSearch?: boolean
 
   /** 标签宽度 */
-  labelWidth: string
+  labelWidth?: string
 
   /** 栅格列间距 */
-  gutter: number
+  gutter?: number
 
   /** 是否显示搜索标签 */
-  showSearchLabel: boolean
+  showSearchLabel?: boolean
 
   /** 搜索表单字段配置（必填） */
-  search: (inputInnerType | dateInnerType | selectInnerType)[]
+  search: (inputInnerType | dateInnerType | selectInnerType | checkboxInnerType)[]
 
   /** 搜索按钮配置 */
-  searchButton: (button | refresh | search | searchRefresh)[]
+  searchButton?: (button | refresh | search | searchRefresh)[]
 
   /** 是否启用清空功能 */
-  clearable: boolean
+  clearable?: boolean
 
   /** 搜索表单值 */
-  searchValue: Record<string, any>
+  searchValue?: Record<string, any>
 
   /** 是否启用刷新搜索功能 */
-  isRefreshSearch: boolean
+  isRefreshSearch?: boolean
 }
 
 // 使用 withDefaults 定义 Props 并配置默认值
@@ -352,12 +364,16 @@ const searchFun = (fun: (typeof searchButtonFinal.value)[number]['fun']) => {
       } else return
     }
     if (fun === 'search') {
-      let needCheck: any[] = formRef.value.map((item: { validate: any,fields:{prop:string}[] }) => {
-        const key = (item.fields||[]).map((item) => item.prop).join(',');
-        return { key, val: item.validate?.() };
-      });
+      let needCheck: any[] = formRef.value.map(
+        (item: { validate: any; fields: { prop: string }[] }) => {
+          const key = (item.fields || []).map((item) => item.prop).join(',')
+          return { key, val: item.validate?.() }
+        }
+      )
       if (fold.value) {
-        needCheck = needCheck.filter((item) => item.key === searchFinal.value[0].map((item) => item.prop).join(','))
+        needCheck = needCheck.filter(
+          (item) => item.key === searchFinal.value[0].map((item) => item.prop).join(',')
+        )
       }
       Promise.all(needCheck.map((item) => item.val)).then((res) => {
         // console.log(res)
@@ -458,17 +474,20 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', formItemWidthComputedListenerHandler)
 })
 onActivated(() => {
-  window.addEventListener('resize', formItemWidthComputedListenerHandler);
-});
+  window.addEventListener('resize', formItemWidthComputedListenerHandler)
+})
 onDeactivated(() => {
-  window.removeEventListener('resize', formItemWidthComputedListenerHandler);
-});
+  window.removeEventListener('resize', formItemWidthComputedListenerHandler)
+})
 //用于监听大小改变的回调
 const formItemWidthComputedListener = (event?: UIEvent) => {
-  console.log('大小改变')
+  // console.log('大小改变')
   formItemWidthComputed(searchComputed.value)
 }
-const formItemWidthComputedListenerHandler = useDebounceThrottle(formItemWidthComputedListener, 500) as EventListener
+const formItemWidthComputedListenerHandler = useDebounceThrottle(
+  formItemWidthComputedListener,
+  500
+) as EventListener
 /**
  * 计算表单项宽度
  * @param search 搜索条件
@@ -487,7 +506,9 @@ const formItemWidthComputed = (search: typeof searchComputed.value, callback = (
 
       inputWidths[key] = getDomComputed(computedStyle, 'width') + 6 * 2
       if (isNaN(inputWidths[key])) {
-        inputWidths[key] = document.querySelector(`.my-form-item-${key.replace('Ref', '')}`)?.getBoundingClientRect()?.width || 312;
+        inputWidths[key] =
+          document.querySelector(`.my-form-item-${key.replace('Ref', '')}`)?.getBoundingClientRect()
+            ?.width || 312
       }
     }
     // console.log(inputWidths);

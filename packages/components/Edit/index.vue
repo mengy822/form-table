@@ -7,7 +7,9 @@
       :title="isAdd ? title.add : title.edit"
       @before-close="handleClose"
     >
-      <div class="editDialog">
+      <div class="editDialog"
+      :style="`--editFormGridTemplateColumns:${editFormGridTemplateColumns};--editFormDisplay:${editFormDisplay};--gridTemplateColumns:${gridTemplateColumns};--display:${display};`"
+      >
         <slot name="left" :data="dynamicComputedMap"></slot>
         <el-form
           ref="formRef"
@@ -541,7 +543,7 @@ const init = async (
   dynamicComputedFun = dynamicComputedFun1
   dynamicComputedMap = dynamicComputedMap1
 
-  for (const dataKey in data) {
+  for (const dataKey in finalData) {
     dynamicComputedFun(dataKey, '', '')
   }
   // console.timeEnd('注册数据事件')
@@ -692,18 +694,21 @@ defineExpose({
 .editDialog {
   max-height: 50vh;
   overflow-y: auto;
-  display: v-bind(display);
+  display: var(--display);
   grid-gap: 20px;
-  grid-template-columns: v-bind(gridTemplateColumns);
+  grid-template-columns: var(--gridTemplateColumns);
+
   .el-form {
-    display: v-bind(editFormDisplay);
+    display: var(--editFormDisplay);
     grid-gap: 20px;
-    grid-template-columns: repeat(v-bind(editFormGridTemplateColumns), 1fr);
-    //v-bind(editFormGridTemplateColumns);
+    --form-cols: var(--editFormGridTemplateColumns);
+    grid-template-columns: repeat(var(--form-cols), 1fr);
   }
 }
-.editItems{
-  display:flex;
+
+.editItems {
+  display: flex;
   flex-wrap: wrap;
+  align-content: flex-start;
 }
 </style>

@@ -4,6 +4,7 @@
       :class="`_class${dataFinal.prop}`"
       v-model="bindValue"
       ref="_ref"
+      :style="{ width: dataFinal.width }"
       :multiple="dataFinal.multiple"
       :clearable="dataFinal.clearable"
       :placeholder="'请选择' + dataFinal.label"
@@ -157,14 +158,25 @@ const bindValue = computed({
   },
   set(val) {
     // if (props.modelValue != val) {
-    change(val)
+    updateModelValue(val)
+    // change(val)
     // }
   },
 })
+watch(
+  () => bindValue.value,
+  () => {
+    change(bindValue.value);
+  }
+);
 const change = (e: typeof props.modelValue) => {
-  dataFinal.value && dataFinal.value.change && dataFinal.value.change(e)
-  emits('update:modelValue', e)
-}
+  nextTick(() => {
+    dataFinal.value && dataFinal.value.change && dataFinal.value.change(e);
+  });
+};
+const updateModelValue = (e: typeof props.modelValue) => {
+  emits('update:modelValue', e);
+};
 const blur = (e: any) => {
   dataFinal.value && dataFinal.value.blur && dataFinal.value.blur(e)
 }

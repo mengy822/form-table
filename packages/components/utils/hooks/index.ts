@@ -1,94 +1,103 @@
-import { ref, watchEffect, onBeforeUnmount, onMounted, onActivated, onDeactivated } from 'vue';
+import {
+  ref,
+  watchEffect,
+  onBeforeUnmount,
+  onMounted,
+  onActivated,
+  onDeactivated,
+  onUnmounted,
+} from 'vue'
 export function useListenDomChange(callback: Function, delay: number = 100) {
-  let mutationObserver: MutationObserver | null = null;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  let isActive = true;
-  let lastHeight = 0;
-  const targetArr: { target: string | Element }[] = [];
+  let mutationObserver: MutationObserver | null = null
+  let timer: ReturnType<typeof setTimeout> | null = null
+  let isActive = true
+  let lastHeight = 0
+  const targetArr: { target: string | Element }[] = []
   const getHeight = (element: Element) => {
-    return element.getBoundingClientRect().height;
-  };
+    return element.getBoundingClientRect().height
+  }
 
   const checkHeightChange = (element: Element) => {
-    const newHeight = getHeight(element);
+    const newHeight = getHeight(element)
     // console.log(1);
     if (Math.abs(lastHeight - newHeight) > 0.5) {
       // console.log('高度变化:', lastHeight, '->', newHeight);
-      lastHeight = newHeight;
-      callback();
-      return true;
+      lastHeight = newHeight
+      callback()
+      return true
     }
-    return false;
-  };
+    return false
+  }
 
   const debouncedCheck = (element: Element) => {
-    if (timer) clearTimeout(timer);
+    if (timer) clearTimeout(timer)
     timer = setTimeout(() => {
-      checkHeightChange(element);
-      timer = null;
-    }, delay);
-  };
+      checkHeightChange(element)
+      timer = null
+    }, delay)
+  }
 
   const listen = (target: Element | string) => {
     // cleanup();
-    targetArr.push({ 'target': target });
-    let element: Element | null = null;
+    targetArr.push({ target: target })
+    let element: Element | null = null
     if (typeof target === 'string') {
-      element = document.querySelector(target);
+      element = document.querySelector(target)
       if (!element) {
-        console.warn(`元素未找到: ${target}`);
-        return;
+        console.warn(`元素未找到: ${target}`)
+        return
       }
     } else {
-      element = target;
+      element = target
     }
 
-    lastHeight = getHeight(element);
+    lastHeight = getHeight(element)
 
     mutationObserver = new MutationObserver(() => {
-      debouncedCheck(element!);
-    });
+      debouncedCheck(element!)
+    })
 
     mutationObserver.observe(element, {
       attributes: true,
       attributeFilter: ['style', 'class'],
       childList: true,
       subtree: true,
-      characterData: true
-    });
+      characterData: true,
+    })
 
-    isActive = true;
-  };
+    isActive = true
+  }
 
   const cleanup = () => {
     if (mutationObserver) {
-      mutationObserver.disconnect();
-      mutationObserver = null;
+      mutationObserver.disconnect()
+      mutationObserver = null
     }
     if (timer) {
-      clearTimeout(timer);
-      timer = null;
+      clearTimeout(timer)
+      timer = null
     }
-    isActive = false;
-  };
+    targetArr.length = 0
+    isActive = false
+  }
   onDeactivated(() => {
-    console.log('组件失活,取消监听');
-    cleanup();
-  });
+    console.log('组件失活,取消监听')
+    cleanup()
+  })
   onActivated(() => {
-    console.log('组件活跃,重新监听');
+    console.log('组件活跃,重新监听')
     targetArr.forEach((targetItem) => {
-      listen(targetItem.target);
-    });
-  });
+      listen(targetItem.target)
+    })
+  })
   onBeforeUnmount(() => {
-    cleanup();
-  });
+    cleanup()
+  })
 
   return {
     listen,
-    cleanup
-  };
+    cleanup,
+  }
 }
 
 /**
@@ -98,94 +107,95 @@ export function useListenDomChange(callback: Function, delay: number = 100) {
  * @param {string} type - 'debounce' 或 'throttle'，表示防抖或节流
  * @returns {Function} - 触发防抖或节流操作的函数
  */
-export function useDebounceThrottle(callback:Function, delay:number = 500, type:'debounce'|'throttle' = 'debounce'):Function {
+export function useDebounceThrottle(
+  callback: Function,
+  delay: number = 500,
+  type: 'debounce' | 'throttle' = 'debounce',
+): Function {
   // 标志是否正在等待延迟执行
-  let timer: number | undefined;
+  let timer: number | undefined
   // 标志节流的上次执行时间
-  let lastExecuted: number;
+  let lastExecuted: number
 
   // 触发防抖或节流的函数
-  function trigger(...args:any[]) {
+  function trigger(...args: any[]) {
     // 根据类型进行不同的处理
     if (type === 'debounce') {
       // 防抖：清除之前的定时器
-      clearTimeout(timer);
+      clearTimeout(timer)
       timer = setTimeout(() => {
-        callback(...args);
-      }, delay);
+        callback(...args)
+      }, delay)
     } else if (type === 'throttle') {
       // 节流：如果距离上次执行超过延迟时间，则执行回调
-      const now = Date.now();
+      const now = Date.now()
       if (!lastExecuted || now - lastExecuted >= delay) {
-        callback(...args);
-        lastExecuted = now;
+        callback(...args)
+        lastExecuted = now
       }
     }
   }
 
   // 组件卸载时清除定时器
   onBeforeUnmount(() => {
-    clearTimeout(timer);
-  });
+    clearTimeout(timer)
+  })
 
   // 返回触发函数
-  return trigger;
+  return trigger
 }
 
 // 定义获取鼠标位置的 hook
 export function useMousePosition() {
   // 使用 ref 创建响应式变量来存储鼠标的 x 和 y 坐标
-  const x = ref(0);
-  const y = ref(0);
+  const x = ref(0)
+  const y = ref(0)
 
   // 鼠标移动事件处理函数
-  const handleMouseMove = (event: { pageX: number; pageY: number; }) => {
-    x.value = event.pageX;
-    y.value = event.pageY;
-  };
+  const handleMouseMove = (event: { pageX: number; pageY: number }) => {
+    x.value = event.pageX
+    y.value = event.pageY
+  }
 
   // 在组件挂载时添加鼠标移动事件监听
   onMounted(() => {
-    window.addEventListener('mousemove', handleMouseMove);
-  });
+    window.addEventListener('mousemove', handleMouseMove)
+  })
 
   // 在组件卸载前移除鼠标移动事件监听
   onBeforeUnmount(() => {
-    window.removeEventListener('mousemove', handleMouseMove);
-  });
+    window.removeEventListener('mousemove', handleMouseMove)
+  })
 
   // 返回包含 x 和 y 坐标的对象
-  return { x, y };
+  return { x, y }
 }
-
 
 export function useWindowResize() {
   // 使用 ref 创建响应式的 width 和 height 变量，用于存储窗口的宽度和高度
-  const width = ref(0);
-  const height = ref(0);
+  const width = ref(0)
+  const height = ref(0)
 
   // 定义一个处理窗口大小变化的函数
   function onResize() {
-    width.value = window.innerWidth;
-    height.value = window.innerHeight;
+    width.value = window.innerWidth
+    height.value = window.innerHeight
   }
 
   // 在组件挂载时，为 window 对象添加 resize 事件监听器
   onMounted(() => {
-    window.addEventListener("resize", onResize);
-    onResize(); // 立即获取一次窗口大小并更新 width 和 height 的值
-  });
+    window.addEventListener('resize', onResize)
+    onResize() // 立即获取一次窗口大小并更新 width 和 height 的值
+  })
 
   // 在组件卸载时，移除 window 对象的 resize 事件监听器
   onBeforeUnmount(() => {
-    window.removeEventListener("resize", onResize);
-  });
+    window.removeEventListener('resize', onResize)
+  })
 
   // 返回包含 width 和 height 的对象，以便在组件中使用
-  return { width, height };
+  return { width, height }
 }
-
-
 
 /**
  * 缓存/预加载的 hook
@@ -196,44 +206,42 @@ export function useWindowResize() {
  */
 export function useCachePreload(loadFunction: () => any, { cacheTime = 5 * 60 * 1000 } = {}) {
   // 加载状态
-  const loading = ref(false);
+  const loading = ref(false)
   // 数据
-  const data = ref(null);
+  const data = ref(null)
   // 上次加载的时间
-  const lastLoadTime = ref(0);
+  const lastLoadTime = ref(0)
 
   /**
    * 加载数据的函数
    */
   const loadData = async () => {
-    loading.value = true;
+    loading.value = true
     try {
       // 如果缓存未过期，直接使用缓存数据
       if (Date.now() - lastLoadTime.value < cacheTime && data.value) {
-        return;
+        return
       }
-      const newData = await loadFunction();
-      data.value = newData;
-      lastLoadTime.value = Date.now();
+      const newData = await loadFunction()
+      data.value = newData
+      lastLoadTime.value = Date.now()
     } catch (error) {
-      console.error('加载数据出错:', error);
+      console.error('加载数据出错:', error)
     } finally {
-      loading.value = false;
+      loading.value = false
     }
-  };
+  }
 
   // 组件挂载时加载数据
-  onMounted(loadData);
+  onMounted(loadData)
 
   // 返回相关数据和函数供组件使用
   return {
     loading,
     data,
-    loadData
-  };
+    loadData,
+  }
 }
-
-
 
 /**
  * 用于封装媒体查询的钩子函数
@@ -242,27 +250,26 @@ export function useCachePreload(loadFunction: () => any, { cacheTime = 5 * 60 * 
  */
 export const useMatchMedia = (query: string) => {
   // 创建媒体查询对象
-  const mediaQuery = window.matchMedia(query);
+  const mediaQuery = window.matchMedia(query)
   // 使用 ref 创建一个响应式变量来存储匹配结果
-  const match = ref(mediaQuery.matches);
+  const match = ref(mediaQuery.matches)
 
   // 定义一个在媒体查询状态改变时触发的回调函数
-  const onChange = (e: { matches: boolean; }) => {
-    match.value = e.matches;
-  };
+  const onChange = (e: { matches: boolean }) => {
+    match.value = e.matches
+  }
 
   // 使用 watchEffect 钩子在组件挂载时添加媒体查询事件监听器，并在组件卸载时移除
   onMounted(() => {
-    mediaQuery.addEventListener('change', onChange);
-  });
+    mediaQuery.addEventListener('change', onChange)
+  })
 
   onBeforeUnmount(() => {
-    mediaQuery.removeEventListener('change', onChange);
-  });
+    mediaQuery.removeEventListener('change', onChange)
+  })
 
-  return match.value;
-};
-
+  return match.value
+}
 
 /**
  * 滚动相关操作和状态的 hook
@@ -270,66 +277,65 @@ export const useMatchMedia = (query: string) => {
  */
 export function useScroll() {
   // 滚动位置（垂直方向）
-  const scrollTop = ref(0);
+  const scrollTop = ref(0)
   // 是否滚动到底部
-  const isBottom = ref(false);
+  const isBottom = ref(false)
   // 滚动方向，'up' 表示向上，'down' 表示向下，'none' 表示未滚动
-  const scrollDirection = ref('none');
+  const scrollDirection = ref('none')
   // 记录上一次的滚动位置
-  const prevScrollTop = ref(0);
+  const prevScrollTop = ref(0)
 
   // 滚动到顶部的函数
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
-      behavior:'smooth'
-    });
-  };
+      behavior: 'smooth',
+    })
+  }
 
   // 监听滚动事件
-  const handleScroll = (event: { target: { scrollHeight: any; clientHeight: any; }; }) => {
-    scrollTop.value = window.pageYOffset || document.documentElement.scrollTop;
+  const handleScroll = (event: { target: { scrollHeight: any; clientHeight: any } }) => {
+    scrollTop.value = window.pageYOffset || document.documentElement.scrollTop
 
-    const scrollHeight = event.target.scrollHeight;
-    const clientHeight = event.target.clientHeight;
+    const scrollHeight = event.target.scrollHeight
+    const clientHeight = event.target.clientHeight
     if (scrollTop.value + clientHeight >= scrollHeight) {
-      isBottom.value = true;
+      isBottom.value = true
     } else {
-      isBottom.value = false;
+      isBottom.value = false
     }
 
     // 判断滚动方向
-    const currentScrollTop = scrollTop.value;
+    const currentScrollTop = scrollTop.value
     if (currentScrollTop > prevScrollTop.value) {
-      scrollDirection.value = 'down';
+      scrollDirection.value = 'down'
     } else if (currentScrollTop < prevScrollTop.value) {
-      scrollDirection.value = 'up';
+      scrollDirection.value = 'up'
     } else {
-      scrollDirection.value = 'none';
+      scrollDirection.value = 'none'
     }
 
-    prevScrollTop.value = currentScrollTop;
-  };
+    prevScrollTop.value = currentScrollTop
+  }
 
   // 组件挂载时添加滚动事件监听
   onMounted(() => {
-    window.addEventListener('scroll', handleScroll);
-  });
+    window.addEventListener('scroll', handleScroll)
+  })
 
   // 组件卸载时移除滚动事件监听
   onBeforeUnmount(() => {
-    window.removeEventListener('scroll', handleScroll);
-  });
+    window.removeEventListener('scroll', handleScroll)
+  })
 
   // 返回滚动相关的数据和操作
   return {
     scrollTop,
     isBottom,
     scrollDirection,
-    scrollToTop
-  };
+    scrollToTop,
+  }
 }
-
 
 /**
  * 监听网络状态变化的 hook
@@ -337,31 +343,30 @@ export function useScroll() {
  */
 export function useNetworkStatus() {
   // 网络状态，初始为未知
-  const networkStatus = ref('unknown');
+  const networkStatus = ref('unknown')
 
   // 网络状态变化的处理函数
   const handleNetworkChange = () => {
-    networkStatus.value = navigator.onLine? 'online' : 'offline';
-  };
+    networkStatus.value = navigator.onLine ? 'online' : 'offline'
+  }
 
   // 组件挂载时添加网络状态变化的监听
   onMounted(() => {
-    window.addEventListener('online', handleNetworkChange);
-    window.addEventListener('offline', handleNetworkChange);
-  });
+    window.addEventListener('online', handleNetworkChange)
+    window.addEventListener('offline', handleNetworkChange)
+  })
 
   // 组件卸载时移除监听
   onBeforeUnmount(() => {
-    window.removeEventListener('online', handleNetworkChange);
-    window.removeEventListener('offline', handleNetworkChange);
-  });
+    window.removeEventListener('online', handleNetworkChange)
+    window.removeEventListener('offline', handleNetworkChange)
+  })
 
   // 返回网络状态和相关方法
   return {
-    networkStatus
-  };
+    networkStatus,
+  }
 }
-
 
 /**
  * 实现复制到剪贴板功能的 hook
@@ -370,94 +375,105 @@ export function useNetworkStatus() {
  */
 export function useCopyToClipboard(text: string) {
   // 复制状态，初始为未复制
-  const isCopied = ref(false);
+  const isCopied = ref(false)
 
   // 执行复制操作的函数
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(text);
-      isCopied.value = true;
+      await navigator.clipboard.writeText(text)
+      isCopied.value = true
     } catch (err) {
-      console.error('复制到剪贴板失败:', err);
+      console.error('复制到剪贴板失败:', err)
     }
-  };
-
+  }
+  let timer:any = null
   // 组件挂载时添加事件处理
   onMounted(() => {
     // 一段时间后将复制状态恢复为未复制，以避免一直显示已复制
-    setTimeout(() => {
-      isCopied.value = false;
-    }, 3000);
-  });
-
+    clearTimeout(timer)
+    timer = setTimeout(() => {
+      isCopied.value = false
+    }, 3000)
+  })
+  onUnmounted(() => {
+    clearTimeout(timer)
+  })
   // 返回复制状态和复制操作
   return {
     isCopied,
-    copyToClipboard
-  };
+    copyToClipboard,
+  }
 }
-
 
 /**
  * 让元素具有可拖拽功能的 hook
  * @param {HTMLElement} element - 要设置为可拖拽的元素
  * @returns {Object} 包含拖拽相关状态和方法的对象
  */
-export function useDraggable(element: { offsetLeft: number; offsetTop: number; style: { left: string; top: string; }; addEventListener: (arg0: string, arg1: (event: any) => void) => void; removeEventListener: (arg0: string, arg1: (event: any) => void) => void; }) {
+export function useDraggable(element: {
+  offsetLeft: number
+  offsetTop: number
+  style: { left: string; top: string }
+  addEventListener: (arg0: string, arg1: (event: any) => void) => void
+  removeEventListener: (arg0: string, arg1: (event: any) => void) => void
+}) {
   // 初始时，元素的位置
-  const initialPosition = { x: 0, y: 0 };
+  const initialPosition = { x: 0, y: 0 }
 
   // 鼠标按下时的位置
-  const mouseDownPosition = { x: 0, y: 0 };
+  const mouseDownPosition = { x: 0, y: 0 }
 
   // 元素是否正在被拖拽
-  const isDragging = ref(false);
+  const isDragging = ref(false)
 
   // 鼠标按下事件处理函数
-  const handleMouseDown = (event: { preventDefault: () => void; clientX: number; clientY: number; }) => {
-    event.preventDefault();
-    isDragging.value = true;
-    mouseDownPosition.x = event.clientX;
-    mouseDownPosition.y = event.clientY;
-    initialPosition.x = element.offsetLeft;
-    initialPosition.y = element.offsetTop;
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
+  const handleMouseDown = (event: {
+    preventDefault: () => void
+    clientX: number
+    clientY: number
+  }) => {
+    event.preventDefault()
+    isDragging.value = true
+    mouseDownPosition.x = event.clientX
+    mouseDownPosition.y = event.clientY
+    initialPosition.x = element.offsetLeft
+    initialPosition.y = element.offsetTop
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }
 
   // 鼠标移动事件处理函数
-  const handleMouseMove = (event: { clientX: number; clientY: number; }) => {
+  const handleMouseMove = (event: { clientX: number; clientY: number }) => {
     if (isDragging.value) {
-      const deltaX = event.clientX - mouseDownPosition.x;
-      const deltaY = event.clientY - mouseDownPosition.y;
-      element.style.left = initialPosition.x + deltaX + 'px';
-      element.style.top = initialPosition.y + deltaY + 'px';
+      const deltaX = event.clientX - mouseDownPosition.x
+      const deltaY = event.clientY - mouseDownPosition.y
+      element.style.left = initialPosition.x + deltaX + 'px'
+      element.style.top = initialPosition.y + deltaY + 'px'
     }
-  };
+  }
 
   // 鼠标抬起事件处理函数
   const handleMouseUp = () => {
-    isDragging.value = false;
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
-  };
+    isDragging.value = false
+    document.removeEventListener('mousemove', handleMouseMove)
+    document.removeEventListener('mouseup', handleMouseUp)
+  }
 
   // 组件挂载时为元素添加鼠标按下事件监听
   onMounted(() => {
-    element.addEventListener('mousedown', handleMouseDown);
-  });
+    element.addEventListener('mousedown', handleMouseDown)
+  })
 
   // 组件卸载时移除事件监听
   onBeforeUnmount(() => {
-    element.removeEventListener('mousedown', handleMouseDown);
-  });
+    element.removeEventListener('mousedown', handleMouseDown)
+  })
 
   // 返回复制状态和复制操作
   return {
-    isDragging
-  };
+    isDragging,
+  }
 }
-
 
 /**
  * 文件下载的 hook
@@ -466,34 +482,33 @@ export function useDraggable(element: { offsetLeft: number; offsetTop: number; s
  */
 export function useFileDownload(blob: Blob | MediaSource, fileName: any) {
   // 创建一个隐藏的 <a> 元素
-  const link = ref(null);
+  const link = ref(null)
 
   // 下载文件的函数
   const downloadFile = () => {
     if (link.value) {
-      link.value.href = URL.createObjectURL(blob);
-      link.value.download = fileName;
-      link.value.click();
+      link.value.href = URL.createObjectURL(blob)
+      link.value.download = fileName
+      link.value.click()
 
       // 释放 URL 对象，避免内存泄漏
-      URL.revokeObjectURL(link.value.href);
+      URL.revokeObjectURL(link.value.href)
     }
-  };
+  }
 
   // 组件挂载时创建 <a> 元素
   onMounted(() => {
-    link.value = document.createElement('a');
-    link.value.style.display = 'none';
-    document.body.appendChild(link.value);
-  });
+    link.value = document.createElement('a')
+    link.value.style.display = 'none'
+    document.body.appendChild(link.value)
+  })
 
   // 组件卸载时移除 <a> 元素
   onBeforeUnmount(() => {
     if (link.value) {
-      document.body.removeChild(link.value);
+      document.body.removeChild(link.value)
     }
-  });
+  })
 
-  return downloadFile;
+  return downloadFile
 }
-

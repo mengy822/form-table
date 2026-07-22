@@ -195,9 +195,9 @@ const getButtonLabel = (condition: boolean | ((data: dataItemType) => boolean | 
   if (typeof condition === 'string') {
     return condition;
   }
-  if (props.getCustomLabel) {
-    const customLabel = props.getCustomLabel({ row }, defaultLabel);
-    if (customLabel) return customLabel;
+  if (typeof condition == 'function') {
+    const customLabel = condition(row);
+    if (customLabel) return customLabel as string;
   }
   return defaultLabel;
 };

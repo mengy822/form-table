@@ -1,38 +1,39 @@
 <template>
-<el-config-provider :locale="language">
-  <div :class="{ 'hidden': hidden }" class="pagination-container">
-    <el-pagination
-      :background="background"
-      v-model:current-page="currentPage"
-      v-model:page-size="pageSize"
-      :layout="layout"
-      :page-sizes="pageSizes"
-      :pager-count="pagerCount"
-      :total="total"
-      ref="_ref"
-      class='_class'
-      @size-change="handleSizeChange"
-      @current-change="handleCurrentChange"
-      v-bind="$attrs"
-    >
+  <el-config-provider :locale="language">
+    <div :class="{ hidden: hidden }" class="pagination-container"  v-bind="$attrs">
+      <el-pagination
+        :background="background"
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :layout="layout"
+        :page-sizes="pageSizes"
+        :pager-count="pagerCount"
+        :total="total"
+        ref="_ref"
+        class="_class"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        v-bind="$attrs"
+      >
         <slot name="extra"></slot>
       </el-pagination>
-  </div>
-</el-config-provider>
+    </div>
+  </el-config-provider>
 </template>
 
 <script lang="ts">
 export default {
-    name: 'Pagination'
+  name: 'Pagination',
 }
 </script>
 
 <script setup lang="ts">
-import { scrollTo } from '../../utils/scroll-to'
-import { PropType, computed } from 'vue';
+import { scrollTo, cancelScroll } from '../../utils/scroll-to'
+import { PropType, computed, onBeforeUnmount } from 'vue'
 import { isMobile } from '../../js/utils'
 
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
+
 const props = defineProps({
   language: {
     type: Object,
@@ -40,87 +41,117 @@ const props = defineProps({
       return zhCn
     },
   },
-    total: {
-      type:Number,
-      default:0
-    },
-    page: {
-      type:Number,
-      default:1
-    },
-    limit: {
-      type:Number,
-      default:20
-    },
-    pageSizes: {
-      type: Array as PropType<number[]>,
-      default: () => [10, 20, 30, 50]
-    },
-    // 移动端页码按钮的数量端默认值5
-    pagerCount: {
-      type:Number,
-      default:isMobile()?5:7
-    },
-    layout: {
-      type:String,
-      default:'total, sizes, prev, pager, next, jumper'
-    },
-    background: {
-      type:Boolean,
-      default:true
-    },
-    autoScroll:{
-      type:Boolean,
-      default:true
-    } ,
-    hidden:{
-      type:Boolean,
-      default:false
-    } ,
-    float:{
-      type:String,
-      default:'right'
-    }
+  total: {
+    type: Number,
+    default: 0,
+  },
+  page: {
+    type: Number,
+    default: 1,
+  },
+  limit: {
+    type: Number,
+    default: 20,
+  },
+  pageSizes: {
+    type: Array as PropType<number[]>,
+    default: () => [10, 20, 30, 50],
+  },
+  // 移动端页码按钮的数量端默认值5
+  pagerCount: {
+    type: Number,
+    default: isMobile() ? 5 : 7,
+  },
+  layout: {
+    type: String,
+    default: 'total, sizes, prev, pager, next, jumper',
+  },
+  background: {
+    type: Boolean,
+    default: true,
+  },
+  autoScroll: {
+    type: Boolean,
+    default: true,
+  },
+  hidden: {
+    type: Boolean,
+    default: false,
+  },
+  float: {
+    type: String,
+    default: 'right',
+  },
 })
 
-const emit = defineEmits(['update:page', 'update:limit', 'pagination']);
+const emit = defineEmits(['update:page', 'update:limit', 'pagination'])
+
+// ✅ 存储取消滚动动画的函数
+let cancelScrollFn: (() => void) | null = null
+
 const currentPage = computed({
-    get() {
-        return props.page
-    },
-    set(val) {
-        emit('update:page', val)
-    }
+  get() {
+    return props.page
+  },
+  set(val) {
+    emit('update:page', val)
+  },
 })
 const pageSize = computed({
-    get() {
-        return props.limit
-    },
-    set(val){
-        emit('update:limit', val)
-    }
+  get() {
+    return props.limit
+  },
+  set(val) {
+    emit('update:limit', val)
+  },
 })
+
 function handleSizeChange(val: number) {
-    if (currentPage.value * val > props.total) {
-        currentPage.value = 1
-    }
-    emit('pagination', { page: currentPage.value, limit: val })
-    if (props.autoScroll) {
-        scrollTo(0, 800)
-    }
+  // ✅ 取消之前的滚动动画
+  if (cancelScrollFn) {
+    cancelScrollFn()
+    cancelScrollFn = null
+  }
+
+  if (currentPage.value * val > props.total) {
+    currentPage.value = 1
+  }
+  emit('pagination', { page: currentPage.value, limit: val })
+  if (props.autoScroll) {
+    // ✅ 保存取消函数
+    cancelScrollFn = scrollTo(0, 800)
+  }
 }
+
 function handleCurrentChange(val: number) {
-    emit('pagination', { page: val, limit: pageSize.value })
-    if (props.autoScroll) {
-        scrollTo(0, 800)
-    }
+  // ✅ 取消之前的滚动动画
+  if (cancelScrollFn) {
+    cancelScrollFn()
+    cancelScrollFn = null
+  }
+
+  emit('pagination', { page: val, limit: pageSize.value })
+  if (props.autoScroll) {
+    // ✅ 保存取消函数
+    cancelScrollFn = scrollTo(0, 800)
+  }
 }
+
+// ✅ 组件销毁时取消动画
+onBeforeUnmount(() => {
+  if (cancelScrollFn) {
+    cancelScrollFn()
+    cancelScrollFn = null
+  }
+  // 保险：全局取消
+  cancelScroll()
+})
 </script>
 
 <style lang="scss" scoped>
 .pagination-container {
   padding: 32px 16px;
-  .el-pagination{
+  .el-pagination {
     float: v-bind(float);
   }
 }

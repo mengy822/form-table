@@ -66,7 +66,7 @@ export default {
 }
 </script>
 <script setup name="radio" lang="ts">
-import { computed, type PropType, ref } from 'vue'
+import { computed, type PropType, ref, nextTick, watch } from 'vue'
 import { type radioInnerType } from '../form/types'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { checkExistence } from '../../js/utils';
@@ -136,14 +136,25 @@ const bindValue = computed({
   },
   set(val) {
     // if (props.modelValue != val) {
-    change(val)
+    updateModelValue(val)
+    //change(val)
     // }
   },
 })
+watch(
+  () => bindValue.value,
+  () => {
+    change(bindValue.value);
+  }
+);
 const change = (e: typeof props.modelValue) => {
-  dataFinal.value && dataFinal.value.change && dataFinal.value.change(e)
-  emits('update:modelValue', e)
-}
+  nextTick(() => {
+    dataFinal.value && dataFinal.value.change && dataFinal.value.change(e);
+  });
+};
+const updateModelValue = (e: typeof props.modelValue) => {
+  emits('update:modelValue', e);
+};
 const _ref = ref()
 defineExpose({
   _ref,

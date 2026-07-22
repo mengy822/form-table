@@ -70,7 +70,8 @@
         </slot>
       </template>
       <el-table
-        v-virtual="virtualScrollConfig"
+        :span-method="spanMethod"
+        :data="dataListComputed"
         class="table-plus-main"
         :height="height || heightInner || maxHeight"
         :max-height="maxHeight || maxHeightInner || height"
@@ -96,6 +97,14 @@
         @expand-change="tableRowStatusChange"
         @sort-change="onSort"
         @current-change="handleCurrentChange"
+        @cell-click="handleCellClick"
+        @cell-dblclick="handleCellDblclick"
+        @cell-contextmenu="handleCellContextmenu"
+        @row-click="handleRowClick"
+        @row-contextmenu="handleRowContextmenu"
+        @row-dblclick="handleRowDblclick"
+        @header-click="handleHeaderClick"
+        @header-contextmenu="handleHeaderContextmenu"
       >
         <el-table-column
           v-if="hasSelectionComputed"
@@ -170,7 +179,7 @@
                   text: hasOperationText,
                   link: hasOperationLink,
                   loading: operationLoading,
-                }).filter((item1) => item1)
+                }).filter((item1: any) => item1)
               "
               :simpTransVar="simpTransVar"
               @add-son="handleAddSon"
@@ -353,121 +362,128 @@ function getSlotContent(
 // 定义 Props 类型（提取为独立接口，增强可读性和复用性）
 export interface TableProps {
   /** 是否显示分页 */
-  hasPage: boolean
-
+  hasPage?: boolean
+  spanMethod?: (data: { row: any; column: any; rowIndex: number; columnIndex: number }) =>
+    | number[]
+    | {
+        rowspan: number
+        colspan: number
+      }
+    | void
   /** 表格顶部按钮Plain */
-  hasTableTopPlain: boolean
-  moreButton: string
+  hasTableTopPlain?: boolean
+  moreButton?: string
+  tableKey?: string
   moreButtonType?: ButtonType
   moreButtonTrigger?: 'hover' | 'click'
   /** 分页配置 **/
-  pageLayout: string
-  pagerCount: number
-  simpTransVar: number
+  pageLayout?: string
+  pagerCount?: number
+  simpTransVar?: number
   /**是树结构*/
   isTree?: boolean | IsTreeConfig
   /** 是否懒加载（树形结构） */
-  lazy: boolean
+  lazy?: boolean
   /** 树形结构是否默认展开所有节点 */
-  defaultExpandAll: boolean
+  defaultExpandAll?: boolean
   /** 懒加载数据加载函数 */
-  loadFun: (row: any, treeNode: unknown, resolve: (data: any[]) => void) => void
+  loadFun?: (row: any, treeNode: unknown, resolve: (data: any[]) => void) => void
   /** 树形结构配置（子节点字段、是否有子节点字段） */
-  treeProps: { children: string; hasChildren: string }
+  treeProps?: { children: string; hasChildren: string }
   /** 语言配置 */
-  language: object
+  language?: object
   /** 是否显示序号列（布尔值或自定义列名） */
-  hasIndex: boolean | string
+  hasIndex?: boolean | string
   /** 是否显示选择列（支持函数动态控制） */
-  hasSelection: boolean | ((row: any, index: number) => boolean)
+  hasSelection?: boolean | ((row: any, index: number) => boolean)
   /** 跨页多选 */
-  reserve: boolean
+  reserve?: boolean
   /** 是否显示操作列（布尔值或自定义列名） */
-  hasOperation: boolean | string
+  hasOperation?: boolean | string
   /** 操作列总宽度 */
-  operationWidth: number | undefined
+  operationWidth?: number | undefined
   /** 单个操作按钮宽度 */
-  oneOperationWidth: number
+  oneOperationWidth?: number
   /** 是否显示操作列标题 */
-  hasOperationName: boolean
+  hasOperationName?: boolean
   /** 表格最大高度 */
-  maxHeight: number | string | undefined
+  maxHeight?: number | string | undefined
   /** 表格固定高度 */
-  height: number | string | undefined
+  height?: number | string | undefined
   /** 基础样式类（用于计算高度等） */
-  baseClass: string
-  autoHeightExcludeClassName: string[]
+  baseClass?: string
+  autoHeightExcludeClassName?: string[]
   //默认对齐
-  align: 'center' | 'left' | 'right'
-  operationAlign: 'center' | 'left' | 'right'
+  align?: 'center' | 'left' | 'right'
+  operationAlign?: 'center' | 'left' | 'right'
   operationFixed?: false | 'left' | 'right'
   hasIndexFixed?: false | 'left' | 'right'
   /** 是否启用最大宽度限制 */
-  maxWidth: boolean
+  maxWidth?: boolean
   /** 是否显示【新增】按钮（支持布尔值、自定义文本、函数动态控制） */
-  hasAdd: boolean | string | ((data: dataItemType) => boolean | string)
+  hasAdd?: boolean | string | ((data: dataItemType) => boolean | string)
   /** 【新增】按钮图标配置 */
-  hasAddIcon: object
+  hasAddIcon?: object
   /** 是否显示【批量删除】按钮（支持布尔值、自定义文本、函数动态控制） */
-  hasBatchRemove: boolean | string | ((data: dataItemType) => boolean | string)
+  hasBatchRemove?: boolean | string | ((data: dataItemType) => boolean | string)
   /** 【批量删除】按钮图标配置 */
-  hasBatchRemoveIcon: object
+  hasBatchRemoveIcon?: object
   /** 【批量删除】按钮类型 */
-  hasBatchRemoveType: ButtonType
+  hasBatchRemoveType?: ButtonType
   /** 是否显示【导入】按钮（支持布尔值、自定义文本、函数动态控制） */
-  hasImport: boolean | string | ((data: dataItemType) => boolean | string)
+  hasImport?: boolean | string | ((data: dataItemType) => boolean | string)
   /** 【导入】按钮图标配置 */
-  hasImportIcon: object
+  hasImportIcon?: object
   /** 是否显示【导出】按钮（支持布尔值、自定义文本、函数动态控制） */
-  hasExport: boolean | string | ((data: dataItemType) => boolean | string)
+  hasExport?: boolean | string | ((data: dataItemType) => boolean | string)
   /** 【导出】按钮图标配置 */
-  hasExportIcon: object
+  hasExportIcon?: object
   /** 操作按钮是否显示文本 */
-  hasOperationText: boolean
+  hasOperationText?: boolean
   /** 操作按钮是否显示链接样式 */
-  hasOperationLink: boolean
+  hasOperationLink?: boolean
   /** 是否显示【详情】按钮（支持布尔值、自定义文本、函数动态控制） */
-  hasDetail: boolean | string | ((data: dataItemType) => boolean | string)
+  hasDetail?: boolean | string | ((data: dataItemType) => boolean | string)
   /** 【详情】按钮图标配置 */
-  hasDetailIcon: object
+  hasDetailIcon?: object
   /** 【详情】按钮类型（对应 UI 库按钮类型） */
-  hasDetailType: ButtonType
+  hasDetailType?: ButtonType
   /** 是否显示【新增子节点】按钮（支持布尔值、自定义文本、函数动态控制） */
-  hasAddSon: boolean | string | ((data: dataItemType) => boolean | string)
+  hasAddSon?: boolean | string | ((data: dataItemType) => boolean | string)
   /** 【新增子节点】按钮图标配置 */
-  hasAddSonIcon: object
+  hasAddSonIcon?: object
   /** 【新增子节点】按钮类型（对应 UI 库按钮类型） */
-  hasAddSonType: ButtonType
+  hasAddSonType?: ButtonType
   /** 是否显示【修改】按钮（支持布尔值、自定义文本、函数动态控制） */
-  hasUpdate: boolean | string | ((data: dataItemType) => boolean | string)
+  hasUpdate?: boolean | string | ((data: dataItemType) => boolean | string)
   /** 【修改】按钮图标配置 */
-  hasUpdateIcon: object
+  hasUpdateIcon?: object
   /** 【修改】按钮类型（对应 UI 库按钮类型） */
-  hasUpdateType: ButtonType
+  hasUpdateType?: ButtonType
   /** 是否显示【删除】按钮（支持布尔值、自定义文本、函数动态控制） */
-  hasRemove: boolean | string | ((data: dataItemType) => boolean | string)
+  hasRemove?: boolean | string | ((data: dataItemType) => boolean | string)
   /** 【删除】按钮图标配置 */
-  hasRemoveIcon: object
+  hasRemoveIcon?: object
   /** 【删除】按钮类型（对应 UI 库按钮类型） */
-  hasRemoveType: ButtonType
+  hasRemoveType?: ButtonType
   /** 表格列配置（必填） */
   tableColumn: tableColumnItem[]
   /** 查询参数配置 */
   queryParam?: queryParamType
   /** 删除确认提示文本 */
-  removeMessage: string
+  removeMessage?: string
   /** 删除确认弹窗类型 */
-  removeType: 'warning' | 'info' | 'error' | 'success'
+  removeType?: 'warning' | 'info' | 'error' | 'success'
   /** 删除确认弹窗标题 */
-  removeMessageTitle: string
+  removeMessageTitle?: string
   /** 导出确认提示文本（false 表示不显示确认） */
-  exportMessage: string | boolean
+  exportMessage?: string | boolean
   /** 导出确认弹窗类型 */
-  exportType: 'warning' | 'info' | 'error' | 'success'
+  exportType?: 'warning' | 'info' | 'error' | 'success'
   /** 导出确认弹窗标题 */
-  exportMessageTitle: string
+  exportMessageTitle?: string
   /** 表格数据源（树形结构数据） */
-  dataList: Array<dataItemType> | undefined
+  dataList?: Array<dataItemType> | undefined
   /** 数据源加载函数 */
   dataListFun?: (
     query: { [key: string]: any },
@@ -475,47 +491,47 @@ export interface TableProps {
   ) => void
   dataLoadFun?: Function
   /** 数据源格式配置（数据列表字段、总数字段） */
-  dataConfig: { rows: string; total: string; extra: string }
+  dataConfig?: { rows: string; total: string; extra: string }
   /** 数据总数（用于分页） */
-  total: number
+  total?: number
   /** 是否高亮当前行 */
-  highlightCurrentRow: boolean
+  highlightCurrentRow?: boolean
   /** 当前行 Key（用于高亮/选中） */
-  currentRowKey: string | number
+  currentRowKey?: string | number
   /** 行 className 配置（支持固定字符串或回调函数） */
-  rowClassName: string | ((data: { row: any; rowIndex: number }) => string)
+  rowClassName?: string | ((data: { row: any; rowIndex: number }) => string)
   /** 行样式配置（支持固定对象或回调函数） */
-  rowStyle: CSSProperties | ((data: { row: any; rowIndex: number }) => CSSProperties)
+  rowStyle?: CSSProperties | ((data: { row: any; rowIndex: number }) => CSSProperties)
   /** 单元格 className 配置（支持固定字符串或回调函数） */
-  cellClassName:
+  cellClassName?:
     | string
     | ((data: { row: any; column: any; rowIndex: number; columnIndex: number }) => string)
   /** 单元格样式配置（支持固定对象或回调函数） */
-  cellStyle:
+  cellStyle?:
     | CSSProperties
     | ((data: { row: any; column: any; rowIndex: number; columnIndex: number }) => CSSProperties)
   /** 表头行 className 配置（支持固定字符串或回调函数） */
-  headerRowClassName: string | ((data: { row: any; rowIndex: number }) => string)
+  headerRowClassName?: string | ((data: { row: any; rowIndex: number }) => string)
   /** 表头行样式配置（支持固定对象或回调函数） */
-  headerRowStyle: CSSProperties | ((data: { row: any; rowIndex: number }) => CSSProperties)
+  headerRowStyle?: CSSProperties | ((data: { row: any; rowIndex: number }) => CSSProperties)
   /** 表头单元格 className 配置（支持固定字符串或回调函数） */
-  headerCellClassName:
+  headerCellClassName?:
     | string
     | ((data: { row: any; column: any; rowIndex: number; columnIndex: number }) => string)
   /** 表头单元格样式配置（支持固定对象或回调函数） */
-  headerCellStyle:
+  headerCellStyle?:
     | CSSProperties
     | ((data: { row: any; column: any; rowIndex: number; columnIndex: number }) => CSSProperties)
   /** 行 Key 配置（用于优化渲染和树形/选择功能） */
-  rowKey: string | ((row: any) => string)
+  rowKey?: string | ((row: any) => string)
   /** 空数据提示文本 */
-  emptyText: string
+  emptyText?: string
   /** 操作成功提示时长（毫秒） */
-  duration: number
+  duration?: number
   /** 操作成功提示文本 */
-  message: string
+  message?: string
   /** 默认空白占位符 */
-  defaultBlock: string
+  defaultBlock?: string
   /** 删除成功的状态码 */
   status?: number | boolean | string
   /** 删除成功的状态码字段 */
@@ -569,6 +585,7 @@ export interface tableColumnItem {
   selectable?: boolean
   maxWidth?: boolean
   decimalPlaces?: number
+  merge?: boolean
   fun?: (
     row: dataItemType,
     prop: string,
@@ -655,6 +672,7 @@ const hasOperationComputed = computed(() => {
 
 // 使用 withDefaults 定义 Props 并配置默认值
 const props = withDefaults(defineProps<TableProps>(), {
+  tableKey: undefined,
   // 基础配置
   hasPage: true,
   moreButton: '更多',
@@ -765,7 +783,7 @@ const props = withDefaults(defineProps<TableProps>(), {
   message: '操作成功',
   defaultBlock: '-',
 })
-const rowKeyComputed=computed(()=>{
+const rowKeyComputed = computed(() => {
   return props.rowKey
 })
 //表格实例
@@ -796,14 +814,14 @@ const virtualScrollConfig = ref<virtualConfig>({
   onScroll: (info: scrollParams) => {
     startIndex.value = info.startIndex
   },
-  isDebug:true
+  isDebug: true,
 })
 const extra = ref()
 const dataListComputed = computed({
   get: () => {
     const val = props.dataList || dataListInner.value
     //@ts-ignore
-    props.dataList&&props.dataList.length>0&&tableRef.value?._virtualScrollUpdateData?.(val)
+    props.dataList && props.dataList.length > 0 && tableRef.value?._virtualScrollUpdateData?.(val)
     return val
   },
   set: (val) => {
@@ -874,14 +892,25 @@ onMounted(() => {
   // hasUpdateListener.value = typeof props.onUpdate === 'function'
   heightChange()
 })
-onBeforeUnmount(() => {
+const cleanup = () => {
   needAutoHeight.value = false
+  slotContentCache.clear()
+  clearTimeout(timer)
+  timer = null
+  listenDoc.cleanup() // ✅ 添加
+   if (tableRef.value?._cleanup) {
+    tableRef.value._cleanup()
+  }
+}
+onBeforeUnmount(() => {
+  cleanup()
 })
 onDeactivated(() => {
-  needAutoHeight.value = false
+  cleanup()
 })
 onActivated(() => {
   needAutoHeight.value = true
+  heightChange()
 })
 let timer: any = null
 const heightChange = () => {
@@ -952,21 +981,13 @@ const autoHeight = (key: string) => {
   if (!needAutoHeight.value) return
   // console.log('重建dom', new Date().getTime());
   nextTick(() => {
-    if (
-      baseClass.value &&
-      typeof props.height == 'undefined' &&
-      typeof props.maxHeight === 'undefined'
-    ) {
-      const tableHeaderHeight = getHeight('.el-card__header') //+ getHeight('.el-table__header-wrapper');
-      const pageHeight = getHeight('.pagination-container')
-      const { paddingTop: bodyPaddingTop, paddingBottom: bodyPaddingBottom } = getComputedStyle(
-        '.table-plus .el-card__body'
-      )
-      const { borderTopWidth, borderBottomWidth } = getComputedStyle('.table-plus .el-card__header')
-      const { height, dom } = getRemainingHeight(baseClass.value, [
-        '.table-plus',
-        ...props.autoHeightExcludeClassName,
-      ])
+    const baseClass = props.baseClass;
+    if (props.baseClass && typeof props.height == 'undefined' && typeof props.maxHeight === 'undefined') {
+      const tableHeaderHeight = getHeight(`${baseClass} .el-card__header`); //+ getHeight('.el-table__header-wrapper');
+      const pageHeight = getHeight(`${baseClass} .pagination-container`);
+      const { paddingTop: bodyPaddingTop, paddingBottom: bodyPaddingBottom } = getComputedStyle(`${baseClass} .table-plus .el-card__body`);
+      const { borderTopWidth, borderBottomWidth } = getComputedStyle(`${baseClass} .table-plus .el-card__header`);
+      const { height, dom } = getRemainingHeight(baseClass, ['.table-plus', ...props.authHeightExcludeClassName]);
       // console.log(dom)
       // console.log(height)
       heightInner.value =
@@ -1018,6 +1039,7 @@ const canHiddenColumns = computed({
   },
 })
 const tableColumn = ref<typeof props.tableColumn>([])
+
 const tableColumnFinal = computed({
   get() {
     if (tableColumn.value.length === 0) {
@@ -1033,6 +1055,58 @@ const tableColumnFinal = computed({
     tableColumn.value = [...data]
   },
 })
+
+const mergeColumns = computed(() =>
+  tableColumnFinal.value.filter((item) => item.merge).map((item) => item.prop)
+)
+const spanMethod = computed(() => props.spanMethod || spanMethodInner)
+const spanMethodInner = ({
+  row,
+  column,
+  rowIndex,
+  columnIndex,
+}: {
+  row: any
+  column: any
+  rowIndex: number
+  columnIndex: number
+}): number[] | { rowspan: number; colspan: number } | void => {
+  const data = dataListComputed.value
+  const property = column.property
+
+  // 只处理配置中需要合并的列
+  if (!mergeColumns.value.includes(property)) {
+    return
+  }
+
+  // 检查当前行是否是该组的起始行
+  const isFirstRow =
+    rowIndex === 0 ||
+    JSON.stringify(data[rowIndex][property]) !== JSON.stringify(data[rowIndex - 1][property])
+
+  if (isFirstRow) {
+    // 计算相同值的连续行数
+    let rowspan = 1
+    for (let i = rowIndex + 1; i < data.length; i++) {
+      if (JSON.stringify(data[i][property]) === JSON.stringify(data[rowIndex][property])) {
+        rowspan++
+      } else {
+        break
+      }
+    }
+    return {
+      rowspan: rowspan,
+      colspan: 1,
+    }
+  } else {
+    // 非起始行，隐藏单元格
+    return {
+      rowspan: 0,
+      colspan: 0,
+    }
+  }
+}
+
 const computedTableColumn = (item: tableColumnItem, index: number) => {
   if (props.isTree && index === 0 && !props.hasSelection) {
     item.align = 'left'
@@ -1279,6 +1353,75 @@ interface MyTableEmits {
     },
     callback: RemoveCallback
   ): void
+  /**
+   * 单元格点击事件
+   * @param eventName 事件名：固定为 'cell-click'
+   * @param val 单元格数据（可能是 row, column, cell, event 的复合对象或单参数）
+   */
+  (eventName: 'cell-click', row: any, column: any, cell: any, event: Event): void
+
+  /**
+   * 单元格双击事件
+   * @param eventName 事件名：固定为 'cell-dblclick'
+   * @param row 行数据
+   * @param column 列数据
+   * @param cell 单元格DOM元素
+   * @param event 原生事件对象
+   */
+  (eventName: 'cell-dblclick', row: any, column: any, cell: any, event: Event): void
+
+  /**
+   * 单元格右键点击事件
+   * @param eventName 事件名：固定为 'cell-contextmenu'
+   * @param row 行数据
+   * @param column 列数据
+   * @param cell 单元格DOM元素
+   * @param event 原生事件对象
+   */
+  (eventName: 'cell-contextmenu', row: any, column: any, cell: any, event: Event): void
+
+  /**
+   * 行点击事件
+   * @param eventName 事件名：固定为 'row-click'
+   * @param row 行数据
+   * @param column 列数据
+   * @param event 原生事件对象
+   */
+  (eventName: 'row-click', row: any, column: any, event: Event): void
+
+  /**
+   * 行右键点击事件
+   * @param eventName 事件名：固定为 'row-contextmenu'
+   * @param row 行数据
+   * @param column 列数据
+   * @param event 原生事件对象
+   */
+  (eventName: 'row-contextmenu', row: any, column: any, event: Event): void
+
+  /**
+   * 行双击事件
+   * @param eventName 事件名：固定为 'row-dblclick'
+   * @param row 行数据
+   * @param column 列数据
+   * @param event 原生事件对象
+   */
+  (eventName: 'row-dblclick', row: any, column: any, event: Event): void
+
+  /**
+   * 表头点击事件
+   * @param eventName 事件名：固定为 'header-click'
+   * @param column 列数据
+   * @param event 原生事件对象
+   */
+  (eventName: 'header-click', column: any, event: Event): void
+
+  /**
+   * 表头右键点击事件
+   * @param eventName 事件名：固定为 'header-contextmenu'
+   * @param column 列数据
+   * @param event 原生事件对象
+   */
+  (eventName: 'header-contextmenu', column: any, event: Event): void
 }
 
 // ========================================================================
@@ -1332,6 +1475,40 @@ const tableRowStatusChange = (row: any, expandedRows: any[] | boolean): void => 
 const handleCurrentChange = (val: any) => {
   if (proxyProps.value['onCurrentChange']) emits('current-change', val)
 }
+// 单元格事件
+const handleCellClick = (row: any, column: any, cell: any, event: Event) => {
+  if (proxyProps.value['onCellClick']) emits('cell-click', row, column, cell, event)
+}
+
+const handleCellDblclick = (row: any, column: any, cell: any, event: Event) => {
+  if (proxyProps.value['onCellDblclick']) emits('cell-dblclick', row, column, cell, event)
+}
+
+const handleCellContextmenu = (row: any, column: any, cell: any, event: Event) => {
+  if (proxyProps.value['onCellContextmenu']) emits('cell-contextmenu', row, column, cell, event)
+}
+
+// 行事件
+const handleRowClick = (row: any, column: any, event: Event) => {
+  if (proxyProps.value['onRowClick']) emits('row-click', row, column, event)
+}
+
+const handleRowContextmenu = (row: any, column: any, event: Event) => {
+  if (proxyProps.value['onRowContextmenu']) emits('row-contextmenu', row, column, event)
+}
+
+const handleRowDblclick = (row: any, column: any, event: Event) => {
+  if (proxyProps.value['onRowDblclick']) emits('row-dblclick', row, column, event)
+}
+
+// 表头事件
+const handleHeaderClick = (column: any, event: Event) => {
+  if (proxyProps.value['onHeaderClick']) emits('header-click', column, event)
+}
+
+const handleHeaderContextmenu = (column: any, event: Event) => {
+  if (proxyProps.value['onHeaderContextmenu']) emits('header-contextmenu', column, event)
+}
 const setCurrentRow = (val: any) => {
   tableRef.value?.setCurrentRow(val)
 }
@@ -1341,7 +1518,7 @@ const onSort = (data: {
   prop: string
   order: 'descending' | 'ascending' | undefined
 }): void => {
-  if(data.column.sortable==true){
+  if (data.column.sortable == true) {
     return
   }
   if (typeof data.order !== 'undefined') {
@@ -1730,28 +1907,33 @@ const handleAddSon = (row: dataItemType) => {
  */
 const updateLoading = (cb: Promise<any>, refresh: 'now' | 'first' | '' = 'now') => {
   operationLoading.value = true
-  cb.then((res) => {
-    if (res[props.code] == props.status) {
-      ElMessage({
-        message: props.message,
-        grouping: true,
-        duration: props.duration,
-        type: 'success',
-        showClose: props.duration! > 0,
-        onClose: () => {
-          operationLoading.value = false
-          if (refresh === 'now') {
-            handleQuery()
-          } else if (refresh === 'first') {
-            handleQuery(undefined, true)
-          }
-        },
-      })
-    } else {
+  return new Promise((resolve, reject) => {
+    cb.then((res) => {
+      if (res[props.code] == props.status) {
+        ElMessage({
+          message: props.message,
+          grouping: true,
+          duration: props.duration,
+          type: 'success',
+          showClose: props.duration! > 0,
+          onClose: () => {
+            operationLoading.value = false
+            if (refresh === 'now') {
+              handleQuery()
+            } else if (refresh === 'first') {
+              handleQuery(undefined, true)
+            }
+            resolve(true)
+          },
+        })
+      } else {
+        operationLoading.value = false
+        reject()
+      }
+    }).catch(() => {
       operationLoading.value = false
-    }
-  }).catch(() => {
-    operationLoading.value = false
+      reject()
+    })
   })
 }
 const handleNeedConfirmEvent = ({
@@ -1797,6 +1979,9 @@ const handleNeedConfirmEvent = ({
       operationLoading.value = false
     })
 }
+const setCurrentRowIndex = (index: number) => {
+  setCurrentRow(dataListComputed.value[index])
+}
 defineExpose({
   multipleSelection: multipleSelection.value,
   toggleSelection,
@@ -1806,7 +1991,10 @@ defineExpose({
   handleNeedConfirmEvent,
   originalData: originalData.value,
   updateLoading,
+  dataListComputed,
+  key: props.tableKey,
   setCurrentRow,
+  setCurrentRowIndex,
 })
 </script>
 <style scoped lang="scss">
