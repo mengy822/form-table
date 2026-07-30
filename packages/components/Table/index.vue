@@ -69,9 +69,11 @@
           </el-row>
         </slot>
       </template>
+      <!-- :data="dataListComputed" -->
       <el-table
+        v-virtual
         :span-method="spanMethod"
-        :data="dataListComputed"
+
         class="table-plus-main"
         :height="height || heightInner || maxHeight"
         :max-height="maxHeight || maxHeightInner || height"
@@ -374,7 +376,7 @@ export interface TableProps {
   hasTableTopPlain?: boolean
   moreButton?: string
   tableKey?: string
-  authHeightExcludeClassName?:string[],
+  authHeightExcludeClassName?: string[]
   moreButtonType?: ButtonType
   moreButtonTrigger?: 'hover' | 'click'
   /** 分页配置 **/
@@ -395,9 +397,9 @@ export interface TableProps {
   /** 树形结构配置（子节点字段、是否有子节点字段） */
   treeProps?: { children: string; hasChildren: string }
   //需要设置默认显示子级
-  needSetDefaultHasChildren?: ((data:any)=>boolean);
+  needSetDefaultHasChildren?: (data: any) => boolean
   //不需要设置默认显示子级
-  notNeedSetDefaultHasChildren?: ((data:any)=>boolean);
+  notNeedSetDefaultHasChildren?: (data: any) => boolean
   /** 语言配置 */
   language?: object
   /** 是否显示序号列（布尔值或自定义列名） */
@@ -703,7 +705,7 @@ const props = withDefaults(defineProps<TableProps>(), {
   hasOperation: true,
   operationWidth: undefined,
   pagerCount: undefined,
-  authHeightExcludeClassName:[],
+  authHeightExcludeClassName: [],
   simpTransVar: 0,
   pageLayout: undefined,
   oneOperationWidth: 70,
@@ -830,12 +832,12 @@ const dataListComputed = computed({
   get: () => {
     const val = props.dataList || dataListInner.value
     //@ts-ignore
-    props.dataList && props.dataList.length > 0 && tableRef.value?._virtualScrollUpdateData?.(val)
+    props.dataList && props.dataList.length > 0 && tableRef.value?._virtualScrollUpdateData?.(val,val.length>50)
     return val
   },
   set: (val) => {
     //@ts-ignore
-    tableRef.value?._virtualScrollUpdateData?.(val)
+    tableRef.value?._virtualScrollUpdateData?.(val,val.length>50)
     dataListInner.value = val
   },
 })
@@ -991,11 +993,7 @@ const autoHeight = (key: string) => {
   // console.log('重建dom', new Date().getTime());
   nextTick(() => {
     const baseClass = props.baseClass
-    if (
-      baseClass &&
-      typeof props.height == 'undefined' &&
-      typeof props.maxHeight === 'undefined'
-    ) {
+    if (baseClass && typeof props.height == 'undefined' && typeof props.maxHeight === 'undefined') {
       const tableHeaderHeight = getHeight(`${baseClass} .el-card__header`) //+ getHeight('.el-table__header-wrapper');
       const pageHeight = getHeight(`${baseClass} .pagination-container`)
       const { paddingTop: bodyPaddingTop, paddingBottom: bodyPaddingBottom } = getComputedStyle(
@@ -1573,23 +1571,27 @@ const sortPropDataComputed = computed(() => {
 })
 // 树结构懒加载
 const loadFunComputed = computed(() => {
-  return  getChildrenList
+  return getChildrenList
 })
 /** 获取子菜单列表 */
 const getChildrenList = async (row: any, treeNode: unknown, resolve: (data: any[]) => void) => {
-  const result:{data:any[]} = await handleQuery({ ...row,source:'inner' }, false, 'inner');
+  const result: { data: any[] } = await handleQuery({ ...row, source: 'inner' }, false, 'inner')
   dataExpandMap.value[String(row[treeConfig.value.id])] = { row, treeNode, resolve }
   //需要设置默认显示子级
-  const needSetDefaultHasChildren = props.needSetDefaultHasChildren;
+  const needSetDefaultHasChildren = props.needSetDefaultHasChildren
   //不需要设置默认显示子级
-  const notNeedSetDefaultHasChildren = props.notNeedSetDefaultHasChildren;
+  const notNeedSetDefaultHasChildren = props.notNeedSetDefaultHasChildren
   const children =
     dataChildrenListMap.value[String(row[treeConfig.value.id])] ||
     result.data.map((item) => {
-      item[props.treeProps.hasChildren] =item[props.treeProps.hasChildren]?? notNeedSetDefaultHasChildren?.(item) ?? needSetDefaultHasChildren?.(item) ?? true;
-      return item;
+      item[props.treeProps.hasChildren] =
+        item[props.treeProps.hasChildren] ??
+        notNeedSetDefaultHasChildren?.(item) ??
+        needSetDefaultHasChildren?.(item) ??
+        true
+      return item
     }) ||
-    [];
+    []
   // 菜单的子菜单清空后关闭展开
   if (children.length == 0) {
     // fix: 处理当菜单只有一个子菜单并被删除，需要将父菜单的展开状态关闭
@@ -1626,7 +1628,7 @@ const handleQuery = (
   isFirst: boolean = false,
   source: 'inner' | 'outer' = 'outer'
 ) => {
-  return new Promise<{data:any[]}>((resolve) => {
+  return new Promise<{ data: any[] }>((resolve) => {
     loading.value = true
     if (typeof queryParam == 'undefined') {
       queryParam = { ...queryParams.value }
@@ -1645,7 +1647,7 @@ const handleQuery = (
       if (source === 'inner') {
         loadData = props.loadFun
         if (!loadData) {
-          resolve({data:[]})
+          resolve({ data: [] })
           return
         }
       }
@@ -1721,12 +1723,15 @@ const handleQuery = (
             for (const dataItem of datas) {
               if (props.lazy) {
                 //需要设置默认显示子级
-                const needSetDefaultHasChildren = props.needSetDefaultHasChildren;
+                const needSetDefaultHasChildren = props.needSetDefaultHasChildren
                 //不需要设置默认显示子级
-                const notNeedSetDefaultHasChildren = props.notNeedSetDefaultHasChildren;
+                const notNeedSetDefaultHasChildren = props.notNeedSetDefaultHasChildren
 
                 dataItem[props.treeProps.hasChildren] =
-                  dataItem[props.treeProps.hasChildren] ?? notNeedSetDefaultHasChildren?.(dataItem) ?? needSetDefaultMore?.(dataItem) ?? true;
+                  dataItem[props.treeProps.hasChildren] ??
+                  notNeedSetDefaultHasChildren?.(dataItem) ??
+                  needSetDefaultMore?.(dataItem) ??
+                  true
               } else {
                 dataItem[props.treeProps.hasChildren] =
                   tempMap[dataItem[treeConfig.value.id]]?.length > 0

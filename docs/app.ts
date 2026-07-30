@@ -461,7 +461,7 @@ const editColumn=ref([
     isRequired: true,
     prop: 'inputNumber',
     label: '数字',
-    max: 10,
+    max: 999,
     type: 'input',
     inputType: 'number',
     span: 5,
