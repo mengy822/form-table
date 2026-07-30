@@ -59,14 +59,14 @@ const virtualScrollDirective = {
         })
       }
     }
-    if (!originData) return
+    // if (!originData) return
     const states = tableInstance.store?.states
     const tableData = states?.data
     if (!tableData) return
-    if (!options.isVirtual) {
-      tableData.value = originData
-      return
-    }
+    // if (!options.isVirtual) {
+    //   tableData.value = originData
+    //   return
+    // }
     // 获取 row-key
     const rowKey =
       tableInstance.rowKey || tableInstance.$props?.rowKey || tableInstance.$attrs?.rowKey || 'id'
@@ -90,7 +90,7 @@ const virtualScrollDirective = {
     const tableEl = el.querySelector('.el-table__body-wrapper')?.querySelector('table')
 
     // 存储选中的 key
-    const selectedKeys = new Set()
+    const selectedKeys = new Map<string | number, any>();
 
     const store = tableInstance.store
     const selection = store?.states?.selection
@@ -119,7 +119,7 @@ const virtualScrollDirective = {
       const nowSelectData: any[] = []
       originData.forEach(
         (row: any) =>
-          selectable(row) && selectedKeys.add(getRowKey(row)) && nowSelectData.push(row),
+          selectable(row) && selectedKeys.set(getRowKey(row), "") && nowSelectData.push(row),
       )
       updateSelection()
       return nowSelectData
@@ -171,7 +171,7 @@ const virtualScrollDirective = {
       ]
 
       while (stack.length) {
-        const { node, parentId: nodeParentId, level: nodeLevel } = stack.pop()
+        const { node, parentId: nodeParentId, level: nodeLevel } = stack.pop()!
         const children = node[treeProps[childrenKey]]
 
         // 添加 _level 和 _parentId 到当前节点
@@ -199,16 +199,18 @@ const virtualScrollDirective = {
 
       return map
     }
-    const createTreeChild = (data) => {
+    const createTreeChild = (data: any[]) => {
       Object.assign(originDataChild, flattenTreeToChildrenMap(data))
     }
 
     const getVisibleData = (oriData = originData) => {
       let data = [...oriData.slice(config.currentStart, config.currentEnd)]
-      const allNodeMap = new Map(oriData.map((item) => [item[rowKey], item]))
+      const allNodeMap = new Map<string | number, any>(
+        oriData.map((item: { [x: string]: any }) => [item[rowKey], item]),
+      )
 
       // 收集需要展开的父节点ID
-      const parentsToExpand = new Set()
+      const parentsToExpand = new Set<string | number>()
 
       for (const item of data) {
         let parentId = item[parentIdKey]
@@ -272,7 +274,6 @@ const virtualScrollDirective = {
       createTreeChild(data)
       return data
     }
-
 
     const updateView = (oriData = originData) => {
       const savedScrollTop = scrollContainer.scrollTop
@@ -371,9 +372,13 @@ const virtualScrollDirective = {
       scrollContainer.scrollTop = 0
     }
     // 添加手动更新数据的方法
-    const updateData = (newData: any[]) => {
+    const updateData = (newData: any[], isVirtual: boolean = options.isVirtual || true) => {
       if (!newData || !Array.isArray(newData)) return
-
+      if (!isVirtual) {
+        //如果不是虚拟直接赋值
+        tableData.value = newData
+        return
+      }
       originData = newData
       selectedKeys.clear() // 可选：清空选中状态
 
@@ -404,7 +409,10 @@ const virtualScrollDirective = {
             log('sort-change ascending 触发视图更新')
             updateView(
               originData
-                .filter((item: { [x: string]: any }) => item[levelKey] === 0 || typeof item[levelKey] === 'undefined')
+                .filter(
+                  (item: { [x: string]: any }) =>
+                    item[levelKey] === 0 || typeof item[levelKey] === 'undefined',
+                )
                 .sort(
                   (a: { [x: string]: number }, b: { [x: string]: number }) => a[prop] - b[prop],
                 ),
@@ -414,7 +422,10 @@ const virtualScrollDirective = {
             log('sort-change descending 触发视图更新')
             updateView(
               originData
-                .filter((item: { [x: string]: any }) => item[levelKey] === 0 || typeof item[levelKey] === 'undefined')
+                .filter(
+                  (item: { [x: string]: any }) =>
+                    item[levelKey] === 0 || typeof item[levelKey] === 'undefined',
+                )
                 .sort(
                   (a: { [x: string]: number }, b: { [x: string]: number }) => b[prop] - a[prop],
                 ),
@@ -499,11 +510,15 @@ const virtualScrollDirective = {
           if (!expanded) {
             const sortedParents = []
             let id = row[rowKey]
-            let childSize = originData.filter((item: { [x: string]: any }) => item[parentIdKey] == id).length
+            let childSize = originData.filter(
+              (item: { [x: string]: any }) => item[parentIdKey] == id,
+            ).length
             while (childSize > 0) {
               originData.splice(index + 1, childSize)
               sortedParents.push(id)
-              const child = originData.filter((item: { [x: string]: any }) => item[parentIdKey] == id)
+              const child = originData.filter(
+                (item: { [x: string]: any }) => item[parentIdKey] == id,
+              )
               childSize = child.length
               id = child[0]?.[parentIdKey]
             }
@@ -512,7 +527,9 @@ const virtualScrollDirective = {
               store.states.treeData.value[item].loaded = false
             })
           } else {
-            if (!originData.find((item: { [x: string]: any }) => item[parentIdKey] === row[rowKey])) {
+            if (
+              !originData.find((item: { [x: string]: any }) => item[parentIdKey] === row[rowKey])
+            ) {
               originData.splice(
                 index + 1,
                 0,

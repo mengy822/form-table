@@ -169,6 +169,7 @@
                         "
                         @fileSizeError="item?.fileSizeError"
                         @fileTypeError="item?.fileTypeError"
+                        @remove="item?.remove"
                       >
                         <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
                           <slot :name="name" v-bind="scopeData"></slot>
@@ -453,7 +454,7 @@ const dynamicCreateRef = (el: any, prop: string) => {
 }
 let dynamicComputedFun: (
     prop: string,
-    type: 'variable' | 'string' | 'array' | '',
+    type: 'variable' | 'string' | 'array'|'file' | '',
     aliases: string
   ) => void,
   dynamicComputedMap: Ref<{ [name: string]: any }>
@@ -543,12 +544,12 @@ const init = async (
   dynamicComputedFun = dynamicComputedFun1
   dynamicComputedMap = dynamicComputedMap1
 
-  for (const dataKey in finalData) {
+  for (const dataKey in finaldata) {
     dynamicComputedFun(dataKey, '', '')
   }
   // console.timeEnd('注册数据事件')
   // console.time('绑定数据')
-  columnFinal.value.forEach((item1: (checkboxInnerType | selectInnerType | dateInnerType)[]) => {
+  columnFinal.value.forEach((item1: (checkboxInnerType | selectInnerType | dateInnerType|inputInnerType|fileInnerType)[]) => {
     item1.forEach((item) => {
       let f = false
       switch (item.type) {
@@ -592,6 +593,14 @@ const init = async (
             dynamicComputedFun(item.prop, 'string', ',')
           }
           break
+        case 'file':
+          if (!(item as fileInnerType).multiple) {
+            f = true;
+          } else if ((item as fileInnerType).multiple) {
+            //根据aliases转成对应字段
+            dynamicComputedFun(item.prop, 'file', (item as fileInnerType).aliases as string);
+          }
+          break;
         default:
           f = true
       }
@@ -602,7 +611,7 @@ const init = async (
   })
   // console.timeEnd('绑定数据')
   // console.time('打开窗口')
-  myDialog.value.init()
+  myDialog.value?.init()
   nextTick(() => {
     scrollTo(0, 100, document.querySelector('.editDialog') as HTMLElement)
     openCb(dynamicComputedMap.value, dataFinal.value)

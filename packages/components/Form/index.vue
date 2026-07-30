@@ -499,7 +499,7 @@ const formItemWidthComputed = (search: typeof searchComputed.value, callback = (
   nextTick(() => {
     const formPlusMainWidth = formPlusMain.value?.clientWidth
     const inputWidths: { [key: string]: number } = {}
-    const buttonsWidth = buttons.value![0]?.clientWidth ?? 0
+    const buttonsWidth = buttons.value?.[0]?.clientWidth ?? 0
     // console.log(1)
     for (const key in dynamicRefMap.value) {
       const computedStyle = getComputedStyle(dynamicRefMap.value[key].$el)

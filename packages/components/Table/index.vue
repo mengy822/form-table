@@ -374,6 +374,7 @@ export interface TableProps {
   hasTableTopPlain?: boolean
   moreButton?: string
   tableKey?: string
+  authHeightExcludeClassName?:string[],
   moreButtonType?: ButtonType
   moreButtonTrigger?: 'hover' | 'click'
   /** 分页配置 **/
@@ -387,9 +388,16 @@ export interface TableProps {
   /** 树形结构是否默认展开所有节点 */
   defaultExpandAll?: boolean
   /** 懒加载数据加载函数 */
-  loadFun?: (row: any, treeNode: unknown, resolve: (data: any[]) => void) => void
+  loadFun?: (
+    query: { [key: string]: any },
+    cb: (res: string | Promise<any> | any[], ...obj: any[]) => void
+  ) => void
   /** 树形结构配置（子节点字段、是否有子节点字段） */
   treeProps?: { children: string; hasChildren: string }
+  //需要设置默认显示子级
+  needSetDefaultHasChildren?: ((data:any)=>boolean);
+  //不需要设置默认显示子级
+  notNeedSetDefaultHasChildren?: ((data:any)=>boolean);
   /** 语言配置 */
   language?: object
   /** 是否显示序号列（布尔值或自定义列名） */
@@ -695,6 +703,7 @@ const props = withDefaults(defineProps<TableProps>(), {
   hasOperation: true,
   operationWidth: undefined,
   pagerCount: undefined,
+  authHeightExcludeClassName:[],
   simpTransVar: 0,
   pageLayout: undefined,
   oneOperationWidth: 70,
@@ -898,7 +907,7 @@ const cleanup = () => {
   clearTimeout(timer)
   timer = null
   listenDoc.cleanup() // ✅ 添加
-   if (tableRef.value?._cleanup) {
+  if (tableRef.value?._cleanup) {
     tableRef.value._cleanup()
   }
 }
@@ -981,13 +990,24 @@ const autoHeight = (key: string) => {
   if (!needAutoHeight.value) return
   // console.log('重建dom', new Date().getTime());
   nextTick(() => {
-    const baseClass = props.baseClass;
-    if (props.baseClass && typeof props.height == 'undefined' && typeof props.maxHeight === 'undefined') {
-      const tableHeaderHeight = getHeight(`${baseClass} .el-card__header`); //+ getHeight('.el-table__header-wrapper');
-      const pageHeight = getHeight(`${baseClass} .pagination-container`);
-      const { paddingTop: bodyPaddingTop, paddingBottom: bodyPaddingBottom } = getComputedStyle(`${baseClass} .table-plus .el-card__body`);
-      const { borderTopWidth, borderBottomWidth } = getComputedStyle(`${baseClass} .table-plus .el-card__header`);
-      const { height, dom } = getRemainingHeight(baseClass, ['.table-plus', ...props.authHeightExcludeClassName]);
+    const baseClass = props.baseClass
+    if (
+      baseClass &&
+      typeof props.height == 'undefined' &&
+      typeof props.maxHeight === 'undefined'
+    ) {
+      const tableHeaderHeight = getHeight(`${baseClass} .el-card__header`) //+ getHeight('.el-table__header-wrapper');
+      const pageHeight = getHeight(`${baseClass} .pagination-container`)
+      const { paddingTop: bodyPaddingTop, paddingBottom: bodyPaddingBottom } = getComputedStyle(
+        `${baseClass} .table-plus .el-card__body`
+      )
+      const { borderTopWidth, borderBottomWidth } = getComputedStyle(
+        `${baseClass} .table-plus .el-card__header`
+      )
+      const { height, dom } = getRemainingHeight(baseClass!, [
+        '.table-plus',
+        ...props.authHeightExcludeClassName,
+      ])
       // console.log(dom)
       // console.log(height)
       heightInner.value =
@@ -1553,12 +1573,23 @@ const sortPropDataComputed = computed(() => {
 })
 // 树结构懒加载
 const loadFunComputed = computed(() => {
-  return props.loadFun ?? getChildrenList
+  return  getChildrenList
 })
 /** 获取子菜单列表 */
 const getChildrenList = async (row: any, treeNode: unknown, resolve: (data: any[]) => void) => {
+  const result:{data:any[]} = await handleQuery({ ...row,source:'inner' }, false, 'inner');
   dataExpandMap.value[String(row[treeConfig.value.id])] = { row, treeNode, resolve }
-  const children = dataChildrenListMap.value[String(row[treeConfig.value.id])] || []
+  //需要设置默认显示子级
+  const needSetDefaultHasChildren = props.needSetDefaultHasChildren;
+  //不需要设置默认显示子级
+  const notNeedSetDefaultHasChildren = props.notNeedSetDefaultHasChildren;
+  const children =
+    dataChildrenListMap.value[String(row[treeConfig.value.id])] ||
+    result.data.map((item) => {
+      item[props.treeProps.hasChildren] =item[props.treeProps.hasChildren]?? notNeedSetDefaultHasChildren?.(item) ?? needSetDefaultHasChildren?.(item) ?? true;
+      return item;
+    }) ||
+    [];
   // 菜单的子菜单清空后关闭展开
   if (children.length == 0) {
     // fix: 处理当菜单只有一个子菜单并被删除，需要将父菜单的展开状态关闭
@@ -1590,110 +1621,140 @@ const refreshAllExpandMenuData = () => {
   }
 }
 
-const handleQuery = (queryParam = { ...queryParams.value }, isFirst: boolean = false) => {
-  loading.value = true
-  if (typeof queryParam == 'undefined') {
-    queryParam = { ...queryParams.value }
-  }
-  queryParam = { ...queryParams.value, ...queryParam, ...sortPropDataComputed.value }
-  if (typeof isFirst === 'boolean' && isFirst) {
-    queryParam.pageNum = 1
-  }
-  setCurrentRow(null)
-  queryParams.value = { ...queryParam, ...sortPropDataComputed.value }
-  // queryParam = { ...queryParam, ...sortPropDataComputed.value };
-  if (!props.dataListFun) {
-    emits('query', queryParam)
-  } else {
-    props.dataListFun(queryParam, async (res: string | Promise<any> | any[], ...obj: any[]) => {
-      let computedData: { [key: string]: any } = {}
-      try {
-        if (res instanceof Promise) {
-          computedData = await (res as Promise<any>)
-        } else if (res instanceof String && props.dataLoadFun) {
-          const query = {
-            url: res,
-            method: obj[1] ?? 'GET',
-            params: obj[0],
-            data: obj[0],
-          }
-          if (query.method.toLowerCase() === 'get') {
-            delete query.data
-          } else {
-            delete query.params
-          }
-          try {
-            computedData = await props.dataLoadFun(query)
-          } catch (err) {
-            computedData = {
-              [props.dataConfig.rows]: [],
-              [props.dataConfig.total]: 0,
-              [props.dataConfig.extra]: {},
-            }
-          }
-        } else {
-          computedData = {
-            [props.dataConfig.rows]: res,
-            [props.dataConfig.total]: obj[0],
-            [props.dataConfig.extra]: obj[1],
-          }
-        }
-
-        const datas = computedData[props.dataConfig.rows]
-        const extras = computedData[props.dataConfig.extra] || {}
-        let treeDatas = []
-        const isTree = props.isTree
-        if (isTree) {
-          originalData.value = datas
-        }
-
-        if (typeof isTree === 'boolean' && isTree) {
-          treeConfig.value = {
-            id: 'id',
-            parentId: 'parentId',
-            children: 'children',
-            firstParentId: '0',
-          }
-        } else if (isTree as IsTreeConfig) {
-          treeConfig.value = isTree as IsTreeConfig
-        }
-
-        if (treeConfig.value) {
-          const tempMap: { [key: string]: any } = {}
-          // 存储 父菜单:子菜单列表
-          for (const dataItem of datas) {
-            const parentId = String(dataItem[treeConfig.value.parentId])
-            if (!tempMap[parentId]) {
-              tempMap[parentId] = []
-            }
-            tempMap[parentId].push(dataItem)
-          }
-          // 设置有没有子菜单
-          for (const dataItem of datas) {
-            dataItem[props.treeProps.hasChildren] =
-              tempMap[dataItem[treeConfig.value.id]]?.length > 0
-          }
-          dataChildrenListMap.value = tempMap
-          treeDatas = tempMap[treeConfig.value.firstParentId] || []
-          if (proxyProps.value['onDataLoadCompleted']) emits('dataLoadCompleted', treeDatas, 0)
-          dataListComputed.value = treeDatas
-          totalComputed.value = 0
-          refreshAllExpandMenuData()
+const handleQuery = (
+  queryParam = { ...queryParams.value },
+  isFirst: boolean = false,
+  source: 'inner' | 'outer' = 'outer'
+) => {
+  return new Promise<{data:any[]}>((resolve) => {
+    loading.value = true
+    if (typeof queryParam == 'undefined') {
+      queryParam = { ...queryParams.value }
+    }
+    queryParam = { ...queryParams.value, ...queryParam, ...sortPropDataComputed.value }
+    if (typeof isFirst === 'boolean' && isFirst) {
+      queryParam.pageNum = 1
+    }
+    setCurrentRow(null)
+    if (source === 'inner') queryParams.value = { ...queryParam, ...sortPropDataComputed.value }
+    // queryParam = { ...queryParam, ...sortPropDataComputed.value };
+    if (!props.dataListFun) {
+      emits('query', queryParam)
+    } else {
+      let loadData = props.dataListFun
+      if (source === 'inner') {
+        loadData = props.loadFun
+        if (!loadData) {
+          resolve({data:[]})
           return
         }
-
-        // console.log(datas);
-        const total = props.hasPage ? computedData[props.dataConfig.total] : 0
-        if (proxyProps.value['onDataLoadCompleted']) emits('dataLoadCompleted', datas, total)
-        dataListComputed.value = datas
-        totalComputed.value = total
-        extra.value = extras
-      } catch (e) {
-      } finally {
-        loading.value = false
       }
-    })
-  }
+      loadData(queryParam, async (res: string | Promise<any> | any[], ...obj: any[]) => {
+        let computedData: { [key: string]: any } = {}
+        try {
+          if (res instanceof Promise) {
+            computedData = await (res as Promise<any>)
+          } else if (res instanceof String && props.dataLoadFun) {
+            const query = {
+              url: res,
+              method: obj[1] ?? 'GET',
+              params: obj[0],
+              data: obj[0],
+            }
+            if (query.method.toLowerCase() === 'get') {
+              delete query.data
+            } else {
+              delete query.params
+            }
+            try {
+              computedData = await props.dataLoadFun(query)
+            } catch (err) {
+              computedData = {
+                [props.dataConfig.rows]: [],
+                [props.dataConfig.total]: 0,
+                [props.dataConfig.extra]: {},
+              }
+            }
+          } else {
+            computedData = {
+              [props.dataConfig.rows]: res,
+              [props.dataConfig.total]: obj[0],
+              [props.dataConfig.extra]: obj[1],
+            }
+          }
+
+          const datas = computedData[props.dataConfig.rows]
+          const extras = computedData[props.dataConfig.extra] || {}
+          if (source === 'inner') {
+            return {
+              data: datas,
+            }
+          }
+          let treeDatas = []
+          const isTree = props.isTree
+          if (isTree) {
+            originalData.value = datas
+          }
+
+          if (typeof isTree === 'boolean' && isTree) {
+            treeConfig.value = {
+              id: 'id',
+              parentId: 'parentId',
+              children: 'children',
+              firstParentId: '0',
+            }
+          } else if (isTree as IsTreeConfig) {
+            treeConfig.value = isTree as IsTreeConfig
+          }
+
+          if (treeConfig.value) {
+            const tempMap: { [key: string]: any } = {}
+            // 存储 父菜单:子菜单列表
+            for (const dataItem of datas) {
+              const parentId = String(dataItem[treeConfig.value.parentId])
+              if (!tempMap[parentId]) {
+                tempMap[parentId] = []
+              }
+              tempMap[parentId].push(dataItem)
+            }
+            // 设置有没有子菜单
+            for (const dataItem of datas) {
+              if (props.lazy) {
+                //需要设置默认显示子级
+                const needSetDefaultHasChildren = props.needSetDefaultHasChildren;
+                //不需要设置默认显示子级
+                const notNeedSetDefaultHasChildren = props.notNeedSetDefaultHasChildren;
+
+                dataItem[props.treeProps.hasChildren] =
+                  dataItem[props.treeProps.hasChildren] ?? notNeedSetDefaultHasChildren?.(dataItem) ?? needSetDefaultMore?.(dataItem) ?? true;
+              } else {
+                dataItem[props.treeProps.hasChildren] =
+                  tempMap[dataItem[treeConfig.value.id]]?.length > 0
+              }
+            }
+            dataChildrenListMap.value = tempMap
+            treeDatas = tempMap[treeConfig.value.firstParentId] || []
+            if (proxyProps.value['onDataLoadCompleted']) emits('dataLoadCompleted', treeDatas, 0)
+            dataListComputed.value = treeDatas
+            totalComputed.value = 0
+            refreshAllExpandMenuData()
+            return
+          }
+
+          // console.log(datas);
+          const total = props.hasPage ? computedData[props.dataConfig.total] : 0
+          if (proxyProps.value['onDataLoadCompleted']) emits('dataLoadCompleted', datas, total)
+          dataListComputed.value = datas
+          totalComputed.value = total
+          extra.value = extras
+        } catch (e) {
+        } finally {
+          loading.value = false
+        }
+      })
+    }
+    setCurrentRow()
+  })
 }
 const handleAdd = () => {
   if (proxyPropsParamsInfo.value['onAdd']) {

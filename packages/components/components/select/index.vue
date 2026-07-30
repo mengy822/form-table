@@ -149,26 +149,31 @@ const props = defineProps({
     default: () => [],
   },
 })
-
-const emits = defineEmits(['update:modelValue'])
-const bindValue = computed({
-  get() {
-    if (!checkExistence(props.modelValue)) setDefaultValue(dataFinal.value)
-    return props.modelValue
-  },
-  set(val) {
-    // if (props.modelValue != val) {
-    updateModelValue(val)
-    // change(val)
-    // }
-  },
-})
-watch(
-  () => bindValue.value,
-  () => {
-    change(bindValue.value);
+const setDefaultValue = (data: selectInnerType) => {
+  if (data.isDefault && (data.options as Array<any>).length > 0) {
+    if (props.type === '') {
+      const isDefault: selectOptionsType | undefined = (data.options as selectOptionsType[]).find(
+        (item: selectOptionsType) => !item[keyConfig.value.disabled]
+      )
+      // bindValue.value = (isDefault && isDefault.value) ?? ''
+      bindValue.value = (isDefault && isDefault[keyConfig.value.value]) ?? ''
+    } else {
+      const isDefaultGroup: selectOptionsGroupType | undefined = (
+        data.options as selectOptionsGroupType[]
+      ).find((item: selectOptionsGroupType) => !item[keyConfig.value.disabled])
+      const isDefault: selectOptionsType | undefined =
+        isDefaultGroup &&
+        (isDefaultGroup.options as selectOptionsType[]).find(
+          (item: selectOptionsType) => !item[keyConfig.value.disabled]
+        )
+      // bindValue.value = (isDefault && isDefault.value) ?? ''
+      bindValue.value = (isDefault && isDefault[keyConfig.value.value]) ?? ''
+    }
+    data.clearable = false
   }
-);
+}
+const emits = defineEmits(['update:modelValue'])
+
 const change = (e: typeof props.modelValue) => {
   nextTick(() => {
     dataFinal.value && dataFinal.value.change && dataFinal.value.change(e);
@@ -229,29 +234,25 @@ const dataFinal = computed(() => {
   data.focus = data.focus || function () {}
   return data
 })
-const setDefaultValue = (data: selectInnerType) => {
-  if (data.isDefault && (data.options as Array<any>).length > 0) {
-    if (props.type === '') {
-      const isDefault: selectOptionsType | undefined = (data.options as selectOptionsType[]).find(
-        (item: selectOptionsType) => !item[keyConfig.value.disabled]
-      )
-      // bindValue.value = (isDefault && isDefault.value) ?? ''
-      bindValue.value = (isDefault && isDefault[keyConfig.value.value]) ?? ''
-    } else {
-      const isDefaultGroup: selectOptionsGroupType | undefined = (
-        data.options as selectOptionsGroupType[]
-      ).find((item: selectOptionsGroupType) => !item[keyConfig.value.disabled])
-      const isDefault: selectOptionsType | undefined =
-        isDefaultGroup &&
-        (isDefaultGroup.options as selectOptionsType[]).find(
-          (item: selectOptionsType) => !item[keyConfig.value.disabled]
-        )
-      // bindValue.value = (isDefault && isDefault.value) ?? ''
-      bindValue.value = (isDefault && isDefault[keyConfig.value.value]) ?? ''
-    }
-    data.clearable = false
+const bindValue = computed({
+  get() {
+    if (!checkExistence(props.modelValue)) setDefaultValue(dataFinal.value)
+    return props.modelValue
+  },
+  set(val) {
+    // if (props.modelValue != val) {
+    updateModelValue(val)
+    // change(val)
+    // }
+  },
+})
+watch(
+  () => bindValue.value,
+  () => {
+    change(bindValue.value);
   }
-}
+);
+
 const _ref = ref()
 defineExpose({
   _ref,

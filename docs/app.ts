@@ -14,224 +14,230 @@ export default function useAppConfig() {
   const searchInputNumberChange = (e) => {
     search.value[2].options = e
   }
-  const editColumn = ref([
-    {
-      prop: 'text',
-      label: '文本输入框',
-      type: 'input',
-      inputType: 'text',
-      isRequired: true,
+  // const editColumn = ref([
+  //   {
+  //     prop: 'text',
+  //     label: '文本输入框',
+  //     type: 'input',
+  //     inputType: 'text',
+  //     isRequired: true,
 
-    } as inputInnerType,
-    {
-      prop: 'textarea',
-      label: '文本域输入框',
-      type: 'input',
-      inputType: 'textarea',
-    } as inputInnerType,
-    {
-      prop: 'showPassword',
-      label: '校验密码输入框',
-      type: 'switch', span: 1
-    } as switchInnerType,
-    {
-      prop: 'password',
-      label: '密码输入框',
-      type: 'input',
-      isRequired: true,
-      dynamicRequired: (data) => data.showPassword,
-      inputType: 'password', span: 1
-    } as inputInnerType,
-    {
-      prop: 'showNumber',
-      label: '显示数字输入框',
-      type: 'switch', span: 1
-    } as switchInnerType,
-    {
-      prop: 'number',
-      label: '数字输入框',
-      type: 'input',
-      min: 1, showFun: (data) => data.showNumber,
-      inputType: 'number', span: 1,
-      change: changeFun
-    } as inputInnerType,
-    {
-      prop: 'numberSelect',
-      label: '数字输入选择器',
-      type: 'select',
-      options: 0,
-    } as selectInnerType,
-    {
-      prop: 'year',
-      label: '日期-年', readonly: (data: any) => data['number'] % 2 == 0,
-      type: 'date',
-      dateType: 'year',
-      valueFormat: 'YYYY',
-    } as dateInnerType,
-    {
-      prop: 'years',
-      label: '日期-多年',
-      type: 'date',
-      dateType: 'years',
-      valueFormat: 'YYYY',
-    } as dateInnerType,
+  //   } as inputInnerType,
+  //   {
+  //     prop: 'textarea',
+  //     label: '文本域输入框',
+  //     type: 'input',
+  //     inputType: 'textarea',
+  //   } as inputInnerType,
+  //   {
+  //     prop: 'showPassword',
+  //     label: '校验密码输入框',
+  //     type: 'switch', span: 1
+  //   } as switchInnerType,
+  //   {
+  //     prop: 'password',
+  //     label: '密码输入框',
+  //     type: 'input',
+  //     isRequired: true,
+  //     dynamicRequired: (data) => data.showPassword,
+  //     inputType: 'password', span: 1
+  //   } as inputInnerType,
+  //   {
+  //     prop: 'showNumber',
+  //     label: '显示数字输入框',
+  //     type: 'switch', span: 1
+  //   } as switchInnerType,
+  //   {
+  //     prop: 'number',
+  //     label: '数字输入框',
+  //     type: 'input',
+  //     min: 1, showFun: (data) => data.showNumber,
+  //     inputType: 'number', span: 1,
+  //     change: changeFun
+  //   } as inputInnerType,
+  //   {
+  //     prop: 'numberSelect',
+  //     label: '数字输入选择器',
+  //     type: 'select',
+  //     options: 0,
+  //   } as selectInnerType,
+  //   {
+  //     prop: 'year',
+  //     label: '日期-年', readonly: (data: any) => data['number'] % 2 == 0,
+  //     type: 'date',
+  //     dateType: 'year',
+  //     valueFormat: 'YYYY',
+  //   } as dateInnerType,
+  //   {
+  //     prop: 'years',
+  //     label: '日期-多年',
+  //     type: 'date',
+  //     dateType: 'years',
+  //     valueFormat: 'YYYY',
+  //   } as dateInnerType,
 
-    {
-      prop: 'month',
-      label: '日期-月',
-      type: 'date',
-      dateType: 'month',
-      valueFormat: 'YYYY-MM',
-    } as dateInnerType,
-    {
-      prop: 'date',
-      label: '日期-日',
-      type: 'date',
-      dateType: 'date',
-      valueFormat: 'YYYY-MM-DD',
-      format: 'YYYY-MM-DD',
-    } as dateInnerType,
-    {
-      prop: 'dates',
-      label: '日期-多日',
-      type: 'date',
-      dateType: 'dates',
-      valueFormat: 'YYYY-MM-DD',
-      format: 'YYYY-MM-DD',
-    } as dateInnerType,
-    {
-      prop: 'datetime',
-      label: '日期-天时间',
-      type: 'date',
-      dateType: 'datetime',
-      valueFormat: 'YYYY-MM-DD hh:mm:ss',
-      format: 'YYYY-MM-DD hh:mm:ss',
-    } as dateInnerType,
-    // {
-    //   prop: 'week',
-    //   label: '日期-周',
-    //   type: 'date',
-    //   dateType: 'week',
-    //   valueFormat: 'YYYY-ww',
-    // } as dateInnerType,
-    {
-      prop: 'datetimerange',
-      label: '日期-多时间',
-      type: 'date',
-      dateType: 'datetimerange',
-      valueFormat: 'YYYY-MM-DD hh:mm:ss',
-      format: 'YYYY-MM-DD hh:mm:ss',
-      aliases: 'startDateTime,endDateTime',
-    } as dateInnerType,
-    {
-      prop: 'daterange',
-      label: '日期-多天',
-      type: 'date',
-      dateType: 'daterange',
-      valueFormat: 'YYYY-MM-DD',
-      format: 'YYYY-MM-DD',
-      aliases: 'startDate,endDate',
-    } as dateInnerType,
-    {
-      prop: 'monthrange',
-      label: '日期-多月',
-      type: 'date',
-      dateType: 'monthrange',
-      valueFormat: 'YYYY-MM',
-      aliases: 'startMouth,endMouth',
-    } as dateInnerType,
-    {
-      prop: 'switch',
-      label: '开关',
-      type: 'switch',
-    } as switchInnerType,
-    {
-      prop: 'checkboxNumber',
-      label: '多选框数字',
-      type: 'checkbox',
-      options: 10,
-    } as checkboxInnerType,
-    {
-      prop: 'radioNumber',
-      label: '单选框数字',
-      type: 'radio',
-      options: 10,
-    } as radioInnerType,
-    {
-      prop: 'selectNumber',
-      label: '选择器数字',
-      type: 'select',
-      options: 10,
-    } as selectInnerType,
-    {
-      prop: 'selectNumberMultiple',
-      label: '选择器数字多选',
-      type: 'select',
-      options: 10,
-      multiple: true,
-    } as selectInnerType,
-    {
-      prop: 'checkbox',
-      label: '多选框',
-      type: 'checkbox',
-      options: [
-        {
-          label: 'a',
-          value: 'a',
-        },
-        {
-          label: 'b',
-          value: 'b',
-          disable: true,
-        },
-        {
-          label: 'c',
-          value: 'c',
-        },
-      ],
-    } as checkboxInnerType,
-    {
-      prop: 'radio',
-      label: '单选框',
-      type: 'radio',
-      options: [
-        {
-          label: 'a',
-          value: 'a',
-        },
-        {
-          label: 'b',
-          value: 'b',
-          disable: true,
-        },
-        {
-          label: 'c',
-          value: 'c',
-        },
-      ],
-    } as radioInnerType,
-    {
-      prop: 'select',
-      label: '选择器',
-      type: 'select',
-      options: [
-        {
-          label: 'a',
-          value: 'a',
-        },
-        {
-          label: 'b',
-          value: 'b',
-          disabled: true,
-        },
-        {
-          label: 'c',
-          value: 'c',
-        },
-      ],
-    } as selectInnerType,
-  ])
-
+  //   {
+  //     prop: 'month',
+  //     label: '日期-月',
+  //     type: 'date',
+  //     dateType: 'month',
+  //     valueFormat: 'YYYY-MM',
+  //   } as dateInnerType,
+  //   {
+  //     prop: 'date',
+  //     label: '日期-日',
+  //     type: 'date',
+  //     dateType: 'date',
+  //     valueFormat: 'YYYY-MM-DD',
+  //     format: 'YYYY-MM-DD',
+  //   } as dateInnerType,
+  //   {
+  //     prop: 'dates',
+  //     label: '日期-多日',
+  //     type: 'date',
+  //     dateType: 'dates',
+  //     valueFormat: 'YYYY-MM-DD',
+  //     format: 'YYYY-MM-DD',
+  //   } as dateInnerType,
+  //   {
+  //     prop: 'datetime',
+  //     label: '日期-天时间',
+  //     type: 'date',
+  //     dateType: 'datetime',
+  //     valueFormat: 'YYYY-MM-DD hh:mm:ss',
+  //     format: 'YYYY-MM-DD hh:mm:ss',
+  //   } as dateInnerType,
+  //   // {
+  //   //   prop: 'week',
+  //   //   label: '日期-周',
+  //   //   type: 'date',
+  //   //   dateType: 'week',
+  //   //   valueFormat: 'YYYY-ww',
+  //   // } as dateInnerType,
+  //   {
+  //     prop: 'datetimerange',
+  //     label: '日期-多时间',
+  //     type: 'date',
+  //     dateType: 'datetimerange',
+  //     valueFormat: 'YYYY-MM-DD hh:mm:ss',
+  //     format: 'YYYY-MM-DD hh:mm:ss',
+  //     aliases: 'startDateTime,endDateTime',
+  //   } as dateInnerType,
+  //   {
+  //     prop: 'daterange',
+  //     label: '日期-多天',
+  //     type: 'date',
+  //     dateType: 'daterange',
+  //     valueFormat: 'YYYY-MM-DD',
+  //     format: 'YYYY-MM-DD',
+  //     aliases: 'startDate,endDate',
+  //   } as dateInnerType,
+  //   {
+  //     prop: 'monthrange',
+  //     label: '日期-多月',
+  //     type: 'date',
+  //     dateType: 'monthrange',
+  //     valueFormat: 'YYYY-MM',
+  //     aliases: 'startMouth,endMouth',
+  //   } as dateInnerType,
+  //   {
+  //     prop: 'switch',
+  //     label: '开关',
+  //     type: 'switch',
+  //   } as switchInnerType,
+  //   {
+  //     prop: 'checkboxNumber',
+  //     label: '多选框数字',
+  //     type: 'checkbox',
+  //     options: 10,
+  //   } as checkboxInnerType,
+  //   {
+  //     prop: 'radioNumber',
+  //     label: '单选框数字',
+  //     type: 'radio',
+  //     options: 10,
+  //   } as radioInnerType,
+  //   {
+  //     prop: 'selectNumber',
+  //     label: '选择器数字',
+  //     type: 'select',
+  //     options: 10,
+  //   } as selectInnerType,
+  //   {
+  //     prop: 'selectNumberMultiple',
+  //     label: '选择器数字多选',
+  //     type: 'select',
+  //     options: 10,
+  //     multiple: true,
+  //   } as selectInnerType,
+  //   {
+  //     prop: 'checkbox',
+  //     label: '多选框',
+  //     type: 'checkbox',
+  //     options: [
+  //       {
+  //         label: 'a',
+  //         value: 'a',
+  //       },
+  //       {
+  //         label: 'b',
+  //         value: 'b',
+  //         disable: true,
+  //       },
+  //       {
+  //         label: 'c',
+  //         value: 'c',
+  //       },
+  //     ],
+  //   } as checkboxInnerType,
+  //   {
+  //     prop: 'radio',
+  //     label: '单选框',
+  //     type: 'radio',
+  //     options: [
+  //       {
+  //         label: 'a',
+  //         value: 'a',
+  //       },
+  //       {
+  //         label: 'b',
+  //         value: 'b',
+  //         disable: true,
+  //       },
+  //       {
+  //         label: 'c',
+  //         value: 'c',
+  //       },
+  //     ],
+  //   } as radioInnerType,
+  //   {
+  //     prop: 'select',
+  //     label: '选择器',
+  //     type: 'select',
+  //     options: [
+  //       {
+  //         label: 'a',
+  //         value: 'a',
+  //       },
+  //       {
+  //         label: 'b',
+  //         value: 'b',
+  //         disabled: true,
+  //       },
+  //       {
+  //         label: 'c',
+  //         value: 'c',
+  //       },
+  //     ],
+  //   } as selectInnerType,
+  // ])
+const editColumn=ref([
+  {
+    prop:'file',
+    label:'文件',
+    type:'file'
+  }
+])
   const table = ref([
     { prop: 'no', label: 'no', hidden: true, visible: false },
     // {

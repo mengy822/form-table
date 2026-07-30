@@ -1,18 +1,34 @@
 <template>
   <el-upload
     ref="uploadRef"
-    v-model:file-list="fileList"
+    :file-list="fileList"
     :before-upload="beforeAvatarUpload"
-    class="upload-demo"
+    :class="`upload-demo ${dataFinal.uploadType}`"
     :on-change="handleChange"
     :drag="dataFinal.drag"
     :accept="dataFinal.accept"
     :auto-upload="dataFinal.autoUpload"
     :http-request="handleRequest"
     :limit="dataFinal.limitNum"
+    :list-type="dataFinal.listType"
+    :on-exceed="handleExceed"
     :on-remove="handleOnRemove"
+    :show-file-list="dataFinal.showFileList ?? true"
   >
-    <el-button type="primary">点击上传</el-button>
+    <img
+      v-if="(imageUrl || fileList[0]?.url) && dataFinal.uploadType == 'icon'"
+      :src="imageUrl || fileList[0]?.url"
+      class="avatar"
+      alt=""
+    />
+    <el-icon
+      v-if="!(imageUrl || fileList[0]?.url) && dataFinal.uploadType == 'icon'"
+      class="avatar-uploader-icon"
+    >
+      <Plus />
+    </el-icon>
+
+    <el-button type="primary" v-if="dataFinal.uploadType == 'button'">点击上传</el-button>
     <template #tip>
       <div class="el-upload__tip">
         <span v-if="dataFinal.accept">请上传{{ dataFinal.accept }}格式的文件&nbsp;</span>
@@ -32,10 +48,13 @@
 </template>
 
 <script lang="ts" setup name="File">
-import { computed, getCurrentInstance, onMounted, type PropType, ref, useTemplateRef } from 'vue'
+import { computed, getCurrentInstance, onDeactivated, onMounted, type PropType, ref, useTemplateRef } from 'vue'
 import {
   ElMessage,
+  UploadFile,
+  UploadInstance,
   UploadProps,
+  UploadRawFile,
   UploadRequestOptions,
   UploadStatus,
   UploadUserFile,
@@ -43,6 +62,7 @@ import {
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { fileInnerType } from '../form/types'
 import { handleFileDownload, request } from '../../js'
+import { modelValueObjectType } from './types'
 
 const props = defineProps({
   language: {
@@ -56,7 +76,9 @@ const props = defineProps({
     required: true,
   },
   modelValue: {
-    type: [String, Object],
+    type: [String, Array, Object] as PropType<
+      string | string[] | modelValueObjectType | modelValueObjectType[]
+    >,
     default: '',
   },
   dowm: {
@@ -66,6 +88,7 @@ const props = defineProps({
 })
 const dataFinal = computed<fileInnerType>(() => {
   const data = { ...props.data }
+  data.uploadType = data.uploadType ?? 'button'
   data.drag = data.drag ?? false
   data.autoUpload = data.autoUpload ?? true
   data.accept = data.accept ?? undefined
@@ -74,35 +97,130 @@ const dataFinal = computed<fileInnerType>(() => {
   data.hasTemplate = data.hasTemplate ?? undefined
   return data
 })
-const uploadRef = useTemplateRef('uploadRef')
-const fileList = computed({
-  get() {
-    return Array.isArray(props.modelValue)
-      ? props.modelValue
-      : typeof props.modelValue === 'undefined' || props.modelValue === ''
-        ? []
-        : [props.modelValue];
-  },
-  set(val) {
-    updateModelValue(val);
+const imageUrl = ref('')
+const uploadRef = useTemplateRef<UploadInstance>('uploadRef')
+const handleExceed = (files: any[]) => {
+  if (dataFinal.value.limitNum == 1) {
+    uploadRef.value!.clearFiles()
+    const file = files[0] as UploadRawFile
+    file.uid = Date.now()
+    uploadRef.value!.handleStart(file)
+    if (dataFinal.value.autoUpload) uploadRef.value?.submit()
   }
-});
+}
+// 类型守卫函数
+function isFileObject(value: any): value is modelValueObjectType {
+  return (
+    typeof value === 'object' && value !== null && 'url' in value && typeof value.url === 'string'
+  )
+}
+
+function isStringArray(value: any): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string')
+}
+
+function isFileObjectArray(value: any): value is modelValueObjectType[] {
+  return Array.isArray(value) && value.every((item) => isFileObject(item))
+}
+
+// 核心转换函数
+const normalizeModelValue = (modelValue: typeof props.modelValue): UploadUserFile[] => {
+  // 1. 空值处理
+  if (modelValue == null || modelValue === '') {
+    return []
+  }
+
+  // 2. 处理字符串数组
+  if (isStringArray(modelValue)) {
+    return modelValue.map((url, index) => ({
+      uid: Date.now() + index + Math.random(),
+      url: url,
+      name: url.split('/').pop() || '未命名',
+    }))
+  }
+
+  // 3. 处理对象数组
+  if (isFileObjectArray(modelValue)) {
+    return modelValue.map((item, index) => ({
+      uid: Date.now() + index + Math.random(),
+      url: item.url,
+      name: item.name || item.url.split('/').pop() || '未命名',
+    }))
+  }
+
+  // 4. 处理单个字符串
+  if (typeof modelValue === 'string') {
+    if (!modelValue) return []
+    return [
+      {
+        uid: Date.now() + Math.random(),
+        url: modelValue,
+        name: modelValue.split('/').pop() || '未命名',
+      },
+    ]
+  }
+
+  // 5. 处理单个对象
+  if (isFileObject(modelValue)) {
+    if (!modelValue.url) return []
+    return [
+      {
+        uid: Date.now() + Math.random(),
+        url: modelValue.url,
+        name: modelValue.name || modelValue.url.split('/').pop() || '未命名',
+      },
+    ]
+  }
+  return [modelValue]
+}
+
+const fileList = computed<UploadUserFile[]>({
+  get() {
+    return normalizeModelValue(props.modelValue)
+  },
+  set(val: UploadUserFile[]) {
+    updateModelValue(val)
+  },
+})
 const handleOnRemove = (file: any, uploadFiles: UploadUserFile[]) => {
   // console.log(file, uploadFiles, fileList.value);
   fileList.value = uploadFiles
+  emits('remove', file)
   // updateModelValue()
 }
-const updateModelValue = (file?:UploadUserFile[]|UploadUserFile|string[]|string) => {
-  let files:UploadUserFile[]|UploadUserFile|string[]|string = file ?? fileList.value.map((item) => item.raw)
-  if (dataFinal.value.limitNum == 1 && Array.isArray(files) && files.length > 0) {
-    files = files[0]
+// ============ 统一的更新函数（包含类型判断逻辑） ============
+const updateModelValue = (files: UploadUserFile[]) => {
+  // console.log('触发更新')
+  if (!files || files.length === 0) {
+    // 清空
+    if (dataFinal.value.limitNum === 1) {
+      emits('update:modelValue', '')
+    } else {
+      emits('update:modelValue', [])
+    }
+    return
+  }
+
+  const limitNum = dataFinal.value.limitNum
+  const originalValue = props.modelValue
+  // emits('update:modelValue', files[0])
+  // return
+  // 单个文件
+  if (limitNum === 1) {
+    const file = files[0]
+
+    // 判断原始数据类型，保持类型一致性
+    emits('update:modelValue', file.raw)
+    return
   }
   emits('update:modelValue', files)
 }
-const handleChange: UploadProps['onChange'] = (uploadFile, uploadFiles) => {
-  // console.log(uploadFile, uploadFiles);
+const handleChange: UploadProps['onChange'] = (
+  uploadFile: UploadFile,
+  uploadFiles: UploadFile[]
+) => {
+  console.log(uploadFile, uploadFiles)
   fileList.value = uploadFiles
-  // updateModelValue()
 }
 const downloadInnerFun = (url: string | URL) => {
   request('GET', url, null, true).then((res) => {
@@ -120,7 +238,7 @@ onMounted(() => {
     proxyProps.value[emit] = typeof onEmit[emit] === 'function'
   }
 })
-const emits = defineEmits(['fileTypeError', 'fileSizeError', 'update:modelValue'])
+const emits = defineEmits(['fileTypeError', 'fileSizeError', 'update:modelValue', 'remove'])
 const beforeAvatarUpload: UploadProps['beforeUpload'] = (rawFile) => {
   let type: string[] | string = rawFile.name.split('.')
   type = '.' + type[type.length - 1]
@@ -129,7 +247,7 @@ const beforeAvatarUpload: UploadProps['beforeUpload'] = (rawFile) => {
     !dataFinal.value.accept.split(',').find((item) => item === (type as string))
   ) {
     emits('fileTypeError')
-    if (proxyProps.value['onFileTypeError']) {
+    if (!proxyProps.value['onFileTypeError']) {
       ElMessage({
         message: '文件类型错误',
         grouping: true,
@@ -157,14 +275,65 @@ const beforeAvatarUpload: UploadProps['beforeUpload'] = (rawFile) => {
   }
   return true
 }
-
+const handleRemove = (file: any) => {
+  // @ts-ignore
+  uploadRef.value?.handleRemove(file)
+}
 const handleRequest = (options: UploadRequestOptions): any => {
   if (dataFinal.value.httpRequest) {
-    dataFinal.value.httpRequest(options).then((res: any) => {
-      updateModelValue(res)
-    })
-  } else {
-    updateModelValue()
+    dataFinal.value
+      .httpRequest(options)
+      .then((res: typeof props.modelValue) => {
+        updateModelValue(normalizeModelValue(res))
+      })
+      .catch(() => handleRemove(options.file))
+  }else{
+    fileList.value.push(options.file)
   }
 }
+onDeactivated(() => {
+  fileList.value = [];
+});
 </script>
+
+<style scoped lang="scss">
+.upload-demo {
+  .avatar {
+    height: 150px;
+  }
+  &.icon {
+    :deep(.el-upload) {
+      border: 1px dashed var(--el-border-color);
+      border-radius: 6px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: var(--el-transition-duration-fast);
+
+      &:hover {
+        border-color: var(--el-color-primary);
+      }
+    }
+  }
+  // :deep(.el-upload) {
+  //   border: 1px dashed var(--el-border-color);
+  //   border-radius: 6px;
+  //   cursor: pointer;
+  //   position: relative;
+  //   overflow: hidden;
+  //   transition: var(--el-transition-duration-fast);
+
+  //   &:hover {
+  //     border-color: var(--el-color-primary);
+  //   }
+  // }
+}
+
+.el-icon.avatar-uploader-icon {
+  font-size: 28px;
+  color: #8c939d;
+  width: 178px;
+  height: 178px;
+  text-align: center;
+}
+</style>

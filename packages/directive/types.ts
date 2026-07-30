@@ -9,7 +9,7 @@ export interface virtualConfig {
   count?: number // 可视区域显示20行（固定值）
   bufferSize?: number // 缓冲区5行
   rowHeight?: number // 默认行高40px
-  originData?: any[]
+  originData?: {[key:string]:any}[]
   isDebug?:Boolean;
   // 滚动回调
   onScroll: (info: scrollParams) => void

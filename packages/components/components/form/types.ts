@@ -18,7 +18,7 @@ interface columnType {
   error?: string; //表单域验证错误时的提示信息。设置该值会导致表单验证状态变为 error，并显示该错误信息。
   showMessage?: boolean; //是否显示校验错误信息
   inlineMessage?: string | boolean; //	是否在行内显示校验信息
-  type: 'input' | 'date' | 'radio' | 'select' | 'switch' | 'checkbox';
+  type: 'input' | 'date' | 'radio' | 'select' | 'switch' | 'checkbox'|'file';
   span?: number;
   for?: string; //和原生标签相同能力
   readonly?: boolean|((data:any)=>boolean);//只读
@@ -36,7 +36,7 @@ interface columnType {
 }
 export interface inputInnerType extends columnType, inputType { }
 export interface selectInnerType extends columnType, selectType { }
-export interface dateInnerType extends columnType, dateType { }
+export interface dateInnerType extends Omit<columnType, 'isDefault'>, dateType {}
 export interface checkboxInnerType extends columnType, checkboxGroupType { }
 export interface radioInnerType extends columnType, radioGroupType { }
 export interface switchInnerType extends columnType, switchType { }

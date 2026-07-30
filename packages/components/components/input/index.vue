@@ -144,6 +144,9 @@ const dataFinal = computed<typeof props.data>(() => {
       if (typeof max === 'number') {
         result = Math.min(result, max)
       }
+      if (typeof min === 'undefined' && typeof max === 'undefined') {
+        result = value;
+      }
       bindValue.value = result //Number(result);
       data.input?.(result)
     }

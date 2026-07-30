@@ -67,7 +67,7 @@ export default {
 </script>
 <script setup name="checkbox" lang="ts">
 import { ElCheckbox, ElCheckboxGroup, ElCheckboxButton } from 'element-plus'
-import { type PropType, ref, computed, nextTick } from 'vue'
+import { type PropType, ref, computed, nextTick, watch } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { type checkboxInnerType } from '../form/types'
 import { checkExistence } from '../../js/utils'

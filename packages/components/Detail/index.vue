@@ -666,6 +666,7 @@ export default defineComponent({
                 style: {
                   '--label-width': props.labelWidth,
                   '--maxWidth': maxWidth.value,
+                  '--desColumn': props.desColumn,
                 },
               },
               {
@@ -688,6 +689,9 @@ export default defineComponent({
     }
     tbody {
       tr {
+      td {
+          width: calc(100% / var(--desColumn));
+        }
         .el-descriptions__label {
           min-width: var(--label-width);
           // display: table-cell;
