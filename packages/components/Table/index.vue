@@ -825,7 +825,7 @@ const virtualScrollConfig = ref<virtualConfig>({
   onScroll: (info: scrollParams) => {
     startIndex.value = info.startIndex
   },
-  isDebug: true,
+  isDebug: false,
 })
 const extra = ref()
 const dataListComputed = computed({
