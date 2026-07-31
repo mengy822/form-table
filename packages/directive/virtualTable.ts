@@ -181,16 +181,45 @@ const virtualScrollDirective = {
     // ==================== 获取配置 ====================
     const rowKey =
       tableInstance.rowKey || tableInstance.$props?.rowKey || tableInstance.$attrs?.rowKey || 'id'
-    const getRowKey = typeof rowKey === 'function' ? rowKey : (row: any) => row[rowKey]
-    const treeProps =
-      tableInstance.treeProps ||
-      tableInstance.$props?.treeProps ||
-      tableInstance.$attrs?.treeProps ||
-      {}
+    const isRowKeyFunction = typeof rowKey === 'function'
 
+    // 修复6: getRowKey 缓存
+    let rowKeyCache = new WeakMap<any, string | number>()
+
+    const getRowKey = (row: any): string | number => {
+      if (!row) return ''
+
+      if (rowKeyCache.has(row)) {
+        return rowKeyCache.get(row)!
+      }
+
+      const key = isRowKeyFunction ? rowKey(row) : row[rowKey]
+      rowKeyCache.set(row, key)
+      return key
+    }
+
+    // 修复1: treeProps 空值保护
+    const treeProps = tableInstance.treeProps ||
+      tableInstance.$props?.treeProps ||
+      tableInstance.$attrs?.treeProps || { children: 'children', hasChildren: 'hasChildren' }
+
+    // 安全获取 treeProps 属性
+    const getTreeProp = (row: any, key: string) => {
+      const propKey = treeProps[key]
+      return propKey ? row[propKey] : undefined
+    }
+
+    // 安全判断是否有子节点
+    const hasChildrenSafe = (row: any) => {
+      const children = getTreeProp(row, childrenKey)
+      const hasChildren = getTreeProp(row, hasChildrenKey)
+      return (!!children && children.length > 0) || hasChildren === true
+    }
+
+    // 修复7: maxBufferSize 保护
     const config = {
       rowHeight: options.rowHeight || 40,
-      bufferSize: Math.min(options.bufferSize || 5, 10),
+      bufferSize: Math.min(Math.max(options.bufferSize || 5, 2), 15),
       visibleCount: Math.min(options.count || 20, MAX_RENDER_COUNT),
       currentStart: 0,
       currentEnd: 0,
@@ -220,11 +249,19 @@ const virtualScrollDirective = {
     let rafId: number | null = null
     let scrollHandler: ((event: Event) => void) | null = null
     let resizeObserver: ResizeObserver | null = null
+    let containerResizeObserver: ResizeObserver | null = null
     let resizeTimer: number | null = null
 
     let lastScrollTime = 0
     let pendingScrollUpdate = false
     let lastProcessedScrollTop = -1
+
+    // 修复8: 动画状态
+    let isAnimating = false
+    let animationRafId: number | null = null
+
+    // 修复2: 行高变化监听
+    let rowHeightObserver: MutationObserver | null = null
 
     // ==================== 拦截器相关 ====================
     let originalEmit: Function | null = null
@@ -235,6 +272,9 @@ const virtualScrollDirective = {
     // ==================== 树形数据缓存 ====================
     let cachedTreeMap: { [key: string]: any } | null = null
     let treeDataVersion = 0
+
+    // 修复4: 选中状态备份
+    let selectionBackup: Map<string | number, any> | null = null
 
     // ==================== 日志函数 ====================
     const logInfo = (...args: (string | any[])[]) => {
@@ -295,12 +335,28 @@ const virtualScrollDirective = {
       return []
     }
 
+    // ==================== 选中状态备份/恢复 ====================
+    const backupSelection = () => {
+      selectionBackup = new Map(selectedKeys)
+    }
+
+    const restoreSelection = () => {
+      if (!selectionBackup) return
+
+      const dataKeys = new Set(originData.map((item: any) => getRowKey(item)))
+      selectedKeys.clear()
+      for (const [key, value] of selectionBackup) {
+        if (dataKeys.has(key)) {
+          selectedKeys.set(key, value)
+        }
+      }
+      selectionBackup = null
+      updateSelection()
+    }
+
     // ==================== 树形数据处理 ====================
     const hasChildren = (row: any) => {
-      return (
-        (!!row[treeProps[childrenKey]] && row[treeProps[childrenKey]].length > 0) ||
-        row[treeProps[hasChildrenKey]] == true
-      )
+      return hasChildrenSafe(row)
     }
 
     const flattenTreeToChildrenMap = (data: any[], parentId = undefined, level = 0) => {
@@ -315,7 +371,7 @@ const virtualScrollDirective = {
 
       while (stack.length) {
         const { node, parentId: nodeParentId, level: nodeLevel } = stack.pop()!
-        const children = node[treeProps[childrenKey]]
+        const children = getTreeProp(node, childrenKey)
 
         node[levelKey] = nodeLevel
         node[parentIdKey] = nodeParentId
@@ -360,15 +416,20 @@ const virtualScrollDirective = {
       }
     }
 
+    // 修复9: 改进 getTreeMap 缓存键
     const getTreeMap = (data: any[]) => {
-      const dataVersion =
-        data.length + data.reduce((acc: any, item: any) => acc + getRowKey(item), '')
-      if (cachedTreeMap && treeDataVersion === dataVersion) {
+      let cacheKey = `${data.length}`
+      if (data.length > 0) {
+        cacheKey += `_${getRowKey(data[0])}`
+        cacheKey += `_${getRowKey(data[data.length - 1])}`
+      }
+
+      if (cachedTreeMap && treeDataVersion === cacheKey) {
         return cachedTreeMap
       }
 
       cachedTreeMap = flattenTreeToChildrenMap(data)
-      treeDataVersion = dataVersion
+      treeDataVersion = cacheKey
       return cachedTreeMap
     }
 
@@ -468,7 +529,7 @@ const virtualScrollDirective = {
       tableEl.style.paddingBottom = `${paddingBottom}px`
     }
 
-    // ==================== 更新视图 ====================
+    // ==================== 更新视图（修复8: 优化 splice） ====================
     const updateView = (oriData = originData) => {
       if (cleanupManager.isCleanedUp()) return
 
@@ -501,9 +562,24 @@ const virtualScrollDirective = {
         }
 
         const visibleData = getVisibleData(oriData)
-        tableData.value.splice(0, tableData.value.length, ...visibleData)
-        updateSelection(visibleData)
 
+        // 优化：检查数据是否真的变化了
+        const currentData = tableData.value
+        let dataChanged = currentData.length !== visibleData.length
+        if (!dataChanged) {
+          for (let i = 0; i < currentData.length; i++) {
+            if (currentData[i] !== visibleData[i]) {
+              dataChanged = true
+              break
+            }
+          }
+        }
+
+        if (dataChanged) {
+          tableData.value = visibleData
+        }
+
+        updateSelection(visibleData)
         updateTablePosition()
 
         if (scrollContainer) {
@@ -524,7 +600,11 @@ const virtualScrollDirective = {
         })
       } catch (err) {
         error('updateView 执行失败:', err)
-        tableData.value = oriData || []
+        if (oriData && oriData.length <= 100) {
+          tableData.value = oriData
+        } else {
+          tableData.value = oriData?.slice(0, 50) || []
+        }
       }
     }
 
@@ -548,6 +628,11 @@ const virtualScrollDirective = {
       originData = data || []
       const dataLength = originData.length
 
+      // 清理缓存
+      originDataChild = {}
+      cachedTreeMap = null
+      treeDataVersion = 0
+
       config.currentStart = 0
       config.currentEnd = Math.min(config.visibleCount + config.bufferSize, dataLength)
       config.scrollTop = 0
@@ -561,7 +646,7 @@ const virtualScrollDirective = {
       logInfo('虚拟化渲染模式，数据量:', String(dataLength))
     }
 
-    // ==================== refresh 函数（必须在 updateData 之前定义） ====================
+    // ==================== refresh 函数 ====================
     const refresh = () => {
       if (cleanupManager.isCleanedUp()) return
 
@@ -571,6 +656,11 @@ const virtualScrollDirective = {
         renderDirect(originData)
         return
       }
+
+      // 清理缓存
+      originDataChild = {}
+      cachedTreeMap = null
+      treeDataVersion = 0
 
       config.currentStart = 0
       config.currentEnd = Math.min(config.visibleCount + config.bufferSize, dataLength)
@@ -606,6 +696,11 @@ const virtualScrollDirective = {
 
       isVirtualEnabled = enableVirtual
       logInfo(`🔄 切换虚拟化模式: ${enableVirtual ? '虚拟化' : '直接渲染'}`)
+
+      // 清理缓存
+      originDataChild = {}
+      cachedTreeMap = null
+      treeDataVersion = 0
 
       if (enableVirtual) {
         if (!isVirtualEnabled && originalTableData.length > 0) {
@@ -665,6 +760,64 @@ const virtualScrollDirective = {
           })
         }
 
+        // 修复6: 容器尺寸变化监听
+        if (!containerResizeObserver && typeof ResizeObserver !== 'undefined') {
+          containerResizeObserver = new ResizeObserver(() => {
+            if (cleanupManager.isCleanedUp()) return
+            if (!isVirtualEnabled) return
+
+            const containerHeight = scrollContainer.clientHeight
+            const newVisibleCount = Math.ceil(containerHeight / config.rowHeight)
+            if (newVisibleCount !== config.visibleCount && newVisibleCount > 0) {
+              config.visibleCount = Math.min(newVisibleCount + 2, MAX_RENDER_COUNT)
+              logInfo('容器尺寸变化，更新 visibleCount:', config.visibleCount)
+              refresh()
+            }
+          })
+          containerResizeObserver.observe(scrollContainer)
+
+          cleanupManager.add(() => {
+            if (containerResizeObserver) {
+              containerResizeObserver.disconnect()
+              containerResizeObserver = null
+              logInfo('✅ 容器尺寸监听已清理')
+            }
+          })
+        }
+
+        // 修复2: 行高变化监听
+        if (!rowHeightObserver && tableEl) {
+          rowHeightObserver = new MutationObserver(() => {
+            if (cleanupManager.isCleanedUp()) return
+            if (!isVirtualEnabled) return
+
+            const firstRow = tableEl.querySelector('.el-table__row')
+            if (firstRow) {
+              const newHeight = firstRow.getBoundingClientRect().height
+              if (newHeight > 0 && Math.abs(newHeight - config.rowHeight) > 2) {
+                config.rowHeight = newHeight
+                logInfo('行高变化:', newHeight)
+                refresh()
+              }
+            }
+          })
+
+          rowHeightObserver.observe(tableEl, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['style', 'class'],
+          })
+
+          cleanupManager.add(() => {
+            if (rowHeightObserver) {
+              rowHeightObserver.disconnect()
+              rowHeightObserver = null
+              logInfo('✅ 行高监听已清理')
+            }
+          })
+        }
+
         renderVirtual(originData)
       } else {
         originalTableData = [...targetData]
@@ -677,6 +830,14 @@ const virtualScrollDirective = {
         if (resizeObserver) {
           resizeObserver.disconnect()
           resizeObserver = null
+        }
+        if (containerResizeObserver) {
+          containerResizeObserver.disconnect()
+          containerResizeObserver = null
+        }
+        if (rowHeightObserver) {
+          rowHeightObserver.disconnect()
+          rowHeightObserver = null
         }
         if (resizeTimer) {
           clearTimeout(resizeTimer)
@@ -696,6 +857,11 @@ const virtualScrollDirective = {
     const processScroll = (scrollTop: number) => {
       if (cleanupManager.isCleanedUp()) return
       if (!isVirtualEnabled) return
+
+      // 修复8: 动画中忽略滚动事件
+      if (isAnimating) {
+        return
+      }
 
       const dataLength = originData ? originData.length : 0
       if (dataLength === 0) return
@@ -725,6 +891,11 @@ const virtualScrollDirective = {
     const handleScroll = (scrollTop: number) => {
       if (cleanupManager.isCleanedUp()) return
       if (!isVirtualEnabled) return
+
+      // 修复8: 动画中忽略滚动事件
+      if (isAnimating) {
+        return
+      }
 
       const now = Date.now()
 
@@ -765,32 +936,49 @@ const virtualScrollDirective = {
       const clampedScrollTop = Math.min(targetScrollTop, maxScrollTop)
 
       if (animate) {
+        if (animationRafId) {
+          cancelAnimationFrame(animationRafId)
+          animationRafId = null
+        }
+
+        isAnimating = true
+
         const start = scrollContainer.scrollTop
         const end = clampedScrollTop
         const duration = 300
         const startTime = performance.now()
 
         const animateScroll = (currentTime: number) => {
-          if (cleanupManager.isCleanedUp()) return
+          if (cleanupManager.isCleanedUp()) {
+            isAnimating = false
+            return
+          }
 
           const elapsed = currentTime - startTime
           const progress = Math.min(elapsed / duration, 1)
           const ease =
             progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2
+
           scrollContainer.scrollTop = start + (end - start) * ease
+
           if (progress < 1) {
-            requestAnimationFrame(animateScroll)
+            animationRafId = requestAnimationFrame(animateScroll)
           } else {
             scrollContainer.scrollTop = end
+            isAnimating = false
+            animationRafId = null
+
             const { startIndex, endIndex } = calculateRange(end)
             if (config.currentStart !== startIndex || config.currentEnd !== endIndex) {
               config.currentStart = startIndex
               config.currentEnd = Math.min(endIndex, dataLength)
+              logInfo('scrollToRow 动画结束，触发视图更新')
               updateView()
             }
+            lastProcessedScrollTop = end
           }
         }
-        requestAnimationFrame(animateScroll)
+        animationRafId = requestAnimationFrame(animateScroll)
       } else {
         scrollContainer.scrollTop = clampedScrollTop
         const { startIndex, endIndex } = calculateRange(clampedScrollTop)
@@ -800,6 +988,7 @@ const virtualScrollDirective = {
           logInfo('scrollToRow 触发视图更新')
           updateView()
         }
+        lastProcessedScrollTop = clampedScrollTop
       }
     }
 
@@ -843,7 +1032,7 @@ const virtualScrollDirective = {
 
     const getDataLength = () => (originData ? originData.length : 0)
 
-    // ==================== updateData（必须在 refresh 之后定义） ====================
+    // ==================== updateData ====================
     const updateData = (
       newData: any[],
       isVirtual: boolean = options.isVirtual !== false,
@@ -860,6 +1049,12 @@ const virtualScrollDirective = {
       }
 
       originData = newData
+
+      // 清理所有缓存
+      originDataChild = {}
+      cachedTreeMap = null
+      treeDataVersion = 0
+      // rowKeyCache 是 WeakMap，让 GC 自动处理
 
       logInfo('📊 updateData 调用:', {
         数据量: newData.length,
@@ -901,6 +1096,9 @@ const virtualScrollDirective = {
         interceptorLog('sort-change', value)
         if (cleanupManager.isCleanedUp() || !isVirtualEnabled) return
 
+        // 修复4: 备份选中状态
+        backupSelection()
+
         const { prop, order } = value
         if (originalDataSortBackup.length === 0) {
           originalDataSortBackup = [...originData]
@@ -933,6 +1131,9 @@ const virtualScrollDirective = {
             updateView(originData)
             break
         }
+
+        // 修复4: 恢复选中状态
+        restoreSelection()
       },
       select: (value: any[], row: any) => {
         interceptorLog('select', value, '行数据:', row)
@@ -971,6 +1172,9 @@ const virtualScrollDirective = {
         interceptorLog('filter-change', value)
         if (cleanupManager.isCleanedUp() || !isVirtualEnabled) return
 
+        // 修复4: 备份选中状态
+        backupSelection()
+
         const filterCondition: any[][] = Object.values(value)
         const isNowFilter = !!filterCondition.find(
           (filterConditionItem: any[]) => filterConditionItem.length > 0,
@@ -1000,6 +1204,9 @@ const virtualScrollDirective = {
         )
 
         refresh()
+
+        // 修复4: 恢复选中状态
+        restoreSelection()
       },
       'expand-change': (row: any, expanded: boolean) => {
         interceptorLog('expand-change', row, expanded)
@@ -1194,6 +1401,7 @@ const virtualScrollDirective = {
         }
       })
 
+      // ResizeObserver 防抖
       if (typeof ResizeObserver !== 'undefined') {
         resizeObserver = new ResizeObserver(() => {
           if (resizeTimer) {
@@ -1220,6 +1428,82 @@ const virtualScrollDirective = {
           logInfo('✅ ResizeObserver 已清理')
         })
       }
+
+      // 修复6: 容器尺寸变化监听
+      if (typeof ResizeObserver !== 'undefined') {
+        containerResizeObserver = new ResizeObserver(() => {
+          if (cleanupManager.isCleanedUp()) return
+          if (!isVirtualEnabled) return
+
+          const containerHeight = scrollContainer.clientHeight
+          const newVisibleCount = Math.ceil(containerHeight / config.rowHeight)
+          if (newVisibleCount !== config.visibleCount && newVisibleCount > 0) {
+            config.visibleCount = Math.min(newVisibleCount + 2, MAX_RENDER_COUNT)
+            logInfo('容器尺寸变化，更新 visibleCount:', config.visibleCount)
+            refresh()
+          }
+        })
+        containerResizeObserver.observe(scrollContainer)
+
+        cleanupManager.add(() => {
+          if (containerResizeObserver) {
+            containerResizeObserver.disconnect()
+            containerResizeObserver = null
+            logInfo('✅ 容器尺寸监听已清理')
+          }
+        })
+      }
+
+      // 修复2: 行高变化监听
+      if (tableEl) {
+        rowHeightObserver = new MutationObserver(() => {
+          if (cleanupManager.isCleanedUp()) return
+          if (!isVirtualEnabled) return
+
+          const firstRow = tableEl.querySelector('.el-table__row')
+          if (firstRow) {
+            const newHeight = firstRow.getBoundingClientRect().height
+            if (newHeight > 0 && Math.abs(newHeight - config.rowHeight) > 2) {
+              config.rowHeight = newHeight
+              logInfo('行高变化:', newHeight)
+              refresh()
+            }
+          }
+        })
+
+        rowHeightObserver.observe(tableEl, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['style', 'class'],
+        })
+
+        cleanupManager.add(() => {
+          if (rowHeightObserver) {
+            rowHeightObserver.disconnect()
+            rowHeightObserver = null
+            logInfo('✅ 行高监听已清理')
+          }
+        })
+      }
+
+      // 修复3: $attrs 变化监听
+      if (tableInstance.$watch) {
+        const unwatch = tableInstance.$watch(
+          () => tableInstance.$attrs?.originData,
+          (newData: any[]) => {
+            if (newData && Array.isArray(newData) && newData !== originData) {
+              originData = newData
+              refresh()
+            }
+          },
+          { deep: true },
+        )
+
+        cleanupManager.add(() => {
+          if (unwatch) unwatch()
+        })
+      }
     }
 
     // ==================== 安装拦截器 ====================
@@ -1232,19 +1516,26 @@ const virtualScrollDirective = {
         rafId = null
         logInfo('✅ 动画帧已取消')
       }
+      if (animationRafId) {
+        cancelAnimationFrame(animationRafId)
+        animationRafId = null
+        isAnimating = false
+        logInfo('✅ 滚动动画已取消')
+      }
     })
 
     // ==================== 清理数据引用 ====================
     cleanupManager.add(() => {
       selectedKeys.clear()
+      selectionBackup = null
       originData = []
       originalDataBackup = []
       originalDataSortBackup = []
       originalTableData = []
+      originDataChild = {}
       cachedTreeMap = null
-      Object.keys(originDataChild).forEach((key) => {
-        delete originDataChild[key]
-      })
+      treeDataVersion = 0
+      rowKeyCache = new WeakMap()
       Object.keys(childOpen).forEach((key) => {
         delete childOpen[key]
       })
