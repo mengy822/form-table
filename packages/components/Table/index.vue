@@ -71,7 +71,7 @@
       </template>
       <!-- :data="dataListComputed" -->
       <el-table
-        v-virtual
+        v-virtual="virtualScrollConfig"
         :span-method="spanMethod"
 
         class="table-plus-main"
@@ -818,7 +818,7 @@ const getRealIndex = (visibleIndex: number) => {
   return startIndex.value + visibleIndex + 1
 }
 const virtualScrollConfig = ref<virtualConfig>({
-  isVirtual: true, // 启用虚拟滚动
+  // isVirtual: true, // 启用虚拟滚动
   count: 20, // 可视区域显示20行（固定值）
   bufferSize: 10, // 缓冲区5行
   rowHeight: 40, // 默认行高40px
