@@ -4,6 +4,7 @@ import { interceptorsMapType, virtualConfig } from './types'
 export interface VirtualScrollOptions {
   originData?: any[]
   rowHeight?: number
+  maxLength?: number
   bufferSize?: number
   count?: number
   isVirtual?: boolean

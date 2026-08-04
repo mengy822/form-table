@@ -819,8 +819,8 @@ const getRealIndex = (visibleIndex: number) => {
   return startIndex.value + visibleIndex + 1
 }
 const finalVirtualScrollConfig = computed<VirtualScrollOptions>(() => {
-  const config=props.virtualScrollConfig
-  const onScroll=config.onScroll
+  const config = props.virtualScrollConfig
+  const onScroll = config.onScroll
   delete config.onScroll
   return {
     // isVirtual: true, // 启用虚拟滚动
@@ -831,8 +831,9 @@ const finalVirtualScrollConfig = computed<VirtualScrollOptions>(() => {
       startIndex.value = info.startIndex
       onScroll?.(info)
     },
+    maxLength: 50,
     isDebug: false,
-    ...config
+    ...config,
   }
 })
 const extra = ref()
@@ -842,12 +843,20 @@ const dataListComputed = computed({
     //@ts-ignore
     props.dataList &&
       props.dataList.length > 0 &&
-      tableRef.value?._virtualScrollUpdateData?.(val, val.length > 50)
+      tableRef.value?._virtualScrollUpdateData?.(
+        val,
+        finalVirtualScrollConfig.value.isVirtual ??
+          val.length > finalVirtualScrollConfig.value.maxLength!
+      )
     return val
   },
   set: (val) => {
     //@ts-ignore
-    tableRef.value?._virtualScrollUpdateData?.(val, val.length > 50)
+    tableRef.value?._virtualScrollUpdateData?.(
+      val,
+      finalVirtualScrollConfig.value.isVirtual ??
+        val.length > finalVirtualScrollConfig.value.maxLength!
+    )
     dataListInner.value = val
   },
 })
