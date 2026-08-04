@@ -202,16 +202,26 @@ const updateModelValue = (files: UploadUserFile[]) => {
   }
 
   const limitNum = dataFinal.value.limitNum
-  const originalValue = props.modelValue
+  const originalValue = props.data;
   // emits('update:modelValue', files[0])
   // return
   // 单个文件
   if (limitNum === 1) {
-    const file = files[0]
-
+    const file = files[0];
     // 判断原始数据类型，保持类型一致性
-    emits('update:modelValue', file.raw)
-    return
+    if (!originalValue.multiple) {
+      emits('update:modelValue', file.raw || file);
+      return;
+    }
+    emits('update:modelValue', file);
+    return;
+  }
+  if (!originalValue.multiple) {
+    emits(
+      'update:modelValue',
+      files.map((item) => item.raw || item)
+    );
+    return;
   }
   emits('update:modelValue', files)
 }

@@ -71,9 +71,8 @@
       </template>
       <!-- :data="dataListComputed" -->
       <el-table
-        v-virtual="virtualScrollConfig"
+        v-virtual="finalVirtualScrollConfig"
         :span-method="spanMethod"
-
         class="table-plus-main"
         :height="height || heightInner || maxHeight"
         :max-height="maxHeight || maxHeightInner || height"
@@ -219,7 +218,7 @@
 </template>
 
 <script setup lang="ts" name="MyTable">
-import vVirtual from '../../directive/virtualTable'
+import vVirtual, { VirtualScrollOptions } from '../../directive/virtualTable'
 import {
   type Component,
   computed,
@@ -372,6 +371,7 @@ export interface TableProps {
         colspan: number
       }
     | void
+  virtualScrollConfig?: VirtualScrollOptions
   /** 表格顶部按钮Plain */
   hasTableTopPlain?: boolean
   moreButton?: string
@@ -685,6 +685,7 @@ const props = withDefaults(defineProps<TableProps>(), {
   tableKey: undefined,
   // 基础配置
   hasPage: true,
+  virtualScrollConfig: {},
   moreButton: '更多',
   moreButtonType: 'primary',
   moreButtonTrigger: 'hover',
@@ -817,27 +818,36 @@ const startIndex = ref(0) // 当前渲染的起始索引
 const getRealIndex = (visibleIndex: number) => {
   return startIndex.value + visibleIndex + 1
 }
-const virtualScrollConfig = ref<virtualConfig>({
-  // isVirtual: true, // 启用虚拟滚动
-  count: 20, // 可视区域显示20行（固定值）
-  bufferSize: 10, // 缓冲区5行
-  rowHeight: 40, // 默认行高40px
-  onScroll: (info: scrollParams) => {
-    startIndex.value = info.startIndex
-  },
-  isDebug: false,
+const finalVirtualScrollConfig = computed<VirtualScrollOptions>(() => {
+  const config=props.virtualScrollConfig
+  const onScroll=config.onScroll
+  delete config.onScroll
+  return {
+    // isVirtual: true, // 启用虚拟滚动
+    count: 20, // 可视区域显示20行（固定值）
+    bufferSize: 10, // 缓冲区5行
+    rowHeight: 40, // 默认行高40px
+    onScroll: (info: scrollParams) => {
+      startIndex.value = info.startIndex
+      onScroll?.(info)
+    },
+    isDebug: false,
+    ...config
+  }
 })
 const extra = ref()
 const dataListComputed = computed({
   get: () => {
     const val = props.dataList || dataListInner.value
     //@ts-ignore
-    props.dataList && props.dataList.length > 0 && tableRef.value?._virtualScrollUpdateData?.(val,val.length>50)
+    props.dataList &&
+      props.dataList.length > 0 &&
+      tableRef.value?._virtualScrollUpdateData?.(val, val.length > 50)
     return val
   },
   set: (val) => {
     //@ts-ignore
-    tableRef.value?._virtualScrollUpdateData?.(val,val.length>50)
+    tableRef.value?._virtualScrollUpdateData?.(val, val.length > 50)
     dataListInner.value = val
   },
 })

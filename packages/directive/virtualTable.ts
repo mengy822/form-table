@@ -1,7 +1,7 @@
 import { interceptorsMapType, virtualConfig } from './types'
 
 // ==================== 类型定义 ====================
-interface VirtualScrollOptions {
+export interface VirtualScrollOptions {
   originData?: any[]
   rowHeight?: number
   bufferSize?: number
@@ -88,7 +88,7 @@ const virtualScrollDirective = {
       __vueParentComponent: { proxy: any }
       querySelector: (arg0: string) => any
     },
-    binding: { value: virtualConfig },
+    binding: { value: VirtualScrollOptions },
     vnode: any,
   ) {
     // ==================== 初始化清理管理器 ====================
@@ -101,10 +101,6 @@ const virtualScrollDirective = {
     // ===== 修改1：节流延迟从 16 改为 8 =====
     const throttleDelay = options.throttleDelay || 8
     const MAX_RENDER_COUNT = 50
-
-    const log = (...args: (string | any[])[]) => {
-      if (isDebug) console.log('[VirtualScroll]', ...args)
-    }
 
     const error = (...args: any[]) => {
       console.error('[VirtualScroll]', ...args)
@@ -178,14 +174,22 @@ const virtualScrollDirective = {
       error('无法获取表格数据 store')
       return
     }
+    // ==================== 在 getRowKey 之前添加 ====================
+    // 独立的 ID 管理器，使用 WeakMap 避免内存泄漏
+    const idMap = new WeakMap<any, number>()
+    let _idCounter = 0
 
-    // ==================== 获取配置 ====================
-    const rowKey =
-      tableInstance.rowKey || tableInstance.$props?.rowKey || tableInstance.$attrs?.rowKey || 'id'
-    const isRowKeyFunction = typeof rowKey === 'function'
+    const getRowId = (row: any): number => {
+      if (!row) return 0
+      if (idMap.has(row)) {
+        return idMap.get(row)!
+      }
+      const id = ++_idCounter
+      idMap.set(row, id)
+      return id
+    }
 
-    let rowKeyCache = new WeakMap<any, string | number>()
-
+    // ==================== 修改 getRowKey ====================
     const getRowKey = (row: any): string | number => {
       if (!row) return ''
 
@@ -193,10 +197,34 @@ const virtualScrollDirective = {
         return rowKeyCache.get(row)!
       }
 
-      const key = isRowKeyFunction ? rowKey(row) : row[rowKey]
+      let key: string | number | undefined
+      if (isRowKeyFunction) {
+        key = rowKey(row)
+      } else if (rowKey && row[rowKey] !== undefined) {
+        key = row[rowKey]
+      }
+
+      // 如果没有有效的 rowKey，使用自动生成的 ID
+      if (key === undefined || key === null || key === '') {
+        key = getRowId(row)
+      }
+
       rowKeyCache.set(row, key)
       return key
     }
+
+    // ==================== 在清理时重置 ID 计数器 ====================
+    // 在 cleanupManager.add 中添加
+
+    // ==================== 获取配置 ====================
+    const rowKey =
+      tableInstance.rowKey ||
+      tableInstance.$props?.rowKey ||
+      tableInstance.$attrs?.rowKey ||
+      'id'
+    const isRowKeyFunction = typeof rowKey === 'function'
+
+    let rowKeyCache = new WeakMap<any, string | number>()
 
     const treeProps = tableInstance.treeProps ||
       tableInstance.$props?.treeProps ||
@@ -302,9 +330,14 @@ const virtualScrollDirective = {
 
     const updateSelection = (data: any[] = getVisibleData()) => {
       if (!selection || cleanupManager.isCleanedUp()) return
-      const selects = data!.filter((row: any) => selectedKeys.has(getRowKey(row)))
+      const selects = data!.filter((row: any) => {
+        const key = getRowKey(row)
+        return selectedKeys.has(key)
+      })
+
       if (selects.length === 0 && selectedKeys.size > 0) {
         const found = originData?.find((row: any) => selectedKeys.has(getRowKey(row)))
+        // console.log(found)
         if (found) selects.push(found)
       }
       selection.value = selects

@@ -239,7 +239,8 @@ const editColumn=ref([
   }
 ])
   const table = ref([
-    { prop: 'no', label: 'no', hidden: true, visible: false },
+    { prop: 'index', label: 'index', hidden: true, visible: false },
+    { prop: 'no', label: 'no', hidden: !true, visible: false },
     // {
     //   prop: 'no~text',
     //   label: '文本输入框',
@@ -289,7 +290,8 @@ const editColumn=ref([
         { text: '0.1', value: '0.1' },
         { text: '0.2', value: '0.2' },
         { text: '0.3', value: '0.3' },
-      ],ilike:true
+      ],
+      ilike: true,
     },
     { prop: 'password', label: '密码输入框' },
     { prop: 'number', label: '数字输入框' },
@@ -438,6 +440,7 @@ const editColumn=ref([
         checkbox: { type: 3, fun: () => 'a,b' },
         radio: { type: 3, fun: () => 'a' },
         select: { type: 3, fun: () => 'a' },
+        index: { type: 3, fun: (i:number) => i },
       }
       for (let i = 0; i < max; i++) {
         let item: { [key: string]: Object } = {}
