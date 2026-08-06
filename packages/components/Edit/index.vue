@@ -7,8 +7,9 @@
       :title="isAdd ? title.add : title.edit"
       @before-close="handleClose"
     >
-      <div class="editDialog"
-      :style="`--editFormGridTemplateColumns:${editFormGridTemplateColumns};--editFormDisplay:${editFormDisplay};--gridTemplateColumns:${gridTemplateColumns};--display:${display};`"
+      <div
+        class="editDialog"
+        :style="`--editFormGridTemplateColumns:${editFormGridTemplateColumns};--editFormDisplay:${editFormDisplay};--gridTemplateColumns:${gridTemplateColumns};--display:${display};`"
       >
         <slot name="left" :data="dynamicComputedMap"></slot>
         <el-form
@@ -30,12 +31,16 @@
           :scroll-to-error="scrollToError"
           @submit.native.prevent="submitFun"
         >
-          <div v-for="(columnItem, index) in columnFinal" :key="index" :class="`class_${index} editItems`">
+          <div
+            v-for="(columnItem, index) in columnFinal"
+            :key="index"
+            :class="`class_${index} editItems`"
+          >
             <div
               v-for="item in columnItem"
               :key="JSON.stringify(item)"
               :class="`class_${item.prop}`"
-              :style="`width:${100/desColumn*(item.span||desColumn)}%`"
+              :style="`width:${(100 / desColumn) * (item.span || desColumn)}%`"
             >
               <slot :name="`item_${item.prop}`" :prop="item.prop" :data="dynamicComputedMap">
                 <el-form-item
@@ -67,7 +72,9 @@
                   </template>
 
                   <template #default>
+                    <component v-if="item.funDom" :is="getFunDomComponent(item)" />
                     <slot
+                      v-else
                       :name="item.slotName || item.prop"
                       :prop="item.prop"
                       :data="dynamicComputedMap"
@@ -209,7 +216,17 @@
 </template>
 <script lang="ts" setup name="MyEdit">
 import { getName } from '../js/utils'
-import { computed, nextTick, ref, type Ref, useAttrs, useSlots, useTemplateRef } from 'vue'
+import {
+  computed,
+  markRaw,
+  nextTick,
+  onBeforeUnmount,
+  ref,
+  type Ref,
+  useAttrs,
+  useSlots,
+  useTemplateRef,
+} from 'vue'
 import { ElMessage, FormRules } from 'element-plus'
 import Input from '../components/input/index.vue'
 import Select from '../components/select/index.vue'
@@ -454,7 +471,7 @@ const dynamicCreateRef = (el: any, prop: string) => {
 }
 let dynamicComputedFun: (
     prop: string,
-    type: 'variable' | 'string' | 'array'|'file' | '',
+    type: 'variable' | 'string' | 'array' | 'file' | '',
     aliases: string
   ) => void,
   dynamicComputedMap: Ref<{ [name: string]: any }>
@@ -549,66 +566,76 @@ const init = async (
   }
   // console.timeEnd('注册数据事件')
   // console.time('绑定数据')
-  columnFinal.value.forEach((item1: (checkboxInnerType | selectInnerType | dateInnerType|inputInnerType|fileInnerType)[]) => {
-    item1.forEach((item) => {
-      let f = false
-      switch (item.type) {
-        case 'date':
-          if (((item as dateInnerType).dateType || '').indexOf('range') !== -1) {
-            //时间范围根据aliases转成对应字段
-            dynamicComputedFun(item.prop, 'variable', (item as dateInnerType).aliases as string)
-          } else if (((item as dateInnerType).dateType || '').slice(-1) === 's') {
-            //时间范围根据aliases转成对应字段
-            dynamicComputedFun(item.prop, 'string', ',')
-          } else {
+  columnFinal.value.forEach(
+    (
+      item1: (
+        | checkboxInnerType
+        | selectInnerType
+        | dateInnerType
+        | inputInnerType
+        | fileInnerType
+      )[]
+    ) => {
+      item1.forEach((item) => {
+        let f = false
+        switch (item.type) {
+          case 'date':
+            if (((item as dateInnerType).dateType || '').indexOf('range') !== -1) {
+              //时间范围根据aliases转成对应字段
+              dynamicComputedFun(item.prop, 'variable', (item as dateInnerType).aliases as string)
+            } else if (((item as dateInnerType).dateType || '').slice(-1) === 's') {
+              //时间范围根据aliases转成对应字段
+              dynamicComputedFun(item.prop, 'string', ',')
+            } else {
+              f = true
+            }
+            break
+          case 'checkbox':
+            if ((item as checkboxInnerType).valueType === 'string') {
+              dynamicComputedFun(item.prop, 'string', ',')
+            } else {
+              f = true
+            }
+            break
+          case 'select':
+            if (
+              !(item as selectInnerType).multiple &&
+              (item as checkboxInnerType).valueType !== 'string'
+            ) {
+              f = true
+            } else {
+              //多选下拉转成逗号字符串
+              dynamicComputedFun(item.prop, 'string', ',')
+            }
+            break
+          case 'input':
+            if (typeof (item as inputInnerType).multiple == 'undefined') {
+              f = true
+            } else if ((item as inputInnerType).multiple) {
+              //根据aliases转成对应字段
+              dynamicComputedFun(item.prop, 'variable', (item as inputInnerType).aliases as string)
+            } else if ((item as inputInnerType).multiple == false) {
+              //根据aliases转成对应字段
+              dynamicComputedFun(item.prop, 'string', ',')
+            }
+            break
+          case 'file':
+            if (!(item as fileInnerType).multiple) {
+              f = true
+            } else if ((item as fileInnerType).multiple) {
+              //根据aliases转成对应字段
+              dynamicComputedFun(item.prop, 'file', (item as fileInnerType).aliases as string)
+            }
+            break
+          default:
             f = true
-          }
-          break
-        case 'checkbox':
-          if ((item as checkboxInnerType).valueType === 'string') {
-            dynamicComputedFun(item.prop, 'string', ',')
-          } else {
-            f = true
-          }
-          break
-        case 'select':
-          if (
-            !(item as selectInnerType).multiple &&
-            (item as checkboxInnerType).valueType !== 'string'
-          ) {
-            f = true
-          } else {
-            //多选下拉转成逗号字符串
-            dynamicComputedFun(item.prop, 'string', ',')
-          }
-          break
-        case 'input':
-          if (typeof (item as inputInnerType).multiple == 'undefined') {
-            f = true
-          } else if ((item as inputInnerType).multiple) {
-            //根据aliases转成对应字段
-            dynamicComputedFun(item.prop, 'variable', (item as inputInnerType).aliases as string)
-          } else if ((item as inputInnerType).multiple == false) {
-            //根据aliases转成对应字段
-            dynamicComputedFun(item.prop, 'string', ',')
-          }
-          break
-        case 'file':
-          if (!(item as fileInnerType).multiple) {
-            f = true;
-          } else if ((item as fileInnerType).multiple) {
-            //根据aliases转成对应字段
-            dynamicComputedFun(item.prop, 'file', (item as fileInnerType).aliases as string);
-          }
-          break;
-        default:
-          f = true
-      }
-      if (f) {
-        dynamicComputedFun(item.prop, '', '')
-      }
-    })
-  })
+        }
+        if (f) {
+          dynamicComputedFun(item.prop, '', '')
+        }
+      })
+    }
+  )
   // console.timeEnd('绑定数据')
   // console.time('打开窗口')
   myDialog.value?.init()
@@ -690,6 +717,37 @@ const submitFun = async () => {
     }
   })
 }
+// funDom 缓存
+const funDomCache = new Map()
+
+// 获取 funDom 组件
+const getFunDomComponent = (item: any) => {
+  if (!item.funDom) return null
+
+  const cacheKey = `${item.prop}_${Object.keys(dynamicComputedMap.value).join('_')}`
+
+  if (funDomCache.has(cacheKey)) {
+    return funDomCache.get(cacheKey)
+  }
+
+  const other = {
+    ...attrs,
+  }
+
+  const component = markRaw({
+    render() {
+      return item.funDom(dynamicComputedMap.value, item.prop, other)
+    },
+  })
+
+  funDomCache.set(cacheKey, component)
+  return component
+}
+
+// 组件卸载清理缓存
+onBeforeUnmount(() => {
+  funDomCache.clear()
+})
 defineExpose({
   init,
   close: cancelFun,

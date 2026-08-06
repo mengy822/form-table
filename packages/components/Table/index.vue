@@ -946,7 +946,7 @@ let timer: any = null
 const heightChange = () => {
   clearTimeout(timer)
   const zoom = getZoomPercent()
-  const url = window.location.href
+  const url = props.baseClass;
   const width = window.innerWidth
   const height = window.innerHeight
   const key = `${zoom}${url}${width}${height}`
