@@ -1,3 +1,4 @@
+import { fileInnerType } from '@/index'
 import type {
   checkboxInnerType,
   dateInnerType,
@@ -6,6 +7,7 @@ import type {
   selectInnerType,
   switchInnerType,
 } from 'ftv3'
+import { h } from 'vue'
 import { ref, onMounted } from 'vue'
 export default function useAppConfig() {
   const changeFun = (e) => {
@@ -231,12 +233,41 @@ export default function useAppConfig() {
   //     ],
   //   } as selectInnerType,
   // ])
-const editColumn=ref([
+const editColumn = ref([
   {
-    prop:'file',
-    label:'文件',
-    type:'file'
-  }
+    prop: 'file',
+    label: '文件',
+    type: 'file',
+    isRequired: true,
+    funDom: (row, prop) => {
+      return h(
+        'input',
+        {
+          style: 'color:red',
+        },
+        123,
+      )
+    },
+    labelFunDom: (row, prop, other) => {
+      return h(
+        'div',
+        {
+          style: 'color:red',
+        },
+        other?.config.label+'标题',
+      )
+    },
+    errorFunDom: (row, prop, other) => {
+      return h(
+        'span',
+        {
+          style: 'color:red',
+          class: 'el-form-item__error',
+        },
+        other?.config.label + '错误',
+      )
+    },
+  } as fileInnerType,
 ])
   const table = ref([
     { prop: 'index', label: 'index', hidden: true, visible: false },
@@ -468,7 +499,40 @@ const editColumn=ref([
     type: 'input',
     inputType: 'number',
     span: 5,
-    change: searchInputNumberChange
+    change: searchInputNumberChange,
+    funDom: (row, prop) => {
+      return h(
+        'input',
+        {
+          style: 'color:red',
+          value: row[prop],
+          onInput: (e) => {
+            console.log(e.target.value)
+            row[prop] = e.target.value
+          },
+        },
+        123,
+      )
+    },
+    labelFunDom: (row, prop, other) => {
+      return h(
+        'div',
+        {
+          style: 'color:red',
+        },
+        other?.config.label+'标题',
+      )
+    },
+    errorFunDom: (row, prop, other) => {
+      return h(
+        'span',
+        {
+          style: 'color:red',
+          class: 'el-form-item__error',
+        },
+        other?.config.label + '错误',
+      )
+    },
   } as inputInnerType, { isRequired: true, prop: 'input', label: 'input', type: 'input', span: 5 },
   {
     prop: 'select',

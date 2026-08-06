@@ -50,15 +50,25 @@
                     (item.showFun && item.showFun(dynamicComputedMap))
                   "
                 >
-                  <template #label v-if="slots[`label_${item.prop}`]">
+                  <template #label v-if="slots[`label_${item.prop}`] || item.labelFunDom">
+                    <component
+                      v-if="item.funDom"
+                      :is="getFunDomComponent(item, dynamicComputedMap, 'labelFunDom')"
+                    />
                     <slot
+                      v-else
                       :name="`label_${item.prop}`"
                       :prop="item.prop"
                       :data="dynamicComputedMap"
                     ></slot>
                   </template>
-                  <template #error v-if="slots[`error_${item.prop}`]">
+                  <template #error v-if="slots[`error_${item.prop}`] || item.errorFunDom">
+                    <component
+                      v-if="item.funDom"
+                      :is="getFunDomComponent(item, dynamicComputedMap, 'errorFunDom')"
+                    />
                     <slot
+                      v-else
                       :name="`error_${item.prop}`"
                       :prop="item.prop"
                       :data="dynamicComputedMap"

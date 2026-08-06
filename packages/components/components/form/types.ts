@@ -1,13 +1,13 @@
-import type { checkboxGroupType } from "../checkbox/types";
-import type { dateType } from "../date/types";
-import type { inputType } from "../input/types";
-import type { radioGroupType } from "../radio/types";
-import type { selectType } from "../select/types";
-import type { switchType } from "../switch/types";
-import type { button } from "../../js/sizeType";
-import type {ruleKeys} from "../../utils/rules"
-import { fileType } from "../File/types";
-import { Component, VNode } from "vue";
+import type { checkboxGroupType } from '../checkbox/types'
+import type { dateType } from '../date/types'
+import type { inputType } from '../input/types'
+import type { radioGroupType } from '../radio/types'
+import type { selectType } from '../select/types'
+import type { switchType } from '../switch/types'
+import type { button } from '../../js/sizeType'
+import type { ruleKeys } from '../../utils/rules'
+import { fileType } from '../File/types'
+import { Component, VNode } from 'vue'
 interface columnType {
   prop: string //model 的键名。 它可以是一个属性的值(如 a.b.0 或 ['a', 'b', '0'])。 在使用了 validate、resetFields 的方法时，该属性是必填的。
   label: string
@@ -34,18 +34,39 @@ interface columnType {
   showFun?: (dataForm: any) => boolean
   slotName?: string
   column?: number
-  funDom?:(
-      data: any,
-      prop: string,
-      other?: {
-        [key: string]: any
-      },
-    ) => VNode | Component
+  funDom?: (
+    data: any,
+    prop: string,
+    other?: {
+      [key: string]: any
+    },
+  ) => VNode | Component
+  labelFunDom?: (
+    data: any,
+    prop: string,
+    other?: {
+      [key: string]: any
+    },
+  ) => VNode | Component
+  errorFunDom?: (
+    data: any,
+    prop: string,
+    other?: {
+      [key: string]: any
+    },
+  ) => VNode | Component
+  itemFunDom?: (
+    data: any,
+    prop: string,
+    other?: {
+      [key: string]: any
+    },
+  ) => VNode | Component
 }
-export interface inputInnerType extends columnType, inputType { }
-export interface selectInnerType extends columnType, selectType { }
+export interface inputInnerType extends columnType, inputType {}
+export interface selectInnerType extends columnType, selectType {}
 export interface dateInnerType extends Omit<columnType, 'isDefault'>, dateType {}
-export interface checkboxInnerType extends columnType, checkboxGroupType { }
-export interface radioInnerType extends columnType, radioGroupType { }
-export interface switchInnerType extends columnType, switchType { }
-export interface fileInnerType extends columnType, fileType { }
+export interface checkboxInnerType extends columnType, checkboxGroupType {}
+export interface radioInnerType extends columnType, radioGroupType {}
+export interface switchInnerType extends columnType, switchType {}
+export interface fileInnerType extends columnType, fileType {}

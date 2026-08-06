@@ -11,7 +11,11 @@
         class="editDialog"
         :style="`--editFormGridTemplateColumns:${editFormGridTemplateColumns};--editFormDisplay:${editFormDisplay};--gridTemplateColumns:${gridTemplateColumns};--display:${display};`"
       >
-        <slot name="left" :data="dynamicComputedMap"></slot>
+        <component
+          v-if="leftFunDom"
+          :is="getFunDomComponent({ prop: 'left', leftFunDom }, dynamicComputedMap, 'leftFunDom')"
+        />
+        <slot v-else name="left" :data="dynamicComputedMap"></slot>
         <el-form
           ref="formRef"
           class="editForm"
@@ -42,7 +46,11 @@
               :class="`class_${item.prop}`"
               :style="`width:${(100 / desColumn) * (item.span || desColumn)}%`"
             >
-              <slot :name="`item_${item.prop}`" :prop="item.prop" :data="dynamicComputedMap">
+              <component
+                v-if="item.itemFunDom"
+                :is="getFunDomComponent(item, dynamicComputedMap, 'itemFunDom')"
+              />
+              <slot v-else :name="`item_${item.prop}`" :prop="item.prop" :data="dynamicComputedMap">
                 <el-form-item
                   :ref="(el: any) => dynamicCreateRef(el, item.prop)"
                   :label="item.label"
@@ -56,15 +64,25 @@
                   "
                   v-if="item.showFun && item.showFun(dynamicComputedMap)"
                 >
-                  <template #label v-if="slots[`label_${item.prop}`]">
+                  <template #label v-if="slots[`label_${item.prop}`] || item.labelFunDom">
+                    <component
+                      v-if="item.funDom"
+                      :is="getFunDomComponent(item, dynamicComputedMap, 'labelFunDom')"
+                    />
                     <slot
+                      v-else
                       :name="`label_${item.prop}`"
                       :prop="item.prop"
                       :data="dynamicComputedMap"
                     ></slot>
                   </template>
-                  <template #error v-if="slots[`error_${item.prop}`]">
+                  <template #error v-if="slots[`error_${item.prop}`] || item.errorFunDom">
+                    <component
+                      v-if="item.funDom"
+                      :is="getFunDomComponent(item, dynamicComputedMap, 'errorFunDom')"
+                    />
                     <slot
+                      v-else
                       :name="`error_${item.prop}`"
                       :prop="item.prop"
                       :data="dynamicComputedMap"
@@ -72,7 +90,10 @@
                   </template>
 
                   <template #default>
-                    <component v-if="item.funDom" :is="getFunDomComponent(item,dynamicComputedMap)" />
+                    <component
+                      v-if="item.funDom"
+                      :is="getFunDomComponent(item, dynamicComputedMap)"
+                    />
                     <slot
                       v-else
                       :name="item.slotName || item.prop"
@@ -188,9 +209,25 @@
               </slot>
             </div>
           </div>
-          <slot name="errorData" :data="dynamicComputedMap"></slot>
+          <component
+            v-if="errorDataFunDom"
+            :is="
+              getFunDomComponent(
+                { prop: 'errorData', errorDataFunDom },
+                dynamicComputedMap,
+                'errorDataFunDom'
+              )
+            "
+          />
+          <slot v-else name="errorData" :data="dynamicComputedMap"></slot>
         </el-form>
-        <slot name="right" :data="dynamicComputedMap"></slot>
+        <component
+          v-if="rightFunDom"
+          :is="
+            getFunDomComponent({ prop: 'right', rightFunDom }, dynamicComputedMap, 'rightFunDom')
+          "
+        />
+        <slot v-else name="right" :data="dynamicComputedMap"></slot>
       </div>
 
       <template #footer>
@@ -217,6 +254,7 @@
 <script lang="ts" setup name="MyEdit">
 import { getName } from '../js/utils'
 import {
+  Component,
   computed,
   markRaw,
   nextTick,
@@ -226,6 +264,7 @@ import {
   useAttrs,
   useSlots,
   useTemplateRef,
+  VNode,
 } from 'vue'
 import { ElMessage, FormRules } from 'element-plus'
 import Input from '../components/input/index.vue'
@@ -346,6 +385,30 @@ interface FormDialogProps {
   dataConfig: { data: string; status: string | number | boolean; code: string }
   /** 列数 */
   desColumn?: number
+  /** 错误数据的渲染函数 */
+  errorDataFunDom?: (
+    data: any,
+    prop: string,
+    other?: {
+      [key: string]: any
+    }
+  ) => VNode | Component
+  /** 表单左侧的渲染函数 */
+  leftFunDom?: (
+    data: any,
+    prop: string,
+    other?: {
+      [key: string]: any
+    }
+  ) => VNode | Component
+  /** 表单右侧的渲染函数 */
+  rightFunDom?: (
+    data: any,
+    prop: string,
+    other?: {
+      [key: string]: any
+    }
+  ) => VNode | Component
 }
 
 // 使用 withDefaults 定义 Props 并配置默认值
@@ -719,11 +782,11 @@ const submitFun = async () => {
   })
 }
 
-const { getFunDomComponent, clearFunDomCache } = useFunDom(attrs);
+const { getFunDomComponent, clearFunDomCache } = useFunDom(attrs)
 
 onBeforeUnmount(() => {
-  clearFunDomCache();
-});
+  clearFunDomCache()
+})
 
 defineExpose({
   init,
