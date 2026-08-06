@@ -72,7 +72,7 @@
                   </template>
 
                   <template #default>
-                    <component v-if="item.funDom" :is="getFunDomComponent(item)" />
+                    <component v-if="item.funDom" :is="getFunDomComponent(item,dynamicComputedMap)" />
                     <slot
                       v-else
                       :name="item.slotName || item.prop"
@@ -251,6 +251,7 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { createRules } from '../utils/rules'
 import { scrollTo } from '../utils/scroll-to'
 import { MyDialogInstance } from '../../index'
+import { useFunDom } from '../utils/funDom'
 
 const myDialog = useTemplateRef<MyDialogInstance>('myDialog')
 const top = ref('15vh')
@@ -717,37 +718,13 @@ const submitFun = async () => {
     }
   })
 }
-// funDom 缓存
-const funDomCache = new Map()
 
-// 获取 funDom 组件
-const getFunDomComponent = (item: any) => {
-  if (!item.funDom) return null
+const { getFunDomComponent, clearFunDomCache } = useFunDom(attrs);
 
-  const cacheKey = `${item.prop}_${Object.keys(dynamicComputedMap.value).join('_')}`
-
-  if (funDomCache.has(cacheKey)) {
-    return funDomCache.get(cacheKey)
-  }
-
-  const other = {
-    ...attrs,
-  }
-
-  const component = markRaw({
-    render() {
-      return item.funDom(dynamicComputedMap.value, item.prop, other)
-    },
-  })
-
-  funDomCache.set(cacheKey, component)
-  return component
-}
-
-// 组件卸载清理缓存
 onBeforeUnmount(() => {
-  funDomCache.clear()
-})
+  clearFunDomCache();
+});
+
 defineExpose({
   init,
   close: cancelFun,

@@ -66,7 +66,11 @@
                   </template>
 
                   <template #default>
-                    <slot :name="item.prop" :prop="item.prop" :data="dynamicComputedMap">
+                    <component
+                      v-if="item.funDom"
+                      :is="getFunDomComponent(item, dynamicComputedMap)"
+                    />
+                    <slot v-else :name="item.prop" :prop="item.prop" :data="dynamicComputedMap">
                       <Input
                         :data="item"
                         v-if="item.type === 'input'"
@@ -210,6 +214,7 @@ import {
   onActivated,
   onDeactivated,
   onBeforeUnmount,
+  useAttrs,
 } from 'vue'
 // import { RefreshLeft, ArrowUp, ArrowDown, Search } from '@element-plus/icons-vue'
 import type { button, queryInnerType, refresh, search, searchRefresh } from '../js/types'
@@ -232,6 +237,7 @@ import MyComputedData from '../utils/hooks/MyComputedData'
 import { useDebounceThrottle } from '../utils/hooks/index'
 import { createRules } from '../utils/rules'
 import { getDomComputed, getComputedStyle } from '../js/utils'
+import { useFunDom } from '../utils/funDom'
 //父传子参数
 // 定义 Props 类型接口
 interface SearchFormProps {
@@ -607,6 +613,12 @@ const showFold = computed(() => {
 const openList = () => {
   fold.value = !fold.value
 }
+const attrs = useAttrs()
+const { getFunDomComponent, clearFunDomCache } = useFunDom(attrs)
+
+onBeforeUnmount(() => {
+  clearFunDomCache()
+})
 const updateData = (prop: string, data: any) => {
   dynamicComputedMap.value[prop] = data
 }
