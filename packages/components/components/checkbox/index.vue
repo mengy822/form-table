@@ -1,5 +1,4 @@
 <template>
-  <el-config-provider :locale="language">
     <el-checkbox-group
       v-model="bindValue"
       @change="change"
@@ -58,7 +57,6 @@
         </slot>
       </template>
     </el-checkbox-group>
-  </el-config-provider>
 </template>
 <script lang="ts">
 export default {
@@ -66,18 +64,10 @@ export default {
 }
 </script>
 <script setup name="checkbox" lang="ts">
-import { ElCheckbox, ElCheckboxGroup, ElCheckboxButton } from 'element-plus'
 import { type PropType, ref, computed, nextTick, watch } from 'vue'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { type checkboxInnerType } from '../form/types'
 import { checkExistence } from '../../js/utils'
 const props = defineProps({
-  language: {
-    type: Object,
-    default: () => {
-      return zhCn
-    },
-  },
   type: {
     type: String as PropType<'checkbox' | 'checkboxButton'>,
     default: 'checkbox',

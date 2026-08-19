@@ -1,5 +1,4 @@
 <template>
-  <el-config-provider :locale="language">
     <el-select-v2
       :class="`_class${dataFinal.prop}`"
       v-model="bindValue"
@@ -60,7 +59,6 @@
         <slot :name="name" v-bind="scopeData"></slot>
       </template>
     </el-select-v2>
-  </el-config-provider>
 </template>
 <script lang="ts">
 export default {
@@ -69,14 +67,15 @@ export default {
 </script>
 <script setup lang="ts" name="select">
 import { type PropType, ref, computed, watch, useSlots, nextTick } from 'vue'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import type { selectInnerType } from '../form/types'
 import type { selectOptionsGroupType, selectOptionsType } from './types'
 import { checkExistence, getName } from '../../js/utils'
 
-const remoteOptions = ref()
+const remoteOptions = ref<any[]>([])
+let lastInputValue = '';
+let setInputEvent = true;
 const selectOptions = computed(() => {
-  const opts = checkExistence(remoteOptions.value) ? remoteOptions.value : dataFinal.value.options
+  const opts = checkExistence(remoteOptions.value) ? remoteOptions.value : dataFinal.value.options as Array<any>
   const errorData = opts.filter(
     (item: { value: null }) => item.value == null || typeof item.value == 'undefined'
   )
@@ -97,6 +96,12 @@ const visibleChange = (visible: boolean) => {
         const selected = selectOptions.value.find(
           (item: { value: any }) => item.value === bindValue.value
         )
+        if (setInputEvent) {
+          input.addEventListener('input', (e:any) => {
+            lastInputValue = e.target.value;
+          });
+          setInputEvent = false;
+        }
         if (selected && !input.value) {
           input.value = selected.label
           // 模拟输入事件让 filterable 生效
@@ -130,12 +135,6 @@ const remoteMethod = (e: string) => {
 
 const slots = useSlots()
 const props = defineProps({
-  language: {
-    type: Object,
-    default: () => {
-      return zhCn
-    },
-  },
   type: {
     type: String as PropType<'' | 'group'>,
     default: '',
@@ -180,6 +179,11 @@ const change = (e: typeof props.modelValue) => {
   });
 };
 const updateModelValue = (e: typeof props.modelValue) => {
+  const selected = selectOptions.value.find((item) => item.value === e);
+  if (selected && dataFinal.value && dataFinal.value.remote) {
+    lastInputValue = selected.label;
+    remoteOptions.value = [selected];
+  }
   emits('update:modelValue', e);
 };
 const blur = (e: any) => {
@@ -226,6 +230,13 @@ const dataFinal = computed(() => {
   }
   //设置默认值
   setDefaultValue(data)
+  // if (data && data.remote) {
+  //   const selected = data.options.find((item) => item.value === props.modelValue);
+  //   if (selected) {
+  //     lastInputValue = String(selected.label);
+  //     remoteOptions.value = [selected];
+  //   }
+  // }
   data.change = data.change || function () {}
   data.visibleChange = data.visibleChange || function () {}
   data.removeTag = data.removeTag || function () {}
@@ -250,6 +261,15 @@ watch(
   () => bindValue.value,
   () => {
     change(bindValue.value);
+    if (!checkExistence(bindValue.value)) {
+      lastInputValue = '';
+      return
+    }
+    const selected = selectOptions.value.find((item) => item.value === bindValue.value);
+    if (selected && dataFinal.value && dataFinal.value.remote) {
+      lastInputValue = selected.label;
+      remoteOptions.value = [selected];
+    }
   }
 );
 

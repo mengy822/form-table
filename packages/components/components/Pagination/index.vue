@@ -1,5 +1,5 @@
 <template>
-  <el-config-provider :locale="language">
+
     <div :class="{ hidden: hidden }" class="pagination-container"  v-bind="$attrs">
       <el-pagination
         :background="background"
@@ -18,7 +18,6 @@
         <slot name="extra"></slot>
       </el-pagination>
     </div>
-  </el-config-provider>
 </template>
 
 <script lang="ts">
@@ -32,15 +31,8 @@ import { scrollTo, cancelScroll } from '../../utils/scroll-to'
 import { PropType, computed, onBeforeUnmount } from 'vue'
 import { isMobile } from '../../js/utils'
 
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 const props = defineProps({
-  language: {
-    type: Object,
-    default: () => {
-      return zhCn
-    },
-  },
   total: {
     type: Number,
     default: 0,

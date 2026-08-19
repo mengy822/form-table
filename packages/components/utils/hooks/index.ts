@@ -8,38 +8,47 @@ import {
   onUnmounted,
 } from 'vue'
 export function useListenDomChange(callback: Function, delay: number = 100) {
-  let mutationObserver: MutationObserver | null = null
+  const observers = new Map<string | Element, MutationObserver>()
   let timer: ReturnType<typeof setTimeout> | null = null
   let isActive = true
-  let lastHeight = 0
-  const targetArr: { target: string | Element }[] = []
+  let isCallbackRunning = false // 防止回调重入
+  const lastHeights = new Map<string | Element, number>()
+
+  const debouncedCheck = () => {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => {
+      if (isActive && !isCallbackRunning) {
+        isCallbackRunning = true
+        try {
+          callback()
+        } finally {
+          isCallbackRunning = false
+        }
+      }
+      timer = null
+    }, delay)
+  }
   const getHeight = (element: Element) => {
     return element.getBoundingClientRect().height
   }
 
-  const checkHeightChange = (element: Element) => {
-    const newHeight = getHeight(element)
-    // console.log(1);
+  const checkHeightChange = (element: Element, key: string | Element) => {
+    const newHeight = getHeight(element);
+    const lastHeight = lastHeights.get(key) ?? 0;
+    // console.log('高度变化:', lastHeight, '->', newHeight);
     if (Math.abs(lastHeight - newHeight) > 0.5) {
-      // console.log('高度变化:', lastHeight, '->', newHeight);
-      lastHeight = newHeight
-      callback()
-      return true
+      lastHeights.set(key, newHeight);
+      return true;
     }
-    return false
-  }
-
-  const debouncedCheck = (element: Element) => {
-    if (timer) clearTimeout(timer)
-    timer = setTimeout(() => {
-      checkHeightChange(element)
-      timer = null
-    }, delay)
-  }
+    return false;
+  };
 
   const listen = (target: Element | string) => {
-    // cleanup();
-    targetArr.push({ target: target })
+    const key = target
+    // 如果已存在观察者，先断开（防止重复创建）
+    if (observers.has(key)) {
+      observers.get(key)!.disconnect()
+    }
     let element: Element | null = null
     if (typeof target === 'string') {
       element = document.querySelector(target)
@@ -51,33 +60,33 @@ export function useListenDomChange(callback: Function, delay: number = 100) {
       element = target
     }
 
-    lastHeight = getHeight(element)
+    lastHeights.set(key, getHeight(element))
 
-    mutationObserver = new MutationObserver(() => {
-      debouncedCheck(element!)
+    const observer = new MutationObserver(() => {
+      if (!isActive) return
+      debouncedCheck()
     })
 
-    mutationObserver.observe(element, {
+    observer.observe(element, {
       attributes: true,
       attributeFilter: ['style', 'class'],
-      childList: true,
+      childList: false,
       subtree: true,
-      characterData: true,
+      characterData: false,
     })
-
+observers.set(key, observer)
     isActive = true
   }
 
   const cleanup = () => {
-    if (mutationObserver) {
-      mutationObserver.disconnect()
-      mutationObserver = null
-    }
+    // 断开所有观察者
+    observers.forEach((observer) => observer.disconnect())
+    observers.clear()
+    lastHeights.clear()
     if (timer) {
       clearTimeout(timer)
       timer = null
     }
-    targetArr.length = 0
     isActive = false
   }
   onDeactivated(() => {
@@ -86,8 +95,8 @@ export function useListenDomChange(callback: Function, delay: number = 100) {
   })
   onActivated(() => {
     console.log('组件活跃,重新监听')
-    targetArr.forEach((targetItem) => {
-      listen(targetItem.target)
+    observers.forEach((_, key) => {
+      listen(key)
     })
   })
   onBeforeUnmount(() => {

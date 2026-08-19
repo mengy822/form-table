@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="table-operations"
-    :style="{ justifyContent: getAlignStyle() }"
-  >
+  <div class="table-operations" :style="{ justifyContent: getAlignStyle() }">
     <!-- 动态渲染按钮（根据 getSlotContent） -->
     <template v-if="getSlotContent && getSlotContent.length">
       <!-- 显示的按钮（前 simpTransVar 个） -->
@@ -74,74 +71,78 @@
   </div>
 </template>
 <script setup lang="ts">
-import { VNode, computed, h } from 'vue';
-import { ArrowDown } from '@element-plus/icons-vue';
-import { ElButton, ElTooltip, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon } from 'element-plus';
-import { ObjectType } from '@/components/js/types';
+import { VNode, computed, h } from 'vue'
+import { ArrowDown } from '@element-plus/icons-vue'
+import {
+  ElButton,
+  ElTooltip,
+  ElDropdown,
+  ElDropdownMenu,
+  ElDropdownItem,
+  ElIcon,
+} from 'element-plus'
+import { dataItemType, ObjectType } from '@/components/js/types'
 // 组件名称
 defineOptions({
-  name: 'TableOperations'
+  name: 'TableOperations',
 })
 // 定义插槽类型
 export interface SlotsObject {
-  operationBefore?: (props: any) => VNode;
-  addSon?: (props: any) => VNode;
-  operationAfterAddSon?: (props: any) => VNode;
-  detail?: (props: any) => VNode;
-  operationAfterDetail?: (props: any) => VNode;
-  update?: (props: any) => VNode;
-  operationAfterUpdate?: (props: any) => VNode;
-  remove?: (props: any) => VNode;
-  operationAfter?: (props: any) => VNode;
-  [key: string]: any;
-}
-export interface dataItemType {
-  [key: string]: string | number | undefined | boolean|ObjectType
+  operationBefore?: (props: any) => VNode
+  addSon?: (props: any) => VNode
+  operationAfterAddSon?: (props: any) => VNode
+  detail?: (props: any) => VNode
+  operationAfterDetail?: (props: any) => VNode
+  update?: (props: any) => VNode
+  operationAfterUpdate?: (props: any) => VNode
+  remove?: (props: any) => VNode
+  operationAfter?: (props: any) => VNode
+  [key: string]: any
 }
 // 动态内容类型：VNode 或内置按钮标识
-type SlotContentItem = VNode | 'detail' | 'update' | 'addSon' | 'remove';
+type SlotContentItem = VNode | 'detail' | 'update' | 'addSon' | 'remove'
 export type ButtonType = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info' | ''
 export interface TableOperationsProps {
   scope: {
-    row: any;
-    $index: number;
-  };
-  slots?: SlotsObject;
+    row: any
+    $index: number
+  }
+  slots?: SlotsObject
   queryParams?: {
-    pageNum: number;
-    pageSize: number;
-  };
-  isNotSimpTransVar?: boolean;
-  hasOperationText?: boolean;
-  hasOperationLink?: boolean;
-  hasOperationName?: boolean;
-  operationLoading?: boolean;
-  hasAddSon?: boolean | ((data: dataItemType) => boolean | string) | string;
-  hasAddSonType?: string;
-  hasAddSonIcon?: object;
-  hasDetail?: boolean | ((data: dataItemType) => boolean | string) | string;
-  hasDetailType?: string;
-  hasDetailIcon?: object;
-  hasUpdate?: boolean | ((data: dataItemType) => boolean | string) | string;
-  hasUpdateType?: string;
-  hasUpdateIcon?: object;
-  hasRemove?: boolean | ((data: dataItemType) => boolean | string) | string;
-  hasRemoveType?: string;
-  hasRemoveIcon?: object;
-  moreButtonTrigger?: 'click'|'hover';
-  align?: 'left' | 'center' | 'right';
-  getSlotContent?: SlotContentItem[];
-  getSlotCount?: number;
-  simpTransVar?: number;
-  moreButton: string;
-  moreButtonType?: ButtonType;
+    pageNum: number
+    pageSize: number
+  }
+  isNotSimpTransVar?: boolean
+  hasOperationText?: boolean
+  hasOperationLink?: boolean
+  hasOperationName?: boolean
+  operationLoading?: boolean
+  hasAddSon?: boolean | ((data: dataItemType) => boolean | string) | string
+  hasAddSonType?: string
+  hasAddSonIcon?: object | object
+  hasDetail?: boolean | ((data: dataItemType) => boolean | string) | string
+  hasDetailType?: string
+  hasDetailIcon?: object | object
+  hasUpdate?: boolean | ((data: dataItemType) => boolean | string) | string
+  hasUpdateType?: string
+  hasUpdateIcon?: object | object
+  hasRemove?: boolean | ((data: dataItemType) => boolean | string) | string
+  hasRemoveType?: string
+  hasRemoveIcon?: object | object
+  moreButtonTrigger?: 'click' | 'hover'
+  align?: 'left' | 'center' | 'right'
+  getSlotContent?: SlotContentItem[]
+  getSlotCount?: number
+  simpTransVar?: number
+  moreButton: string
+  moreButtonType?: ButtonType
   proxyProps?: {
-    onAddSon?: (row: any) => void;
-    onDetail?: (row: any) => void;
-    onUpdate?: (row: any) => void;
-    onRemove?: (row: any) => void;
-  };
-  getCustomLabel?: (scope: any, defaultLabel: string) => string;
+    onAddSon?: (row: any) => void
+    onDetail?: (row: any) => void
+    onUpdate?: (row: any) => void
+    onRemove?: (row: any) => void
+  }
+  getCustomLabel?: (scope: any, defaultLabel: string) => string
 }
 
 const props = withDefaults(defineProps<TableOperationsProps>(), {
@@ -158,71 +159,82 @@ const props = withDefaults(defineProps<TableOperationsProps>(), {
   hasRemoveType: 'danger',
   align: 'center',
   moreButton: '更多',
-  moreButtonType:'primary',
-  moreButtonTrigger:'hover',
+  moreButtonType: 'primary',
+  moreButtonTrigger: 'hover',
   getSlotContent: () => [],
   getSlotCount: 0,
   simpTransVar: 3,
-  proxyProps: () => ({})
-});
+  proxyProps: () => ({}),
+})
 
 const emit = defineEmits<{
-  'add-son': [row: any];
-  'detail': [row: any];
-  'update': [row: any];
-  'remove': [row: any];
-}>();
+  'add-son': [row: any]
+  detail: [row: any]
+  update: [row: any]
+  remove: [row: any]
+}>()
 
 const isVNode = (item: any): item is VNode => {
-  return item && typeof item === 'object' && 'type' in item;
-};
+  return item && typeof item === 'object' && 'type' in item
+}
 
 // 判断按钮是否应该显示（支持 boolean、函数、字符串）
-const shouldShowButton = (condition: boolean | ((data: dataItemType) => boolean | string) | string | undefined, row: any, eventName: string): boolean => {
+const shouldShowButton = (
+  condition: boolean | ((data: dataItemType) => boolean | string) | string | undefined,
+  row: any,
+  eventName: string
+): boolean => {
   // 如果是字符串，直接返回 true（显示文字按钮）
   if (typeof condition === 'string') {
-    return true;
+    return true
   }
   if (typeof condition === 'function') {
-    return !!condition(row);
+    return !!condition(row)
   }
-  return !!(condition && props.proxyProps?.[eventName as keyof typeof props.proxyProps]);
-};
+  return !!(condition && props.proxyProps?.[eventName as keyof typeof props.proxyProps])
+}
 
 // 获取按钮文本（支持直接文字）
-const getButtonLabel = (condition: boolean | ((data: dataItemType) => boolean | string) | string | undefined, row: any, defaultLabel: string): string => {
+const getButtonLabel = (
+  condition: boolean | ((data: dataItemType) => boolean | string) | string | undefined,
+  row: any,
+  defaultLabel: string
+): string => {
   // 如果是字符串，直接返回该字符串
   if (typeof condition === 'string') {
-    return condition;
+    return condition
   }
   if (typeof condition == 'function') {
-    const customLabel = condition(row);
-    if (customLabel) return customLabel as string;
+    const customLabel = condition(row)
+    if (customLabel) {
+      if (typeof customLabel == 'boolean') return defaultLabel
+      return customLabel
+    }
   }
-  return defaultLabel;
-};
+  return defaultLabel
+}
 
 // 判断菜单项是否应该显示
 const shouldShowMenuItem = (item: SlotContentItem): boolean => {
   if (typeof item === 'string') {
-    const row = props.scope.row;
+    const row = props.scope.row
     switch (item) {
       case 'addSon':
-        return shouldShowButton(props.hasAddSon, row, 'onAddSon');
+        return shouldShowButton(props.hasAddSon, row, 'onAddSon')
       case 'detail':
-        return shouldShowButton(props.hasDetail, row, 'onDetail');
+        return shouldShowButton(props.hasDetail, row, 'onDetail')
       case 'update':
-        return shouldShowButton(props.hasUpdate, row, 'onUpdate');
+        return shouldShowButton(props.hasUpdate, row, 'onUpdate')
       case 'remove':
-        return shouldShowButton(props.hasRemove, row, 'onRemove');
+        return shouldShowButton(props.hasRemove, row, 'onRemove')
       default:
-        return false;
+        return false
     }
   }
   // VNode 默认显示
-  return isVNodeVisible(item);
-};
-const isVNodeVisible=(vnode:VNode)=> {
+  return isVNodeVisible(item)
+}
+const isVNodeVisible = (vnode: VNode) => {
   // 1. 注释节点永远不会"显示"（语义上不可见）
   if (vnode.type !== Symbol.for('v-cmt')) {
     return true
@@ -252,94 +264,94 @@ const isVNodeVisible=(vnode:VNode)=> {
 }
 const displaySlotContent = computed(() => {
   if (!props.getSlotContent || props.getSlotContent.length === 0) {
-    return [];
+    return []
   }
-  const count = props.getSlotCount;
-  let content = props.getSlotContent;
+  const count = props.getSlotCount
+  let content = props.getSlotContent
   if (count > 0 && count < props.getSlotContent.length) {
-    content = props.getSlotContent.slice(0, count);
+    content = props.getSlotContent.slice(0, count)
   }
   // 过滤掉不应该显示的按钮
-  return content.filter(item => shouldShowMenuItem(item));
-});
+  return content.filter((item) => shouldShowMenuItem(item))
+})
 
 const visibleButtons = computed(() => {
-  const buttons = displaySlotContent.value;
-  const threshold = props.simpTransVar || 3;
-  return buttons.slice(0, threshold);
-});
+  const buttons = displaySlotContent.value
+  const threshold = props.simpTransVar || 3
+  return buttons.slice(0, threshold)
+})
 
 const hiddenButtons = computed(() => {
-  const buttons = displaySlotContent.value;
-  const threshold = props.simpTransVar || 3;
+  const buttons = displaySlotContent.value
+  const threshold = props.simpTransVar || 3
   if (buttons.length <= threshold) {
-    return [];
+    return []
   }
-  return buttons.slice(threshold);
-});
+  return buttons.slice(threshold)
+})
 
 const handleMoreCommand = (command: { item: SlotContentItem; index: number }) => {
-  const { item } = command;
+  const { item } = command
   if (typeof item === 'string') {
     switch (item) {
       case 'addSon':
-        handleAddSon(props.scope.row);
-        break;
+        handleAddSon(props.scope.row)
+        break
       case 'detail':
-        handleDetail(props.scope.row);
-        break;
+        handleDetail(props.scope.row)
+        break
       case 'update':
-        handleUpdate(props.scope.row);
-        break;
+        handleUpdate(props.scope.row)
+        break
       case 'remove':
-        handleRemove(props.scope.row);
-        break;
+        handleRemove(props.scope.row)
+        break
     }
   }
-};
+}
 
 const getAlignStyle = (): string => {
   const alignMap = {
     left: 'flex-start',
     center: 'center',
-    right: 'flex-end'
-  };
-  return alignMap[props.align] || 'center';
-};
+    right: 'flex-end',
+  }
+  return alignMap[props.align] || 'center'
+}
 
 const getRowIndex = (index: number): number => {
-  return props.queryParams.pageSize * (props.queryParams.pageNum - 1) + index + 1;
-};
+  return props.queryParams.pageSize * (props.queryParams.pageNum - 1) + index + 1
+}
 
 const handleAddSon = (row: any) => {
-  emit('add-son', row);
-};
+  emit('add-son', row)
+}
 
 const handleDetail = (row: any) => {
-  emit('detail', row);
-};
+  emit('detail', row)
+}
 
 const handleUpdate = (row: any) => {
-  emit('update', row);
-};
+  emit('update', row)
+}
 
 const handleRemove = (row: any) => {
-  emit('remove', row);
-};
+  emit('remove', row)
+}
 
 // 核心渲染函数：根据 item 类型返回对应的 VNode
 const renderButtonItem = (item: SlotContentItem, isInDropdown: boolean) => {
   // 如果是 VNode，直接返回
   if (isVNode(item)) {
-    return item;
+    return item
   }
 
   // 如果是字符串，返回一个函数式组件
-  const type = item as string;
+  const type = item as string
 
   return (renderProps: any) => {
-    const row = renderProps.row || renderProps.data;
-    const index = renderProps.index;
+    const row = renderProps.row || renderProps.data
+    const index = renderProps.index
 
     const buttonConfig: Record<string, any> = {
       addSon: {
@@ -349,7 +361,7 @@ const renderButtonItem = (item: SlotContentItem, isInDropdown: boolean) => {
         icon: props.hasAddSonIcon,
         label: getButtonLabel(props.hasAddSon, row, '新增'),
         handler: () => handleAddSon(row),
-        eventName: 'onAddSon'
+        eventName: 'onAddSon',
       },
       detail: {
         condition: props.hasDetail,
@@ -358,7 +370,7 @@ const renderButtonItem = (item: SlotContentItem, isInDropdown: boolean) => {
         icon: props.hasDetailIcon,
         label: getButtonLabel(props.hasDetail, row, '详情'),
         handler: () => handleDetail(row),
-        eventName: 'onDetail'
+        eventName: 'onDetail',
       },
       update: {
         condition: props.hasUpdate,
@@ -367,7 +379,7 @@ const renderButtonItem = (item: SlotContentItem, isInDropdown: boolean) => {
         icon: props.hasUpdateIcon,
         label: getButtonLabel(props.hasUpdate, row, '修改'),
         handler: () => handleUpdate(row),
-        eventName: 'onUpdate'
+        eventName: 'onUpdate',
       },
       remove: {
         condition: props.hasRemove,
@@ -376,63 +388,71 @@ const renderButtonItem = (item: SlotContentItem, isInDropdown: boolean) => {
         icon: props.hasRemoveIcon,
         label: getButtonLabel(props.hasRemove, row, '删除'),
         handler: () => handleRemove(row),
-        eventName: 'onRemove'
-      }
-    };
+        eventName: 'onRemove',
+      },
+    }
 
-    const config = buttonConfig[type];
-    if (!config) return null;
+    const config = buttonConfig[type]
+    if (!config) return null
 
     // 使用插槽（如果存在）
     if (config.slot) {
       return h(config.slot, {
         data: row,
-        index: index
-      });
+        index: index,
+      })
     }
 
     // 判断是否显示按钮
-    let shouldShow = false;
+    let shouldShow = false
     if (typeof config.condition === 'string') {
-      shouldShow = true;
+      shouldShow = true
     } else if (typeof config.condition === 'function') {
-      shouldShow = config.condition(row);
+      shouldShow = config.condition(row)
     } else {
-      shouldShow = !!(config.condition && props.proxyProps?.[config.eventName]);
+      shouldShow = !!(config.condition && props.proxyProps?.[config.eventName])
     }
 
-    if (!shouldShow) return null;
+    if (!shouldShow) return null
 
     // 创建按钮
-    const button = h(ElButton, {
-      text: props.hasOperationText,
-      link: props.hasOperationLink,
-      type: config.type,
-      loading: props.operationLoading,
-      icon: config.icon,
-      onClick: config.handler,
-      style: isInDropdown ? { width: '100%' } : {}
-    }, () => config.label);
+    const button = h(
+      ElButton,
+      {
+        text: props.hasOperationText,
+        link: props.hasOperationLink,
+        type: config.type,
+        loading: props.operationLoading,
+        icon: config.icon,
+        onClick: config.handler,
+        style: isInDropdown ? {  } : {},
+      },
+      () => config.label
+    )
 
     // 添加 tooltip（仅在下拉菜单外显示）
     if (props.hasOperationName && !isInDropdown) {
-      let tooltipContent = config.label;
+      let tooltipContent = config.label
       if (typeof config.condition === 'function') {
-        tooltipContent = `${config.label}${row?.name || ''}`;
+        tooltipContent = `${config.label}${row?.name || ''}`
       }
-      return h(ElTooltip, {
-        content: tooltipContent,
-        placement: 'top'
-      }, () => button);
+      return h(
+        ElTooltip,
+        {
+          content: tooltipContent,
+          placement: 'top',
+        },
+        () => button
+      )
     }
 
-    return button;
-  };
-};
+    return button
+  }
+}
 
 defineExpose({
-  getRowIndex
-});
+  getRowIndex,
+})
 </script>
 
 <style scoped lang="scss">

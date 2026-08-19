@@ -1,5 +1,5 @@
 <template>
-  <div class="mapContainer">
+  <div class="mapContainer" ref="mapContainer">
     <div :id="mapId" class="map" :style="`width: 100%; height: ${heightInner}`"></div>
     <div class="top-com">
       <slot name="top"></slot>
@@ -55,11 +55,12 @@
 </template>
 
 <script lang="ts" setup name="map">
-import { computed, onMounted, onBeforeUnmount, ref, watch, getCurrentInstance, ComponentInternalInstance, nextTick } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref, watch, getCurrentInstance, ComponentInternalInstance, nextTick, useTemplateRef } from 'vue';
 import AMapLoad from './AMap';
 import { getRemainingHeight } from '@/components/FormTable/js/utils';
 import { isLat, isLng } from '@/utils/validate';
 import useTrackPlayback, { TrackSegment, UseTrackPlaybackReturn } from '@/components/FormTable/utils/hooks/useTrackPlayback';
+import { useListenDomChange } from '../utils/hooks';
 
 // 定义绘制相关类型
 type DrawMode = 'Marker' | 'Circle' | 'Polyline' | 'Rectangle' | 'Polygon' | '';
@@ -76,7 +77,7 @@ const mapId = computed(() => {
 });
 const lnglat = ref('');
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
-
+const mapContainer=useTemplateRef('mapContainer')
 const props = defineProps({
   onlyByOne: {
     type: Boolean,
@@ -121,10 +122,6 @@ const props = defineProps({
   showDefaultSlot: {
     type: Boolean,
     default: true
-  },
-  gridType: {
-    type: String as Partial<'big' | 'small'>,
-    default: 'small'
   },
   iconSize: {
     type: Array<number>,
@@ -189,7 +186,7 @@ const playbackOptions = ref({
 const drawType = ref();
 
 // 普通变量
-let mapInstance = null;
+let mapInstance: unknown = null;
 let marker = null;
 let resolveQueue = [];
 let drawLayerGrounp = null;
@@ -471,7 +468,7 @@ const initPl = async () => {
   } else {
     const internal = getCurrentInstance();
     const onEmit = (internal?.vnode.props || {}) as Record<string, any>;
-    if (onEmit['onMapmove']) {
+    if (onEmit['onMapmove']||!internal) {
       const zoomEndHandler = () => {
         emits('mapmove', getBounds());
       };
@@ -483,7 +480,7 @@ const initPl = async () => {
       mapInstance.on('moveend', moveEndHandler);
       cleanupResources.eventHandlers.push({ type: 'moveend', handler: moveEndHandler });
     }
-    if (onEmit['onClick']) {
+    if (onEmit['onClick']||!internal) {
       const clickHandler = (e) => {
         const { lat, lng } = e.latlng;
         if (props.onlyByOne) {
@@ -1698,11 +1695,22 @@ const clickMarker = (marker) => {
 
 // ==================== 生命周期 ====================
 
-onMounted(async () => {
-  createMap(mapId.value, props.center);
+const listenDoc = useListenDomChange((mutationList: any) => {
+  computedHeight();
+});
+const computedHeight = () => {
   const { height, dom } = getRemainingHeight(props.baseClass, ['.mapContainer']);
   heightInner.value = props.height ?? height + 'px';
+  console.log(heightInner.value);
+  if (mapInstance && typeof mapInstance.resize === 'function') {
+    mapInstance.resize();
+  }
+};
+onMounted(async () => {
+  createMap(mapId.value, props.center);
+  computedHeight();
   await loadImages();
+  listenDoc.listen('.mapContainer');
 });
 
 onBeforeUnmount(() => {
@@ -1744,7 +1752,10 @@ defineExpose({
   cleanup: cleanupAllResources,
   isLoading,
   hook,
-  yieldControl
+  yieldControl,
+  gcj02towgs84,
+  wgs84ToGcj02,
+  $el:mapContainer
 });
 </script>
 

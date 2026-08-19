@@ -3,6 +3,7 @@ import { h } from 'vue'
 import { ElTableColumn, TableColumnCtx } from 'element-plus'
 import { dataItemType } from '../TableOperations/index.vue'
 import { tableColumnItem } from '@/components/Table/types'
+import { formatDisplayContent } from '@/components/utils'
 
 export default {
   name: 'MyTableColumn',
@@ -17,7 +18,7 @@ export default {
       other: {
         tableColumnFinal?: tableColumnItem[]
         defaultBlock?: string
-        data?:any[];
+        data?: any[]
         [key: string]: any
       } = {},
     ) {
@@ -78,17 +79,27 @@ export default {
                     [key: string]: any
                   },
                 ) => {
-                  const content = String(
-                    typeof row[prop] == 'number' && (column.decimalPlaces || 0) > 0
-                      ? (row[prop] as number).toFixed(column.decimalPlaces)
-                      : (row[prop] ?? other?.defaultBlock),
-                  )
+                  // const content = String(
+                  //   typeof row[prop] == 'number' && typeof column.decimalPlaces === 'number'
+                  //     ? formatNumber(row[prop] as number, column.decimalPlaces)
+                  //     : (row[prop] ?? other?.defaultBlock),
+                  // )
                   //@ts-ignore
-                  const unit =
-                    typeof column.unit == 'string'
-                      ? column.unit
-                      : ((column.unit && column.unit(row, prop, other)) ?? '')
-                  return content != other?.defaultBlock ? content + unit : content
+                  // const unit =
+                  //   typeof column.unit == 'string'
+                  //     ? column.unit
+                  //     : ((column.unit && column.unit(row, prop, other)) ?? '')
+                  const content = formatDisplayContent({
+                    value: row[prop],
+                    decimalPlaces: column.decimalPlaces,
+                    defaultBlock: other?.defaultBlock,
+
+                    unit: column.unit,
+                    rowData: row,
+                    other,
+                    prop: column.prop,
+                  })
+                  return content
                 }
               }
               let dataType = typeof row[column.prop]
@@ -189,7 +200,8 @@ export default {
                 //   ilike,
                 //   String(row[property]).toLowerCase().includes(String(value).toLowerCase()),
                 // )
-                if (ilike) return String(row[property]).toLowerCase().includes(String(value).toLowerCase())
+                if (ilike)
+                  return String(row[property]).toLowerCase().includes(String(value).toLowerCase())
                 return row[property] == value
               })
             : undefined
@@ -230,13 +242,13 @@ export default {
     }
   },
   render(): any {
-    const { tableColumnFinal, align,data } = this.$attrs
+    const { tableColumnFinal, align, data } = this.$attrs
     const { renderColumnList } = this
     const $self = this
     return renderColumnList.call($self, tableColumnFinal, align, {
       ...this.$attrs,
       renderTxt: (context: string | number | boolean) => context ?? this.$attrs.defaultBlock,
-      data
+      data,
     }) // renderColumnList内部需借助当前this查找父组件
   },
 }

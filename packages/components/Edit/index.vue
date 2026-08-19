@@ -1,5 +1,4 @@
 <template>
-  <el-config-provider :locale="language">
     <MyDialog
       ref="myDialog"
       :top="top"
@@ -38,29 +37,30 @@
           <div
             v-for="(columnItem, index) in columnFinal"
             :key="index"
-            :class="`class_${index} editItems`"
+            :class="`class_${index} editItems`" :style="{ gap: gap + 'px' }"
           >
             <div
               v-for="item in columnItem"
               :key="JSON.stringify(item)"
               :class="`class_${item.prop}`"
-              :style="`width:${(100 / desColumn) * (item.span || desColumn)}%`"
+              :style="`width:calc(${(100 / desColumn) * item.span}% - ${item.span == desColumn ? 0 : (gap / desColumn) * item.span}px)`"
             >
               <component
                 v-if="item.itemFunDom"
                 :is="getFunDomComponent(item, dynamicComputedMap, 'itemFunDom')"
               />
-              <slot v-else :name="`item_${item.prop}`" :prop="item.prop" :data="dynamicComputedMap">
+              <slot v-else :name="`item_${item.prop}`" :prop="item.prop" :data="dynamicComputedMap" :config="item">
                 <el-form-item
                   :ref="(el: any) => dynamicCreateRef(el, item.prop)"
                   :label="item.label"
                   :prop="item.prop"
                   :class="item.class"
                   :rules="
-                    typeof item.dynamicRequired === 'undefined' ||
-                    (item.dynamicRequired && item.dynamicRequired(dynamicComputedMap))
-                      ? rules[item.prop]
-                      : []
+                    (rules[item.prop] || []).map((item1) => {
+                      item1.required =
+                        typeof item.dynamicRequired === 'undefined' || (item.dynamicRequired && item.dynamicRequired(dynamicComputedMap));
+                      return item1;
+                    })
                   "
                   v-if="item.showFun && item.showFun(dynamicComputedMap)"
                 >
@@ -249,7 +249,6 @@
       </template>
       <!-- </el-dialog> -->
     </MyDialog>
-  </el-config-provider>
 </template>
 <script lang="ts" setup name="MyEdit">
 import { getName } from '../js/utils'
@@ -265,6 +264,7 @@ import {
   useSlots,
   useTemplateRef,
   VNode,
+  watch,
 } from 'vue'
 import { ElMessage, FormRules } from 'element-plus'
 import Input from '../components/input/index.vue'
@@ -286,7 +286,6 @@ import type {
   switchInnerType,
 } from '../components/form/types'
 import MyComputedData from '../utils/hooks/MyComputedData'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { createRules } from '../utils/rules'
 import { scrollTo } from '../utils/scroll-to'
 import { MyDialogInstance } from '../../index'
@@ -303,23 +302,21 @@ const gridTemplateColumns = computed(() => {
 })
 // 定义 Props 类型接口
 interface FormDialogProps {
-  /** 语言配置 */
-  language: Record<string, any>
 
   /** 不需要触发变更检查的组件类型 */
-  notNeedChangeCheck: string[]
+  notNeedChangeCheck?: string[]
 
   /** 提交按钮文本 */
-  submitButtonTxt: { add: string; edit: string }
+  submitButtonTxt?: { add: string; edit: string }
 
   /** 取消按钮文本 */
-  cancelButtonTxt: string
+  cancelButtonTxt?: string
 
   /** 弹框宽度 */
-  width: string
+  width?: string
 
   /** 弹框标题 */
-  title: { add: string; edit: string }
+  title?: { add: string; edit: string }
 
   /** 表单列配置（必填） */
   column: (
@@ -333,56 +330,56 @@ interface FormDialogProps {
   )[]
 
   /** 行内表单模式 */
-  inline: boolean
+  inline?: boolean
 
   /** 表单域标签位置 */
-  labelPosition: 'left' | 'right' | 'top'
+  labelPosition?: 'left' | 'right' | 'top'
 
   /** 标签长度 */
-  labelWidth: string | number
+  labelWidth?: string | number
 
   /** 表单域标签后缀 */
-  labelSuffix: string
+  labelSuffix?: string
 
   /** 隐藏必填星号 */
-  hideRequiredAsterisk: boolean
+  hideRequiredAsterisk?: boolean
 
   /** 星号位置 */
-  requireAsteriskPosition: 'left' | 'right'
+  requireAsteriskPosition?: 'left' | 'right'
 
   /** 是否显示错误信息 */
-  showMessage: boolean
+  showMessage?: boolean
 
   /** 以行内形式显示错误信息 */
-  inlineMessage: boolean
+  inlineMessage?: boolean
 
   /** 在输入框内显示反馈图标 */
-  statusIcon: boolean
+  statusIcon?: boolean
 
   /** 是否在rules改变后立即触发 */
-  validateOnRuleChange: boolean
+  validateOnRuleChange?: boolean
 
   /** 表单内组件尺寸 */
-  size: '' | 'large' | 'default' | 'small'
+  size?: '' | 'large' | 'default' | 'small'
 
   /** 禁用所有组件 */
-  disabled: boolean
+  disabled?: boolean
 
   /** 滚动到第一个错误表单 */
-  scrollToError: boolean
+  scrollToError?: boolean
 
   /** 提示信息显示时长（毫秒） */
-  duration: number
+  duration?: number
 
   /** 操作成功提示文本 */
-  message: string
+  message?: string
 
   /** 自动更新回调函数 */
   autoUpdate?: () => void
   status?: number | boolean | string
   code?: string
   /** 数据源格式配置（数据列表字段、总数字段） */
-  dataConfig: { data: string; status: string | number | boolean; code: string }
+  dataConfig?: { data: string; status: string | number | boolean; code: string }
   /** 列数 */
   desColumn?: number
   /** 错误数据的渲染函数 */
@@ -414,8 +411,6 @@ interface FormDialogProps {
 // 使用 withDefaults 定义 Props 并配置默认值
 const props = withDefaults(defineProps<FormDialogProps>(), {
   dataConfig: () => ({ data: 'data', status: 200, code: 'code' }),
-  // 语言配置
-  language: () => zhCn,
   //删除成功的状态码
   status: 200,
   //删除成功的状态码字段
@@ -465,29 +460,13 @@ const props = withDefaults(defineProps<FormDialogProps>(), {
 
 const dataFinal = ref<{ [key: string]: any }>({})
 const rules = ref<FormRules>({})
-//搜索条件标识,判断是不是需要重新渲染
-const searchSign = ref<string[]>([])
-/**
- * 计算搜索条件标识
- * @param list 搜索条件
- * @param flag true比较false计算
- */
-const computedSearchSign = (list: typeof props.column = [], flag = false) => {
-  if (flag) {
-    return (
-      new Set([...list.map((item) => `${item.prop}-${item.type}`), ...searchSign.value]).size !==
-      searchSign.value.length
-    )
-  } else {
-    searchSign.value = []
-    searchSign.value = list.map((item) => `${item.prop}-${item.type}`)
-  }
-}
+
 const editFormDisplay = ref()
 const editFormGridTemplateColumns = ref()
+const gap = ref<number>(20);
 const columnFinal = computed<(typeof props.column)[]>(() => {
   // console.log(props.column)
-  rules.value = createRules(props.column, props.notNeedChangeCheck)
+  // rules.value = createRules(props.column, props.notNeedChangeCheck)
   const clu: (typeof props.column)[] = []
   props.column.map(
     (
@@ -524,10 +503,24 @@ const columnFinal = computed<(typeof props.column)[]>(() => {
       }
     }
   )
-  editFormDisplay.value = clu.length > 1 ? 'grid' : 'block'
-  editFormGridTemplateColumns.value = Math.max(...props.column.map((item) => item.column || 1))
+  // editFormDisplay.value = clu.length > 1 ? 'grid' : 'block'
+  // editFormGridTemplateColumns.value = Math.max(...props.column.map((item) => item.column || 1))
   return clu
 })
+
+watch(
+  () => props.column.map((item) => `${item.prop}-${item.type}`).join('|'),
+  (newValue, oldValue) => {
+    if (newValue === oldValue) {
+      return;
+    }
+    rules.value = createRules(props.column, props.notNeedChangeCheck);
+    editFormDisplay.value = columnFinal.value.length > 1 ? 'grid' : 'block';
+    editFormGridTemplateColumns.value = Math.max(...props.column.map((item) => item.column || 1));
+  },
+  { immediate: true }
+);
+
 const dynamicRefMap = ref<{ [name: string]: any }>({})
 //动态创建表单ref
 const dynamicCreateRef = (el: any, prop: string) => {

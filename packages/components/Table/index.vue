@@ -1,7 +1,6 @@
 <template>
-  <el-config-provider :locale="language">
     <el-card shadow="hover" class="table-plus table-plus-card">
-      <template #header>
+      <template #header v-if="showHeader">
         <slot name="header">
           <el-row :gutter="10">
             <el-col :span="1.5" v-if="hasAdd && proxyProps[`onAdd`]">
@@ -34,6 +33,7 @@
               <el-button
                 :loading="operationLoading"
                 type="warning"
+                :disabled="dataListComputed.length === 0"
                 :plain="hasTableTopPlain"
                 :icon="hasExportIcon"
                 @click.stop="handleExport()"
@@ -71,8 +71,11 @@
       </template>
       <!-- :data="dataListComputed" -->
       <el-table
+        :show-summary="showSummaryFinal"
+        :sum-text="sumText"
+        :summary-method="summaryMethod"
         v-virtual="finalVirtualScrollConfig"
-        :span-method="spanMethod"
+        :span-method="spanMethodFinal"
         class="table-plus-main"
         :height="height || heightInner || maxHeight"
         :max-height="maxHeight || maxHeightInner || height"
@@ -182,7 +185,7 @@
                   loading: operationLoading,
                 }).filter((item1: any) => item1)
               "
-              :simpTransVar="simpTransVar"
+              :simpTransVar="+simpTransVar"
               @add-son="handleAddSon"
               @detail="handleDetail"
               @update="handleUpdate"
@@ -214,7 +217,6 @@
         </template>
       </pagination>
     </el-card>
-  </el-config-provider>
 </template>
 
 <script setup lang="ts" name="MyTable">
@@ -238,7 +240,7 @@ import {
 import pagination from '../components/Pagination/index.vue'
 import RightToolbar from '../components/RightToolbar/index.vue'
 import MyTableColumn from '../components/tableColumn'
-import TableOperations, { ButtonType, dataItemType } from '../components/TableOperations/index.vue'
+import TableOperations, { ButtonType } from '../components/TableOperations/index.vue'
 import { Delete, Download, Edit, Plus, Upload, View } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, TableColumnCtx, TableInstance } from 'element-plus'
 import FunctionAnalyzer from '../utils/FunctionAnalyzer'
@@ -250,10 +252,9 @@ import {
   getZoomPercent,
 } from '../js/utils'
 
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { useListenDomChange } from '../utils/hooks'
 import { handleFileDownload, request } from '../js'
-import { ObjectType } from '../js/types'
+import { dataItemType, ObjectType } from '../js/types'
 import { scrollParams, virtualConfig } from '@/directive/types'
 
 interface IsTreeConfig {
@@ -262,108 +263,12 @@ interface IsTreeConfig {
   children: string
   firstParentId: string
 }
-const slotContentCache = new Map()
-// 获取 slot 的虚拟节点内容
-function getSlotContent(
-  scope_data: {
-    data: { [key: string]: string | number | boolean }
-    index: number
-    text: boolean
-    link: boolean
-    loading: boolean
-  } = {
-    data: {},
-    index: 0,
-    text: false,
-    link: false,
-    loading: false,
-  }
-) {
-  // 生成唯一缓存key（使用行数据的唯一标识）
-  const cacheKey = JSON.stringify({
-    rowId: scope_data.data, // 确保有唯一id
-    rowIndex: scope_data.index,
-    hasAddSon: typeof props.hasAddSon === 'function' ? 'func' : props.hasAddSon,
-    hasDetail: typeof props.hasDetail === 'function' ? 'func' : props.hasDetail,
-    hasUpdate: typeof props.hasUpdate === 'function' ? 'func' : props.hasUpdate,
-    hasRemove: typeof props.hasRemove === 'function' ? 'func' : props.hasRemove,
-    // isSimpTransVar: props.isSimpTransVar,
-  })
-
-  if (slotContentCache.has(cacheKey)) {
-    return slotContentCache.get(cacheKey)
-  }
-  // console.log(scope_data.index, 'scope_data.index')
-  // const slotKeys = Object.keys(slots).filter((item) => item.indexOf('operation') > -1);
-  const allSlotName = [
-    'operationBefore',
-    'addSon',
-    'operationAfterAddSon',
-    'detail',
-    'operationAfterDetail',
-    'update',
-    'operationAfterUpdate',
-    'remove',
-    'operationAfter',
-  ] as const
-  const defaultButtonShowFun: {
-    addSon: boolean | string
-    detail: boolean | string
-    update: boolean | string
-    remove: boolean | string
-  } = {
-    addSon:
-      typeof props.hasAddSon === 'function'
-        ? props.hasAddSon(scope_data.data)
-        : props.hasAddSon && proxyProps.value[`onAddSon`],
-    detail:
-      typeof props.hasDetail === 'function'
-        ? props.hasDetail(scope_data.data)
-        : props.hasDetail && proxyProps.value[`onDetail`],
-    update:
-      typeof props.hasUpdate === 'function'
-        ? props.hasUpdate(scope_data.data)
-        : props.hasUpdate && proxyProps.value[`onUpdate`],
-    remove:
-      typeof props.hasRemove === 'function'
-        ? props.hasRemove(scope_data.data)
-        : props.hasRemove && proxyProps.value[`onRemove`],
-  }
-  const defaultButtonShowFunKey: (keyof typeof defaultButtonShowFun)[] = Object.keys(
-    defaultButtonShowFun
-  ) as Array<keyof typeof defaultButtonShowFun>
-  const vnodesArr = []
-  // console.log(allSlotName);
-  for (const slotName of allSlotName) {
-    const slot = slots[slotName]
-    if (
-      defaultButtonShowFunKey.includes(slotName as keyof typeof defaultButtonShowFun) &&
-      defaultButtonShowFun[slotName as keyof typeof defaultButtonShowFun]
-    ) {
-      // if (nowUseSim < sim) {
-      //   nowUseSim++;
-      //   showTableButton.value.push(slotName);
-      //   // continue;
-      // }
-      vnodesArr.push(slotName)
-      continue
-    }
-    if (!slot) continue
-
-    // 调用 slot 函数获取虚拟节点
-    const vnodes = slot(scope_data)
-
-    vnodesArr.push(...vnodes)
-  }
-  slotContentCache.set(cacheKey, vnodesArr)
-  // console.log(146543634, vnodes);
-  return vnodesArr
-}
 
 // 定义 Props 类型（提取为独立接口，增强可读性和复用性）
 export interface TableProps {
   /** 是否显示分页 */
   hasPage?: boolean
+  /** 合并行/列 */
   spanMethod?: (data: { row: any; column: any; rowIndex: number; columnIndex: number }) =>
     | number[]
     | {
@@ -371,6 +276,12 @@ export interface TableProps {
         colspan: number
       }
     | void
+  /** 自定义的合计计算方法 */
+  summaryMethod?: (data: { columns: any[]; data: any[] }) => (VNode | string)[]
+  /** 是否在表尾显示合计行 */
+  showSummary?: boolean
+  /** 显示摘要行第一列的文本 */
+  sumText?: string
   virtualScrollConfig?: VirtualScrollOptions
   /** 表格顶部按钮Plain */
   hasTableTopPlain?: boolean
@@ -400,8 +311,6 @@ export interface TableProps {
   needSetDefaultHasChildren?: (data: any) => boolean
   //不需要设置默认显示子级
   notNeedSetDefaultHasChildren?: (data: any) => boolean
-  /** 语言配置 */
-  language?: object
   /** 是否显示序号列（布尔值或自定义列名） */
   hasIndex?: boolean | string
   /** 是否显示选择列（支持函数动态控制） */
@@ -423,6 +332,7 @@ export interface TableProps {
   /** 基础样式类（用于计算高度等） */
   baseClass?: string
   autoHeightExcludeClassName?: string[]
+  showHeader?: object | boolean;
   //默认对齐
   align?: 'center' | 'left' | 'right'
   operationAlign?: 'center' | 'left' | 'right'
@@ -679,11 +589,17 @@ const hasOperationComputed = computed(() => {
       slots['remove'])
   )
 })
-
+/**
+ * 合计行
+ */
+const showSummaryFinal = computed(() => {
+  return typeof props.summaryMethod == 'undefined' ? props.showSummary : true
+})
 // 使用 withDefaults 定义 Props 并配置默认值
 const props = withDefaults(defineProps<TableProps>(), {
   tableKey: undefined,
   // 基础配置
+  showHeader: true,
   hasPage: true,
   virtualScrollConfig: {},
   moreButton: '更多',
@@ -699,7 +615,6 @@ const props = withDefaults(defineProps<TableProps>(), {
   defaultExpandAll: false,
   loadFun: undefined,
   treeProps: () => ({ children: 'children', hasChildren: 'hasChildren' }),
-  language: () => zhCn,
   hasIndex: true,
   hasSelection: false,
   reserve: false,
@@ -843,7 +758,7 @@ const dataListComputed = computed({
     //@ts-ignore
     props.dataList &&
       props.dataList.length > 0 &&
-      tableRef.value?._virtualScrollUpdateData?.(
+      tableRef.value?.$el?._virtualScrollUpdateData?.(
         val,
         finalVirtualScrollConfig.value.isVirtual ??
           val.length > finalVirtualScrollConfig.value.maxLength!
@@ -852,7 +767,7 @@ const dataListComputed = computed({
   },
   set: (val) => {
     //@ts-ignore
-    tableRef.value?._virtualScrollUpdateData?.(
+    tableRef.value.$el?._virtualScrollUpdateData?.(
       val,
       finalVirtualScrollConfig.value.isVirtual ??
         val.length > finalVirtualScrollConfig.value.maxLength!
@@ -860,6 +775,114 @@ const dataListComputed = computed({
     dataListInner.value = val
   },
 })
+// 组件级缓存，避免内存泄漏
+const slotContentCache = ref(new Map())
+const MAX_CACHE_SIZE = computed(() => {
+  const dataLength = dataListComputed.value?.length || 0
+  return Math.max(200, dataLength * 1.5)
+})
+
+// 获取 slot 的虚拟节点内容
+const getSlotContent = (
+  scope_data: {
+    data: any
+    index: number
+    text: boolean
+    link: boolean
+    loading: boolean
+  } = {
+    data: {},
+    index: 0,
+    text: false,
+    link: false,
+    loading: false,
+  }
+) => {
+  try {
+    const rowData = scope_data.data as Record<string, any>
+    // 使用行数据的唯一标识作为缓存key
+    const rowId = rowData?.id ?? rowData?.[props.rowKey as string] ?? String(scope_data.index)
+    const cacheKey = JSON.stringify({
+      rowId: scope_data.data, // 确保有唯一id
+      rowIndex: scope_data.index,
+      hasAddSon: typeof props.hasAddSon === 'function' ? 'func' : props.hasAddSon,
+      hasDetail: typeof props.hasDetail === 'function' ? 'func' : props.hasDetail,
+      hasUpdate: typeof props.hasUpdate === 'function' ? 'func' : props.hasUpdate,
+      hasRemove: typeof props.hasRemove === 'function' ? 'func' : props.hasRemove,
+    })
+    if (slotContentCache.value.has(cacheKey)) {
+      return slotContentCache.value.get(cacheKey)
+    }
+
+    // LRU淘汰：超过上限时移除最早的缓存
+    if (slotContentCache.value.size >= MAX_CACHE_SIZE.value) {
+      const firstKey = slotContentCache.value.keys().next().value
+      if (firstKey !== undefined) slotContentCache.value.delete(firstKey)
+    }
+
+    // console.log(scope_data.index, 'scope_data.index');
+    // const slotKeys = Object.keys(slots).filter((item) => item.indexOf('operation') > -1);
+    const allSlotName = [
+      'operationBefore',
+      'addSon',
+      'operationAfterAddSon',
+      'detail',
+      'operationAfterDetail',
+      'update',
+      'operationAfterUpdate',
+      'remove',
+      'operationAfter',
+    ]
+    const defaultButtonShowFun = {
+      addSon:
+        typeof props.hasAddSon === 'function'
+          ? props.hasAddSon(rowData)
+          : props.hasAddSon && proxyProps.value[`onAddSon`],
+      detail:
+        typeof props.hasDetail === 'function'
+          ? props.hasDetail(rowData)
+          : props.hasDetail && proxyProps.value[`onDetail`],
+      update:
+        typeof props.hasUpdate === 'function'
+          ? props.hasUpdate(rowData)
+          : props.hasUpdate && proxyProps.value[`onUpdate`],
+      remove:
+        typeof props.hasRemove === 'function'
+          ? props.hasRemove(rowData)
+          : props.hasRemove && proxyProps.value[`onRemove`],
+    }
+    const defaultButtonShowFunKey = Object.keys(defaultButtonShowFun)
+    const vnodesArr: any[] = []
+    // console.log(allSlotName);
+    for (const slotName of allSlotName) {
+      const slot = slots[slotName]
+      if (
+        defaultButtonShowFunKey.includes(slotName) &&
+        defaultButtonShowFun[slotName as keyof typeof defaultButtonShowFun]
+      ) {
+        // if (nowUseSim < sim) {
+        //   nowUseSim++;
+        //   showTableButton.value.push(slotName);
+        //   // continue;
+        // }
+        vnodesArr.push(slotName)
+        continue
+      }
+      if (!slot || Object.keys(scope_data.data).length === 0) continue
+
+      // 调用 slot 函数获取虚拟节点
+      const vnodes = slot(scope_data)
+
+      vnodesArr.push(...vnodes)
+    }
+    slotContentCache.value.set(cacheKey, vnodesArr)
+    // console.log(146543634, vnodes);
+    return vnodesArr
+  } catch (e) {
+    console.error('getSlotContent error:', e)
+    return []
+  }
+}
 const proxyProps = ref<{
   [key: string]: boolean
 }>({
@@ -886,13 +909,17 @@ const handleResize = () => {
   heightChange()
 }
 const needAutoHeight = ref(true)
+// 确保事件监听器正确管理
+const isResizeListenerAdded = ref(false)
 watch(
   () => needAutoHeight.value,
   (newVal) => {
-    if (needAutoHeight.value) {
+    if (newVal && !isResizeListenerAdded.value) {
       window.addEventListener('resize', handleResize)
-    } else {
+      isResizeListenerAdded.value = true
+    } else if (!newVal && isResizeListenerAdded.value) {
       window.removeEventListener('resize', handleResize)
+      isResizeListenerAdded.value = false
     }
   },
   {
@@ -922,17 +949,40 @@ onMounted(() => {
   // hasUpdateListener.value = typeof props.onUpdate === 'function'
   heightChange()
 })
+const clearSlotContentCache = () => {
+  slotContentCache.value.clear()
+}
 const cleanup = () => {
   needAutoHeight.value = false
-  slotContentCache.clear()
   clearTimeout(timer)
   timer = null
   listenDoc.cleanup() // ✅ 添加
   if (tableRef.value?._cleanup) {
     tableRef.value._cleanup()
   }
+  // 清理所有资源
+  needAutoHeight.value = false
+
+  // 移除事件监听器
+  if (isResizeListenerAdded.value) {
+    window.removeEventListener('resize', handleResize)
+    isResizeListenerAdded.value = false
+  }
+
+  // 清除定时器
+  if (timer) {
+    clearTimeout(timer)
+    timer = null
+  }
+
+  // 清理DOM监听器（如果listenDoc有cleanup方法）
+  if (listenDoc && typeof listenDoc.cleanup === 'function') {
+    listenDoc.cleanup()
+  }
 }
 onBeforeUnmount(() => {
+  // 清理slot内容缓存
+  clearSlotContentCache()
   cleanup()
 })
 onDeactivated(() => {
@@ -940,19 +990,24 @@ onDeactivated(() => {
 })
 onActivated(() => {
   needAutoHeight.value = true
+  isInitComputedHeight.value = true
   heightChange()
 })
+const isHeightCalculating = ref(false)
+
 let timer: any = null
 const heightChange = () => {
+  // 防止重复计算（避免MutationObserver反馈循环）
+  if (isHeightCalculating.value) return
   clearTimeout(timer)
   const zoom = getZoomPercent()
-  const url = props.baseClass;
+  const url = props.baseClass
   const width = window.innerWidth
   const height = window.innerHeight
   const key = `${zoom}${url}${width}${height}`
   const oldheight = Number(localStorage.getItem(key) || 0)
   if (oldheight && oldheight > 0) {
-    heightInner.value = Number(oldheight)
+    heightInner.value = oldheight
     maxHeightInner.value = oldheight
     // console.log('使用上次计算结果', heightInner.value)
     // return;
@@ -1010,43 +1065,62 @@ if (import.meta.hot) {
 const autoHeight = (key: string) => {
   if (!needAutoHeight.value) return
   // console.log('重建dom', new Date().getTime());
+
+  // 防止重复计算
+  isHeightCalculating.value = true
+
   nextTick(() => {
     const baseClass = props.baseClass
     if (baseClass && typeof props.height == 'undefined' && typeof props.maxHeight === 'undefined') {
-      const tableHeaderHeight = getHeight(`${baseClass} .el-card__header`) //+ getHeight('.el-table__header-wrapper');
-      const pageHeight = getHeight(`${baseClass} .pagination-container`)
-      const { paddingTop: bodyPaddingTop, paddingBottom: bodyPaddingBottom } = getComputedStyle(
-        `${baseClass} .table-plus .el-card__body`
-      )
-      const { borderTopWidth, borderBottomWidth } = getComputedStyle(
-        `${baseClass} .table-plus .el-card__header`
-      )
-      const { height, dom } = getRemainingHeight(baseClass!, [
-        '.table-plus',
-        ...props.authHeightExcludeClassName,
-      ])
-      // console.log(dom)
-      // console.log(height)
-      heightInner.value =
-        height -
-        tableHeaderHeight -
-        pageHeight -
-        parseFloat(bodyPaddingBottom) -
-        parseFloat(bodyPaddingTop) -
-        parseFloat(borderTopWidth) -
-        parseFloat(borderBottomWidth)
-      maxHeightInner.value = heightInner.value
-      localStorage.setItem(key, String(heightInner.value))
-      dom.forEach((item) => {
-        listenDoc.listen(item)
-      })
-      if (props.hasPage) listenDoc.listen('.pagination-container')
-      // listenDoc.listen('.el-card__header');
-      // listenDoc.listen('.el-table__header-wrapper');
+      try {
+        const tableHeaderHeight = getHeight(`${baseClass} .el-card__header`) //+ getHeight('.el-table__header-wrapper');
+        const pageHeight = getHeight(`${baseClass} .pagination-container`)
+        const { paddingTop: bodyPaddingTop, paddingBottom: bodyPaddingBottom } = getComputedStyle(
+          `${baseClass} .table-plus .el-card__body`
+        )
+        const { borderTopWidth, borderBottomWidth } = getComputedStyle(
+          `${baseClass} .table-plus .el-card__header`
+        )
+        const { height, dom } = getRemainingHeight(baseClass!, [
+          '.table-plus',
+          ...props.authHeightExcludeClassName,
+        ])
+        // console.log(dom)
+        // console.log(height)
+        heightInner.value =
+          height -
+          tableHeaderHeight -
+          pageHeight -
+          parseFloat(bodyPaddingBottom || '0') -
+          parseFloat(bodyPaddingTop || '0') -
+          parseFloat(borderTopWidth || '0') -
+          parseFloat(borderBottomWidth || '0')
+        maxHeightInner.value = heightInner.value
+        if (heightInner.value > 0) {
+          try {
+            localStorage.setItem(key, String(heightInner.value))
+          } catch (e) {
+            console.warn('localStorage.setItem failed:', e)
+          }
+        }
+        if (isInitComputedHeight.value) {
+          isInitComputedHeight.value = false
+          dom.forEach((item) => {
+            listenDoc.listen(item)
+          })
+          if (props.hasPage) listenDoc.listen(`${baseClass} .pagination-container`)
+        }
+        if (props.hasPage) listenDoc.listen('.pagination-container')
+        // listenDoc.listen('.el-card__header');
+        // listenDoc.listen('.el-table__header-wrapper');
+      } catch (e) {
+        console.error('autoHeight error:', e)
+      }
     }
+    isHeightCalculating.value = false
   })
 }
-
+const isInitComputedHeight = ref(true)
 //需要隐藏的表格列
 const canHiddenColumns = computed({
   get() {
@@ -1096,7 +1170,7 @@ const tableColumnFinal = computed({
 const mergeColumns = computed(() =>
   tableColumnFinal.value.filter((item) => item.merge).map((item) => item.prop)
 )
-const spanMethod = computed(() => props.spanMethod || spanMethodInner)
+const spanMethodFinal = computed(() => props.spanMethod || spanMethodInner)
 const spanMethodInner = ({
   row,
   column,
@@ -1173,61 +1247,61 @@ const computedTableColumn = (item: tableColumnItem, index: number) => {
   item.selectable = item.selectable ?? true
   item.maxWidth = item.width ? false : item.maxWidth ?? props.maxWidth
   item.unit = item.unit ?? ''
-  item.fun =
-    item.fun ??
-    ((
-      row: dataItemType,
-      prop: string,
-      other?: {
-        index?: number
-        tableColumnFinal?: tableColumnItem[]
-        [key: string]: any
-      }
-    ) => {
-      let propss = [prop]
-      if (prop.indexOf('.') > -1) {
-        propss = prop.split('.')
-      }
-      let lscontent = row[propss[0]]
-      for (let i = 1; i < propss.length; i++) {
-        const item1 = propss[i]
-        lscontent = (lscontent as ObjectType)?.[item1] || undefined
-      }
-      const content = String(
-        typeof lscontent == 'number'
-          ? (lscontent as number).toFixed(
-              item.decimalPlaces || 0 || Number((String(lscontent).split('.')[1] || '').length || 0)
-            )
-          : lscontent ?? props.defaultBlock
-      )
-      const unit =
-        typeof item.unit == 'string' ? item.unit : (item.unit && item.unit(row, prop, other)) ?? ''
-      return content != props.defaultBlock ? content + unit : content
-    })
-  if (item.list)
-    item.list = (item.list || []).map((listfun) => {
-      listfun.fun =
-        listfun.fun ??
-        ((
-          row: dataItemType,
-          prop: string,
-          other?: {
-            index?: number
-            tableColumnFinal?: tableColumnItem[]
-            searchValue?: { [key: string]: any }
-            [key: string]: any
-          }
-        ) =>
-          String(
-            typeof row[prop] == 'number'
-              ? (row[prop] as number).toFixed(item.decimalPlaces)
-              : row[prop] ?? props.defaultBlock
-          ) +
-          (typeof listfun.unit == 'string'
-            ? listfun.unit
-            : (listfun.unit && listfun.unit(row, prop, other)) ?? ''))
-      return listfun
-    })
+  // item.fun =
+  //   item.fun ??
+  //   ((
+  //     row: dataItemType,
+  //     prop: string,
+  //     other?: {
+  //       index?: number
+  //       tableColumnFinal?: tableColumnItem[]
+  //       [key: string]: any
+  //     }
+  //   ) => {
+  //     let propss = [prop]
+  //     if (prop.indexOf('.') > -1) {
+  //       propss = prop.split('.')
+  //     }
+  //     let lscontent = row[propss[0]]
+  //     for (let i = 1; i < propss.length; i++) {
+  //       const item1 = propss[i]
+  //       lscontent = (lscontent as ObjectType)?.[item1] || undefined
+  //     }
+  //     const content = String(
+  //       typeof lscontent == 'number'
+  //         ? (lscontent as number).toFixed(
+  //             item.decimalPlaces || 0 || Number((String(lscontent).split('.')[1] || '').length || 0)
+  //           )
+  //         : lscontent ?? props.defaultBlock
+  //     )
+  //     const unit =
+  //       typeof item.unit == 'string' ? item.unit : (item.unit && item.unit(row, prop, other)) ?? ''
+  //     return content != props.defaultBlock ? content + unit : content
+  //   })
+  // if (item.list)
+  //   item.list = (item.list || []).map((listfun) => {
+  //     listfun.fun =
+  //       listfun.fun ??
+  //       ((
+  //         row: dataItemType,
+  //         prop: string,
+  //         other?: {
+  //           index?: number
+  //           tableColumnFinal?: tableColumnItem[]
+  //           searchValue?: { [key: string]: any }
+  //           [key: string]: any
+  //         }
+  //       ) =>
+  //         String(
+  //           typeof row[prop] == 'number'
+  //             ? (row[prop] as number).toFixed(item.decimalPlaces)
+  //             : row[prop] ?? props.defaultBlock
+  //         ) +
+  //         (typeof listfun.unit == 'string'
+  //           ? listfun.unit
+  //           : (listfun.unit && listfun.unit(row, prop, other)) ?? ''))
+  //     return listfun
+  //   })
   return item
 }
 // const { proxy } = getCurrentInstance() as ComponentInternalInstance;
@@ -1594,7 +1668,9 @@ const loadFunComputed = computed(() => {
 })
 /** 获取子菜单列表 */
 const getChildrenList = async (row: any, treeNode: unknown, resolve: (data: any[]) => void) => {
-  const result: { data: any[] } = await handleQuery({ ...row, source: 'inner' }, false, 'inner')
+  // const result: { data: any[] } = await handleQuery({ ...row, source: 'inner' }, false, 'inner')
+  let result:{data:any[]} = {data:[]};
+  if (props.loadFun) result = await handleQuery({ ...row, source: 'inner' }, false, 'inner');
   dataExpandMap.value[String(row[treeConfig.value.id])] = { row, treeNode, resolve }
   //需要设置默认显示子级
   const needSetDefaultHasChildren = props.needSetDefaultHasChildren
@@ -1749,8 +1825,8 @@ const handleQuery = (
                 dataItem[props.treeProps.hasChildren] =
                   dataItem[props.treeProps.hasChildren] ??
                   notNeedSetDefaultHasChildren?.(dataItem) ??
-                  needSetDefaultMore?.(dataItem) ??
-                  true
+                  needSetDefaultHasChildren?.(dataItem) ??
+                  tempMap[dataItem[treeConfig.value.id]]?.length > 0
               } else {
                 dataItem[props.treeProps.hasChildren] =
                   tempMap[dataItem[treeConfig.value.id]]?.length > 0

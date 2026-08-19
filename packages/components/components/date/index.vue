@@ -1,5 +1,4 @@
 <template>
-  <el-config-provider :locale="language">
     <el-time-picker
       v-if="isTime"
       v-model="bindValue"
@@ -64,7 +63,6 @@
         <slot :name="name" v-bind="scopeData"></slot>
       </template>
     </el-date-picker>
-  </el-config-provider>
 </template>
 <script lang="ts">
 export default {
@@ -74,17 +72,10 @@ export default {
 <script setup name="date" lang="ts">
 import { type PropType, computed, ref, useSlots, nextTick, watch } from 'vue'
 import { ElDatePicker } from 'element-plus'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import type { dateInnerType } from '../form/types'
 import { checkExistence, getName } from '../../js/utils'
 const slots = useSlots()
 const props = defineProps({
-  language: {
-    type: Object,
-    default: () => {
-      return zhCn
-    },
-  },
   data: {
     type: Object as PropType<dateInnerType>,
     required: true,
@@ -108,22 +99,28 @@ const setDefaultValue = (data: typeof dataFinal.value) => {
     const now = new Date()
     if (data.dateType!.indexOf('range') > -1) {
       //时间范围
-      let nowString = now.format('YYYY-MM-DD');
-      let nowStrings:string[]=[]
+      let nowString = now.format('YYYY-MM-DD')
+      let nowStrings: string[] = []
       if (typeof data.isDefault === 'number' && data.isDefault > 0) {
-        let dayNumber = new Date(now.getTime() - data.isDefault * 24 * 60 * 60 * 1000);
+        let dayNumber = new Date(now.getTime() - data.isDefault * 24 * 60 * 60 * 1000)
         if (!data.allowCrossYear) {
           if (dayNumber.getFullYear() != now.getFullYear()) {
-            dayNumber.setFullYear(now.getFullYear());
-            dayNumber.setMonth(0);
-            dayNumber.setDate(1);
+            dayNumber.setFullYear(now.getFullYear())
+            dayNumber.setMonth(0)
+            dayNumber.setDate(1)
           }
         }
-        const dayNumberStirng = dayNumber.format('YYYY-MM-DD')!;
-        nowStrings = [new Date(dayNumberStirng + ' 00:00:00').format(data.format)!, new Date(nowString + ' 23:59:59').format(data.format)!];
+        const dayNumberStirng = dayNumber.format('YYYY-MM-DD')!
+        nowStrings = [
+          new Date(dayNumberStirng + ' 00:00:00').format(data.format)!,
+          new Date(nowString + ' 23:59:59').format(data.format)!,
+        ]
       }
       if (typeof data.isDefault === 'boolean' || data.isDefault < 0) {
-        nowStrings = [new Date(nowString + ' 00:00:00').format(data.format)!, new Date(nowString + ' 23:59:59').format(data.format)!];
+        nowStrings = [
+          new Date(nowString + ' 00:00:00').format(data.format)!,
+          new Date(nowString + ' 23:59:59').format(data.format)!,
+        ]
       }
       // console.log(nowString);
       bindValue.value = nowStrings
@@ -169,21 +166,21 @@ const bindValue = computed({
   set(val) {
     let value = val
     if (Array.isArray(value) && (dataFinal.value?.dateType as string)?.indexOf('time') > -1) {
-      if (value[0] === value[1]) {
+      if ((dataFinal.value?.dateType as string)?.indexOf('date') > -1) {
         value[1] = value[1].split(' ')[0] + ' 23:59:59'
       }
     }
     updateModelValue(value)
-    // change(value)
+    change(value)
   },
 })
 
 watch(
   () => bindValue.value,
   () => {
-    change(bindValue.value);
+    change(bindValue.value)
   }
-);
+)
 const change = (e: typeof props.modelValue) => {
   nextTick(() => {
     dataFinal.value && dataFinal.value.change && dataFinal.value.change(e)

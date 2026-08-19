@@ -1,5 +1,4 @@
 <template>
-  <el-config-provider :locale="language">
     <el-input
       :placeholder="dataFinal.placeholder ? dataFinal.placeholder : '请输入' + dataFinal.label"
       v-model="bindValue"
@@ -40,7 +39,6 @@
         <slot :name="name" v-bind="scopeData"></slot>
       </template>
     </el-input>
-  </el-config-provider>
 </template>
 <script lang="ts">
 export default {
@@ -50,16 +48,9 @@ export default {
 <script setup name="Input" lang="ts">
 import { getName } from '../../js/utils'
 import { type PropType, computed, ref, useSlots, nextTick, watch } from 'vue'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import type { inputInnerType } from '../form/types'
 const slots = useSlots()
 const props = defineProps({
-  language: {
-    type: Object,
-    default: () => {
-      return zhCn
-    },
-  },
   data: {
     type: Object as PropType<inputInnerType>,
     required: true,
@@ -95,6 +86,17 @@ const dataFinal = computed<typeof props.data>(() => {
     defaultInputFun = (value: string | number) => {
       const maxIntegerDigits = data.integerPlaces || 10
       const maxDecimalDigits = data.decimalPlaces || 2
+      const minValue = data.min || -Infinity;
+      const maxValue = data.max || Infinity;
+
+      // 判断输入是否完整（可提交状态）
+      function isCompleteInput(input: string): boolean {
+        if (!input || input === '-' || input === '-.') return false;
+        if (input.endsWith('.')) return false;
+        // 如果以点结尾，或者只有负号，说明还没输入完
+        return true;
+      }
+
       let result = (value as string)
         // 去除非(数字、小数点、负号)
         .replace(/[^\d.-]/g, '')
@@ -121,7 +123,32 @@ const dataFinal = computed<typeof props.data>(() => {
         if (result.slice(result.length - 1) === '.') {
           xsd = '.'
         }
-        result = result ? String(Number(result)) + xsd : result
+        const numValue = parseFloat(result);
+
+        // 只有在输入完整时才进行范围限制
+        if (isCompleteInput(result) && !isNaN(numValue)) {
+          // 检查是否超出范围
+          if (numValue > maxValue) {
+            // 如果超出最大值，自动修正为最大值
+            result = String(maxValue) + xsd;
+          } else if (numValue < minValue) {
+            // 如果小于最小值，自动修正为最小值
+            result = String(minValue) + xsd;
+          } else {
+            result = String(numValue) + xsd;
+          }
+        } else if (!isNaN(numValue)) {
+          // 输入中状态：保留当前输入，但做一些基本保护
+          // 例如最小值为0时阻止负数
+          if (minValue >= 0 && result.startsWith('-')) {
+            result = result.replace('-', '');
+          }
+          // 如果当前值已经超过最大值，但用户还在输入小数部分，暂时不修正
+          // 例如 max=100，用户输入 "150."，允许继续输入
+          result = String(numValue) + xsd;
+        } else {
+          result = result ? String(Number(result)) + xsd : result;
+        }
       }
       bindValue.value = result //Number(result);
       data.input?.(result)

@@ -1,7 +1,7 @@
 <template>
   <div v-show="showSearch" class="mb-[20px]">
     <el-card shadow="hover" class="form-plus-main-card">
-      <el-config-provider :locale="language">
+
         <div
           class="searchList form form-plus-main"
           ref="formPlusMain"
@@ -38,12 +38,11 @@
                   :prop="item.prop"
                   :class="`my-form-item my-form-item-${item.prop} my-form-item-${rowIndex} my-form-item-${rowIndex}-${index}`"
                   :rules="
-                    typeof item.dynamicRequired === 'undefined' ||
-                    (item.dynamicRequired &&
-                      item.dynamicRequired(dynamicComputedMap) &&
-                      rules[item.prop])
-                      ? rules[item.prop]
-                      : []
+                    (rules[item.prop] || []).map((item1) => {
+                      item1.required =
+                        typeof item.dynamicRequired === 'undefined' || (item.dynamicRequired && item.dynamicRequired(dynamicComputedMap));
+                      return item1;
+                    })
                   "
                   v-if="
                     typeof item.showFun === 'undefined' ||
@@ -205,7 +204,6 @@
             </el-form>
           </div>
         </div>
-      </el-config-provider>
     </el-card>
   </div>
 </template>
@@ -234,7 +232,6 @@ import CheckBox from '../components/checkbox/index.vue'
 import Radio from '../components/radio/index.vue'
 import MyDate from '../components/date/index.vue'
 import Switch from '../components/switch/index.vue'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import type {
   checkboxInnerType,
   dateInnerType,
@@ -251,9 +248,8 @@ import { useFunDom } from '../utils/funDom'
 //父传子参数
 // 定义 Props 类型接口
 interface SearchFormProps {
-  /** 语言配置 */
-  language?: object
-
+  /** 不需要折叠搜索 */
+  notNeedFlod?: boolean
   /** 不需要触发变更检查的组件类型 */
   notNeedChangeCheck?: string[]
 
@@ -290,9 +286,7 @@ interface SearchFormProps {
 
 // 使用 withDefaults 定义 Props 并配置默认值
 const props = withDefaults(defineProps<SearchFormProps>(), {
-  // 语言配置
-  language: () => zhCn,
-
+  notNeedFlod: false,
   // 不需要变更检查的组件类型
   notNeedChangeCheck: () => ['input', 'inputNumber'],
 
@@ -324,7 +318,7 @@ const searchValue = ref<queryInnerType>({ pageNum: 1 })
 //搜索条件框ref对象 ps:数组
 const formRef = ref()
 //搜索条件框多行折叠
-const fold = ref<boolean>(true) //true 显示第一行/false 显示所有
+const fold = ref<boolean>(!props.notNeedFlod) //true 显示第一行/false 显示所有
 //最终渲染到页面上的搜索框
 type searchTypes = typeof props.search
 const searchFinal = ref<searchTypes[]>([])
@@ -446,27 +440,9 @@ const initSearchValue = () => {
   searchValue.value['pageSize'] = 10
   searchValue.value['pageNum'] = 1
 }
-//搜索条件标识,判断是不是需要重新渲染
-const searchSign = ref<string[]>([])
-/**
- * 计算搜索条件标识
- * @param list 搜索条件
- * @param flag true比较false计算
- */
-const computedSearchSign = (list: searchTypes = [], flag = false) => {
-  if (flag) {
-    return (
-      new Set([...list.map((item) => `${item.prop}-${item.type}`), ...searchSign.value]).size !==
-      searchSign.value.length
-    )
-  } else {
-    searchSign.value = []
-    searchSign.value = list.map((item) => `${item.prop}-${item.type}`)
-  }
-}
+
 //搜索条件计算属性,用于页面渲染
 const searchComputed = computed(() => {
-  computedSearchSign(props.search)
   return props.search
     .filter((item) => item.isForm ?? true)
     .map((item) => {
@@ -518,7 +494,8 @@ const formItemWidthComputed = (search: typeof searchComputed.value, callback = (
     const buttonsWidth = buttons.value?.[0]?.clientWidth ?? 0
     // console.log(1)
     for (const key in dynamicRefMap.value) {
-      const computedStyle = getComputedStyle(dynamicRefMap.value[key].$el)
+      let computedStyle = getComputedStyle(dynamicRefMap.value[key].$el);
+      if (computedStyle.length == 0) computedStyle = getComputedStyle(document.querySelector(`.my-form-item-${key.replace('Ref', '')}`));
 
       inputWidths[key] = getDomComputed(computedStyle, 'width') + 6 * 2
       if (isNaN(inputWidths[key])) {
@@ -557,37 +534,197 @@ const formItemWidthComputed = (search: typeof searchComputed.value, callback = (
     callback && callback()
   })
 }
-// watch(
-//   () => searchFinal.value,
-//   () => {
-//     console.log('重算', searchFinal.value);
-//   }
-// );
+// ============ 新增：结构变化监听（支持部分重建） ============
+
+// 获取配置项的唯一标识
+const getItemKey = (item: typeof props.search[0]) => `${item.prop}-${item.type}`
+
+// 获取当前所有配置项的 key 列表
+const getStructureKeys = (searchList: typeof props.search) => {
+  return searchList
+    .filter(item => item.isForm ?? true)
+    .map(item => getItemKey(item))
+}
+
+// 部分更新：增删单个配置项
+const partialUpdate = async (
+  search: typeof props.search,
+  action: 'add' | 'remove',
+  key: string
+) => {
+  console.log(`🔄 部分更新: ${action}`, key)
+
+  const prop = key.split('-')[0]
+
+  if (action === 'add') {
+    // 新增：找到正确的位置插入
+    const item = search.find(i => getItemKey(i) === key)
+    if (!item) return
+
+    // 获取当前所有配置的 key 顺序
+    const allKeys = search.map(i => getItemKey(i))
+    const targetIndex = allKeys.indexOf(key)
+
+    // 将新项插入到 searchFinal 对应的位置
+    let inserted = false
+    let currentIndex = 0
+
+    for (let rowIndex = 0; rowIndex < searchFinal.value.length; rowIndex++) {
+      const row = searchFinal.value[rowIndex]
+      const rowEndIndex = currentIndex + row.length
+
+      if (targetIndex <= rowEndIndex) {
+        const colIndex = targetIndex - currentIndex
+        row.splice(colIndex, 0, item)
+        inserted = true
+        break
+      }
+      currentIndex = rowEndIndex
+    }
+
+    if (!inserted) {
+      if (searchFinal.value.length > 0) {
+        searchFinal.value[searchFinal.value.length - 1].push(item)
+      } else {
+        searchFinal.value.push([item])
+      }
+    }
+
+  } else {
+    // 删除：从 searchFinal 中移除
+    for (let rowIndex = 0; rowIndex < searchFinal.value.length; rowIndex++) {
+      const row = searchFinal.value[rowIndex]
+      const itemIndex = row.findIndex(i => getItemKey(i) === key)
+      if (itemIndex !== -1) {
+        row.splice(itemIndex, 1)
+        break
+      }
+    }
+
+    // 删除空行
+    searchFinal.value = searchFinal.value.filter(row => row.length > 0)
+    if (searchFinal.value.length === 0) {
+      searchFinal.value = [[]]
+    }
+  }
+
+  // 更新 rules
+  rules.value = createRules(search, props.notNeedChangeCheck)
+
+  // 处理值的变化
+  if (action === 'add') {
+    const item = search.find(i => getItemKey(i) === key)
+    if (item) {
+      let f = false
+      switch (item.type) {
+        case 'date':
+          if (((item as dateInnerType).dateType || '').indexOf('range') !== -1) {
+            dynamicComputedFun(item.prop, 'variable', (item as dateInnerType).aliases)
+          } else if (((item as dateInnerType).dateType || '').slice(-1) === 's') {
+            dynamicComputedFun(item.prop, 'string', ',')
+          } else {
+            f = true
+          }
+          break
+        case 'checkbox':
+          if ((item as checkboxInnerType).valueType === 'string') {
+            dynamicComputedFun(item.prop, 'string', ',')
+          } else {
+            f = true
+          }
+          break
+        case 'select':
+          if (!(item as selectInnerType).multiple && (item as checkboxInnerType).valueType !== 'string') {
+            f = true
+          } else {
+            dynamicComputedFun(item.prop, 'string', ',')
+          }
+          break
+        default:
+          f = true
+      }
+      if (f) {
+        dynamicComputedFun(item.prop, '')
+      }
+    }
+  } else {
+    // 删除：清理对应的值
+    delete dynamicComputedMap.value[prop]
+    // 清除对应的 ref
+    delete dynamicRefMap.value[prop + 'Ref']
+  }
+
+  // 重新计算布局
+  await nextTick()
+  formItemWidthComputed(search, () => {
+    if (props.defaultSearch) {
+      searchFun('search')
+    }
+  })
+}
+
+// 完全重建
+const fullRebuild = async (search: typeof props.search) => {
+  console.log('🔄 完全重建表单')
+  if (search.length === 0) {
+    searchFinal.value = [search]
+    return
+  }
+
+  initSearchValue()
+  rules.value = createRules(search, props.notNeedChangeCheck)
+  searchFinal.value = [search]
+  await nextTick()
+  formItemWidthComputed(search, () => {
+    if (props.defaultSearch) {
+      searchFun('search')
+    }
+  })
+}
 //处理搜索表单
+// ✅ 新增：计算结构标识（只包含 prop 和 type，不包含 options 等动态属性）
+const getStructureSign = (searchList: typeof props.search) => {
+  return searchList
+    .filter((item) => item.isForm ?? true)
+    .map((item) => `${item.prop}-${item.type}`)
+    // .join('|');
+};
+
+// ============ 替换：只监听结构变化（增删），不监听属性修改 ============
+
 watch(
-  () => searchComputed.value,
-  async () => {
-    const search = searchComputed.value
-    if (search.length === 0) {
-      searchFinal.value = [search]
+  () => getStructureKeys(props.search).join('|'),
+  async (newKeysStr, oldKeysStr) => {
+    if (newKeysStr === oldKeysStr && searchFinal.value.length > 0) {
       return
     }
-    if (!computedSearchSign(search, true) && searchFinal.value.length !== 0) return
-    initSearchValue()
-    rules.value = createRules(search, props.notNeedChangeCheck)
-    searchFinal.value = [search]
-    const searchItemProp = search.map((item) => `${item.prop}Ref`)
-    await nextTick()
-    formItemWidthComputed(search, () => {
-      if (props.defaultSearch) {
-        searchFun('search')
-      }
-    })
+
+    const newKeys = newKeysStr.split('|').filter(Boolean)
+    const oldKeys = oldKeysStr?.split('|').filter(Boolean) || []
+
+    const added = newKeys.filter(k => !oldKeys.includes(k))
+    const removed = oldKeys.filter(k => !newKeys.includes(k))
+
+    console.log('📊 结构变化:', { added, removed })
+
+    const search = searchComputed.value
+
+    // 场景1：只新增了一个
+    if (removed.length === 0 && added.length === 1) {
+      await partialUpdate(search, 'add', added[0])
+      return
+    }
+
+    // 场景2：只删除了一个
+    if (added.length === 0 && removed.length === 1) {
+      await partialUpdate(search, 'remove', removed[0])
+      return
+    }
+
+    // 场景3：其他情况，完全重建
+    await fullRebuild(search)
   },
-  {
-    deep: true,
-    immediate: true,
-  }
+  { immediate: true }
 )
 
 //最终渲染的按钮组
@@ -617,7 +754,7 @@ watch(
 )
 //判断是否有展开按钮
 const showFold = computed(() => {
-  return searchFinal.value.length > 1
+  return searchFinal.value.length > 1 && !props.notNeedFlod
 })
 //展开收起事件
 const openList = () => {

@@ -1,5 +1,4 @@
 <template>
-  <el-config-provider :locale="language">
     <el-card shadow="hover" class="table-plus">
       <template #header>
         <slot name="header">
@@ -34,6 +33,7 @@
               <el-button
                 :loading="operationLoading"
                 type="warning"
+                :disabled="dataListComputed.length === 0"
                 :plain="hasTableTopPlain"
                 :icon="hasExportIcon"
                 @click.stop="handleExport()"
@@ -126,7 +126,6 @@
         </pagination>
       </div>
     </el-card>
-  </el-config-provider>
 </template>
 
 <script setup lang="ts" name="MyTableV2">
@@ -183,7 +182,6 @@ import {
   getZoomPercent,
 } from '../js/utils'
 import TableOperations, { ButtonType, dataItemType } from '../components/TableOperations/index.vue'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { useListenDomChange } from '../utils/hooks'
 import { handleFileDownload, request } from '../js'
 import {
@@ -227,8 +225,6 @@ export interface TableProps {
   loadFun: (row: Primitive, treeNode: unknown, resolve: (data: Primitive[]) => void) => void
   /** 树形结构配置（子节点字段、是否有子节点字段） */
   treeProps: { children: string; hasChildren: string }
-  /** 语言配置 */
-  language: object
   /** 是否显示序号列（布尔值或自定义列名） */
   hasIndex: boolean | string
   /** 是否显示选择列（支持函数动态控制） */
@@ -519,7 +515,6 @@ const props = withDefaults(defineProps<TableProps>(), {
   loadFun: undefined,
   dataLoadFun: () => '',
   treeProps: () => ({ children: 'children', hasChildren: 'hasChildren' }),
-  language: () => zhCn,
   hasIndex: true,
   hasSelection: false,
   hasOperation: true,
@@ -699,9 +694,12 @@ onMounted(() => {
   }
   heightChange()
 })
-
+const clearSlotContentCache = () => {
+  slotContentCache.value.clear()
+}
 onBeforeUnmount(() => {
   needAutoHeight.value = false
+  clearSlotContentCache()  // ✅ 添加缓存清理
 })
 onDeactivated(() => {
   needAutoHeight.value = false
@@ -1004,7 +1002,12 @@ const createEllipsisCellRenderer = ({
 }
 
 const tableColumn = ref<typeof props.tableColumn>(props.tableColumn)
-const slotContentCache = new Map<string, VNode[]>()
+// 将普通 Map 改为 ref，并添加动态缓存上限
+const slotContentCache = ref(new Map<string, VNode[]>())
+const MAX_CACHE_SIZE = computed(() => {
+  const dataLength = dataListComputed.value?.length || 0
+  return Math.max(200, dataLength * 1.5)
+})
 // 获取 slot 的虚拟节点内容
 function getSlotContent(
   scope_data: {
@@ -1022,21 +1025,21 @@ function getSlotContent(
   }
 ) {
   // 生成唯一缓存key（使用行数据的唯一标识）
-  const cacheKey = JSON.stringify({
-    rowId: scope_data.data, // 确保有唯一id
-    rowIndex: scope_data.index,
-    hasAddSon: typeof props.hasAddSon === 'function' ? 'func' : props.hasAddSon,
-    hasDetail: typeof props.hasDetail === 'function' ? 'func' : props.hasDetail,
-    hasUpdate: typeof props.hasUpdate === 'function' ? 'func' : props.hasUpdate,
-    hasRemove: typeof props.hasRemove === 'function' ? 'func' : props.hasRemove,
-    // isSimpTransVar: props.isSimpTransVar,
-  })
+  const rowData = scope_data.data
+  const rowId = rowData?.id ?? rowData?.[props.rowKey as string] ?? String(scope_data.index)
+  const cacheKey = `${rowId}_${scope_data.index}_${queryParams.value.pageNum}_${queryParams.value.pageSize}`
 
-  if (slotContentCache.has(cacheKey)) {
-    return slotContentCache.get(cacheKey)
+  // ✅ 使用 .value 访问
+  if (slotContentCache.value.has(cacheKey)) {
+    return slotContentCache.value.get(cacheKey)
   }
-  // console.log(scope_data.index, 'scope_data.index')
-  // const slotKeys = Object.keys(slots).filter((item) => item.indexOf('operation') > -1);
+
+  // ✅ LRU 淘汰：超过上限时移除最早的缓存
+  if (slotContentCache.value.size >= MAX_CACHE_SIZE.value) {
+    const firstKey = slotContentCache.value.keys().next().value
+    if (firstKey !== undefined) slotContentCache.value.delete(firstKey)
+  }
+
   const allSlotName = [
     'operationBefore',
     'addSon',
@@ -1048,6 +1051,7 @@ function getSlotContent(
     'remove',
     'operationAfter',
   ] as const
+
   const defaultButtonShowFun: {
     addSon: boolean | string
     detail: boolean | string
@@ -1071,34 +1075,34 @@ function getSlotContent(
         ? props.hasRemove(scope_data.data)
         : props.hasRemove && proxyProps.value[`onRemove`],
   }
+const clearSlotContentCache = () => {
+  if (slotContentCache.value) {
+    slotContentCache.value.clear()
+  }
+}
   const defaultButtonShowFunKey: (keyof typeof defaultButtonShowFun)[] = Object.keys(
     defaultButtonShowFun
   ) as Array<keyof typeof defaultButtonShowFun>
-  const vnodesArr = []
-  // console.log(allSlotName);
+
+  const vnodesArr: any[] = []
+
   for (const slotName of allSlotName) {
     const slot = slots[slotName]
     if (
       defaultButtonShowFunKey.includes(slotName as keyof typeof defaultButtonShowFun) &&
       defaultButtonShowFun[slotName as keyof typeof defaultButtonShowFun]
     ) {
-      // if (nowUseSim < sim) {
-      //   nowUseSim++;
-      //   showTableButton.value.push(slotName);
-      //   // continue;
-      // }
       vnodesArr.push(slotName)
       continue
     }
     if (!slot) continue
 
-    // 调用 slot 函数获取虚拟节点
     const vnodes = slot(scope_data)
-
     vnodesArr.push(...vnodes)
   }
-  slotContentCache.set(cacheKey, vnodesArr)
-  // console.log(146543634, vnodes);
+
+  // ✅ 使用 .value 设置
+  slotContentCache.value.set(cacheKey, vnodesArr)
   return vnodesArr
 }
 const hasSelection = computed(() =>
@@ -1584,7 +1588,7 @@ const onSort = ({
     delete sortPropData.value[column.dataKey! as string]
   }
 
-  handleQuery()
+  if (dataListComputed.value.length > 0) handleQuery();
 }
 const loading = ref<boolean>(true)
 const showSearchInner = ref(true)

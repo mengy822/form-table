@@ -10,17 +10,17 @@ import {
   Fragment,
   onBeforeUnmount,
 } from 'vue' // [优化] 添加 onBeforeUnmount
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { ElConfigProvider, ElDescriptions, ElDescriptionsItem, ElButton } from 'element-plus'
 import { deepClone, getDomComputed, getComputedStyle } from '../js/utils'
 import MyDialog from '../Dialog/index.vue'
 import { dataItemType, ObjectType } from '../js/types'
 import { tableColumnItem } from '../Table/index.vue'
+import { formatDisplayContent } from '../utils'
+import { constants } from 'node:buffer'
 
 type MyDialogInstance = InstanceType<typeof MyDialog>
 
 interface DesDialogProps {
-  language?: object
   width?: string
   labelWidth?: string
   title?: string
@@ -63,10 +63,6 @@ export default defineComponent({
     ElButton,
   },
   props: {
-    language: {
-      type: Object,
-      default: () => zhCn,
-    },
     width: {
       type: String,
       default: '50%',
@@ -211,20 +207,15 @@ export default defineComponent({
           value = getValueByPath(rowData, propPath.trim())
         }
 
-        let content = String(
-          typeof value === 'number' && column.decimalPlaces && column.decimalPlaces > 0
-            ? value.toFixed(column.decimalPlaces)
-            : value ?? props.defaultBlock
-        )
-
-        const unit =
-          typeof column.unit === 'string'
-            ? column.unit
-            : (column.unit && column.unit(rowData, propPath.trim(), other)) ?? ''
-
-        if (content !== props.defaultBlock && unit) {
-          content = content + unit
-        }
+        const content = formatDisplayContent({
+          value,
+          decimalPlaces: column.decimalPlaces,
+          defaultBlock: props.defaultBlock,
+          unit: column.unit,
+          rowData,
+          other,
+          prop: propPath,
+        })
 
         contents.push(content)
 
@@ -260,20 +251,16 @@ export default defineComponent({
         content = columnColumn.fun(rowData, columnColumn.prop, other) ?? props.defaultBlock
       } else {
         let value = getValueByPath(rowData, columnColumn.prop)
-        content = String(
-          typeof value === 'number' && columnColumn.decimalPlaces && columnColumn.decimalPlaces > 0
-            ? value.toFixed(columnColumn.decimalPlaces)
-            : value ?? props.defaultBlock
-        )
+        content = formatDisplayContent({
+          value,
+          decimalPlaces: columnColumn.decimalPlaces,
+          defaultBlock: props.defaultBlock,
 
-        const unit =
-          typeof columnColumn.unit === 'string'
-            ? columnColumn.unit
-            : (columnColumn.unit && columnColumn.unit(rowData, columnColumn.prop, other)) ?? ''
-
-        if (content !== props.defaultBlock && unit) {
-          content = content + unit
-        }
+          unit: columnColumn.unit,
+          rowData,
+          other,
+          prop: columnColumn.prop,
+        })
       }
 
       let classNames = ''
@@ -374,16 +361,18 @@ export default defineComponent({
                   const item1 = propss[j]
                   lscontent = (lscontent as ObjectType)?.[item1] || undefined
                 }
-                const content = String(
-                  typeof lscontent === 'number' && item.decimalPlaces && item.decimalPlaces > 0
-                    ? (lscontent as number).toFixed(item.decimalPlaces)
-                    : lscontent ?? props.defaultBlock
-                )
-                const unit =
-                  typeof item.unit === 'string'
-                    ? item.unit
-                    : (item.unit && item.unit(row, propPath.trim(), other)) ?? ''
-                contents.push(content !== props.defaultBlock ? content + unit : content)
+                const content =
+                formatDisplayContent({
+                  value:lscontent,
+                  decimalPlaces: item.decimalPlaces,
+                  defaultBlock: props.defaultBlock,
+
+                  unit: item.unit,
+                  rowData:row,
+                  other,
+                  prop: item.prop,
+                })
+                contents.push(content)
               })
 
               return contents.join(separator)
@@ -398,16 +387,17 @@ export default defineComponent({
               const item1 = propss[j]
               lscontent = (lscontent as ObjectType)?.[item1] || undefined
             }
-            const content = String(
-              typeof lscontent === 'number' && item.decimalPlaces && item.decimalPlaces > 0
-                ? (lscontent as number).toFixed(item.decimalPlaces)
-                : lscontent ?? props.defaultBlock
-            )
-            const unit =
-              typeof item.unit === 'string'
-                ? item.unit
-                : (item.unit && item.unit(row, prop, other)) ?? ''
-            return content !== props.defaultBlock ? content + unit : content
+            const content = formatDisplayContent({
+                  value:lscontent,
+                  decimalPlaces: item.decimalPlaces,
+                  defaultBlock: props.defaultBlock,
+
+                  unit: item.unit,
+                  rowData:row,
+                  other,
+                  prop: item.prop,
+                })
+            return content
           }
         }
 
@@ -652,11 +642,6 @@ export default defineComponent({
       )
 
       return h(
-        ElConfigProvider,
-        { locale: props.language },
-        {
-          default: () =>
-            h(
               MyDialog,
               {
                 ref: myDialog,
@@ -673,9 +658,7 @@ export default defineComponent({
                 default: () => detailContent,
                 footer: renderFooter,
               }
-            ),
-        }
-      )
+            )
     }
   },
 })
@@ -689,7 +672,7 @@ export default defineComponent({
     }
     tbody {
       tr {
-      td {
+        td {
           width: calc(100% / var(--desColumn));
         }
         .el-descriptions__label {

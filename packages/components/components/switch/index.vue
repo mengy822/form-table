@@ -1,5 +1,4 @@
 <template>
-  <el-config-provider :locale="language">
     <el-switch
       v-model='bindValue'
       :disabled="data.disabled"
@@ -28,7 +27,6 @@
         <slot :name="name" v-bind="scopeData"></slot>
       </template>
     </el-switch>
-  </el-config-provider>
 </template>
 <script lang="ts">
 export default {
@@ -37,17 +35,10 @@ export default {
 </script>
 <script setup lang='ts' name='switch'>
 import { type PropType, computed, ref, useSlots, nextTick, watch } from 'vue'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import type { switchInnerType } from '../form/types'
 import {getName} from '../../js/utils'
 const slot = useSlots()
 const props = defineProps({
-  language: {
-    type: Object,
-    default: () => {
-      return zhCn
-    },
-  },
   data: {
     type: Object as PropType<switchInnerType>,
     required: true,

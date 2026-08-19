@@ -1,5 +1,4 @@
 <template>
-  <el-config-provider :locale="language">
     <el-radio-group
       v-model="bindValue"
       :class="`_class${dataFinal.prop}`"
@@ -58,7 +57,6 @@
         </slot>
       </template>
     </el-radio-group>
-  </el-config-provider>
 </template>
 <script lang="ts">
 export default {
@@ -68,15 +66,8 @@ export default {
 <script setup name="radio" lang="ts">
 import { computed, type PropType, ref, nextTick, watch } from 'vue'
 import { type radioInnerType } from '../form/types'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { checkExistence } from '../../js/utils';
 const props = defineProps({
-  language: {
-    type: Object,
-    default: () => {
-      return zhCn
-    },
-  },
   type: {
     type: String as PropType<'radio' | 'radioButton'>,
     default: 'radio',
