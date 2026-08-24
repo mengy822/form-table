@@ -14,6 +14,7 @@ export interface fileType {
   remove?: Function
   multiple?: boolean
   aliases?: string
+  place?: string
   showFileList?: boolean
   uploadType?: 'button' | 'icon'
   listType?: 'text' | 'picture' | 'picture-card'

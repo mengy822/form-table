@@ -995,7 +995,8 @@ onActivated(() => {
 })
 const isHeightCalculating = ref(false)
 
-let timer: any = null
+let timer: any = null,idleId: any = null, rafId: any = null
+const hasIdleCallback = 'requestIdleCallback' in window;
 const heightChange = () => {
   // 防止重复计算（避免MutationObserver反馈循环）
   if (isHeightCalculating.value) return
@@ -1012,7 +1013,35 @@ const heightChange = () => {
     // console.log('使用上次计算结果', heightInner.value)
     // return;
   }
-  timer = setTimeout(() => autoHeight(key), 500)
+  const executeAutoHeight = () => {
+    autoHeight(key);
+  };
+  if (rafId) cancelAnimationFrame(rafId);
+  if (idleId) cancelIdleCallback(idleId);
+  // 使用 rAF 确保在下一帧执行
+  rafId = requestAnimationFrame(() => {
+    rafId = null;
+
+    if (hasIdleCallback) {
+      // 支持 rIC，使用空闲时间执行
+      idleId = requestIdleCallback(
+        (deadline) => {
+          idleId = null;
+          if (deadline.timeRemaining() > 0) {
+            executeAutoHeight();
+          } else {
+            // 没有空闲时间，延迟到下一帧
+            timer = setTimeout(executeAutoHeight, 16);
+          }
+        },
+        { timeout: 1000 }
+      );
+    } else {
+      // 不支持 rIC，降级到 setTimeout
+      timer = setTimeout(executeAutoHeight, 50);
+    }
+  });
+  // timer = setTimeout(() => autoHeight(key), 500)
 }
 const operationWidthComputed = computed(() => {
   let width = props.operationWidth ?? 100

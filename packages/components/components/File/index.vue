@@ -33,7 +33,8 @@
       <div class="el-upload__tip">
         <span v-if="dataFinal.accept">请上传{{ dataFinal.accept }}格式的文件&nbsp;</span>
         <span v-if="dataFinal.limitSize">文件大小不超过{{ dataFinal.limitSize }}MB&nbsp;</span>
-        <span v-if="dataFinal.limitNum">只能上传{{ dataFinal.limitNum }}个</span>
+        <span v-if="dataFinal.limitNum">只能上传{{ dataFinal.limitNum }}个&nbsp;</span>
+        <span v-if="dataFinal.place">{{ dataFinal.place }}</span>
       </div>
       <div class="el-upload__tip">
         <span v-if="dataFinal.hasTemplate" style="display: flex"
@@ -48,7 +49,15 @@
 </template>
 
 <script lang="ts" setup name="File">
-import { computed, getCurrentInstance, onDeactivated, onMounted, type PropType, ref, useTemplateRef } from 'vue'
+import {
+  computed,
+  getCurrentInstance,
+  onDeactivated,
+  onMounted,
+  type PropType,
+  ref,
+  useTemplateRef,
+} from 'vue'
 import {
   ElMessage,
   UploadFile,
@@ -129,47 +138,38 @@ const normalizeModelValue = (modelValue: typeof props.modelValue): UploadUserFil
   if (modelValue == null || modelValue === '') {
     return []
   }
+  const getObj = (item: { url: any; name?: any } | string, index: number): UploadUserFile => {
+    if (typeof item == 'string') {
+      item = { url: item }
+    }
+    return {
+      uid: Date.now() + index + Math.random(),
+      url: item.url,
+      name: item.name || item.url.split('/').pop() || '未命名',
+      status: item.url !== '[object Object]' && !dataFinal.value.httpRequest ? 'success' : 'ready',
+    }
+  }
 
   // 2. 处理字符串数组
   if (isStringArray(modelValue)) {
-    return modelValue.map((url, index) => ({
-      uid: Date.now() + index + Math.random(),
-      url: url,
-      name: url.split('/').pop() || '未命名',
-    }))
+    return modelValue.map((url, index) => getObj(url, index))
   }
 
   // 3. 处理对象数组
   if (isFileObjectArray(modelValue)) {
-    return modelValue.map((item, index) => ({
-      uid: Date.now() + index + Math.random(),
-      url: item.url,
-      name: item.name || item.url.split('/').pop() || '未命名',
-    }))
+    return modelValue.map((item, index) => getObj(url, index))
   }
 
   // 4. 处理单个字符串
   if (typeof modelValue === 'string') {
     if (!modelValue) return []
-    return [
-      {
-        uid: Date.now() + Math.random(),
-        url: modelValue,
-        name: modelValue.split('/').pop() || '未命名',
-      },
-    ]
+    return [getObj(modelValue, 0)]
   }
 
   // 5. 处理单个对象
   if (isFileObject(modelValue)) {
     if (!modelValue.url) return []
-    return [
-      {
-        uid: Date.now() + Math.random(),
-        url: modelValue.url,
-        name: modelValue.name || modelValue.url.split('/').pop() || '未命名',
-      },
-    ]
+    return [getObj(modelValue, 0)]
   }
   return [modelValue]
 }
@@ -202,26 +202,26 @@ const updateModelValue = (files: UploadUserFile[]) => {
   }
 
   const limitNum = dataFinal.value.limitNum
-  const originalValue = props.data;
+  const originalValue = props.data
   // emits('update:modelValue', files[0])
   // return
   // 单个文件
   if (limitNum === 1) {
-    const file = files[0];
+    const file = files[0]
     // 判断原始数据类型，保持类型一致性
     if (!originalValue.multiple) {
-      emits('update:modelValue', file.raw || file);
-      return;
+      emits('update:modelValue', file.raw || file)
+      return
     }
-    emits('update:modelValue', file);
-    return;
+    emits('update:modelValue', file)
+    return
   }
   if (!originalValue.multiple) {
     emits(
       'update:modelValue',
       files.map((item) => item.raw || item)
-    );
-    return;
+    )
+    return
   }
   emits('update:modelValue', files)
 }
@@ -297,13 +297,13 @@ const handleRequest = (options: UploadRequestOptions): any => {
         updateModelValue(normalizeModelValue(res))
       })
       .catch(() => handleRemove(options.file))
-  }else{
+  } else {
     fileList.value.push(options.file)
   }
 }
 onDeactivated(() => {
-  fileList.value = [];
-});
+  fileList.value = []
+})
 </script>
 
 <style scoped lang="scss">

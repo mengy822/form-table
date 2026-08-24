@@ -471,8 +471,13 @@ onActivated(() => {
 onDeactivated(() => {
   window.removeEventListener('resize', formItemWidthComputedListenerHandler)
 })
+let wwidth = window.innerWidth;
 //用于监听大小改变的回调
 const formItemWidthComputedListener = (event?: UIEvent) => {
+  if (wwidth == window.innerWidth) {
+    return;
+  }
+  wwidth = window.innerWidth;
   // console.log('大小改变')
   formItemWidthComputed(searchComputed.value)
 }

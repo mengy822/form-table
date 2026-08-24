@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted, nextTick, onBeforeUnmount } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted, nextTick, onBeforeUnmount, onActivated, onDeactivated } from 'vue'
 import * as echarts from 'echarts'
 import { registerChart, unregisterChart } from './linkageManager'
 import { addWindowResize, removeWindowResize } from '../utils/echarts'
@@ -69,7 +69,7 @@ const options = computed(() => {
   }
   return opt
 })
-
+let active = false;
 const initChart = () => {
   if (!chartRef.value) return
 
@@ -87,6 +87,7 @@ const initChart = () => {
     // 窗口缩放
     let time: any
     addWindowResize(props.listen, () => {
+      if (!active) return;
       clearTimeout(time)
       time = setTimeout(() => {
         chart?.resize()
@@ -120,11 +121,17 @@ watch(
 )
 
 onMounted(() => {
+  active = true;
   nextTick(() => {
     initChart()
   })
 })
-
+onActivated(() => {
+  active = true;
+});
+onDeactivated(() => {
+  active = false;
+});
 onBeforeUnmount(() => {
   removeWindowResize(props.listen)
   if (enableLinkage.value && chart) {

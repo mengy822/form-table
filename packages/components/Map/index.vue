@@ -213,7 +213,7 @@ const cleanupResources = {
 };
 
 // emits 定义
-const emits = defineEmits(['click', 'drawCreatedBack', 'mapmove', 'loadProgress']);
+const emits = defineEmits(['click', 'drawCreatedBack', 'mapmove', 'loadProgress','mapReady']);
 
 // icon 计算
 const icon = computed(() => {
@@ -541,6 +541,7 @@ const createMap = async (divId, center = []) => {
     resolveQueue = [];
     isMapReady.value = true;
     emits('mapmove', getBounds());
+    emits('mapReady', mapInstance);
     initPl();
   };
   map.on('complete', completeHandler);

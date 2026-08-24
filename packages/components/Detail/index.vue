@@ -69,13 +69,17 @@ export default defineComponent({
     },
     labelWidth: {
       type: String,
-      default: '72px',
+      default: '80px',
     },
     title: {
       type: String,
       default: '详情',
     },
     desBorder: {
+      type: Boolean,
+      default: false,
+    },
+    closeOnClickModal: {
       type: Boolean,
       default: false,
     },
@@ -525,13 +529,13 @@ export default defineComponent({
           h(
             ElDescriptions,
             {
-              border: desBorder.value,
+              border: true,
               column: desColumn,
               direction: desDirection,
               size: props.desSize,
               title: title,
               extra: props.desExtra,
-              class: 'detail',
+              class: `detail ${desBorder.value ? '' : 'isNotBorder'}`,
               labelWidth: labelWidth,
             },
             {
@@ -648,6 +652,7 @@ export default defineComponent({
                 width: props.width,
                 title: props.title,
                 onBeforeClose: handleClose,
+                closeOnClickModal: props.closeOnClickModal,
                 style: {
                   '--label-width': props.labelWidth,
                   '--maxWidth': maxWidth.value,
@@ -665,7 +670,28 @@ export default defineComponent({
 </script>
 
 <style scoped lang="scss">
+.isNotBorder {
+  :deep(.el-descriptions__table) {
+    //.el-descriptions__body {
+    .el-descriptions__label {
+      vertical-align: top;
+    }
+
+    .el-descriptions__cell {
+      background: transparent !important;
+      border-width: 0;
+    }
+
+    .el-descriptions__content {
+      width: calc(var(--maxWidth) - 0) !important;
+    }
+
+    //}
+  }
+}
+
 :deep(.el-descriptions__body) {
+table-layout: fixed;
   .el-descriptions__table {
     .nesting {
       // padding: 0 !important;

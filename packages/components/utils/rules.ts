@@ -1,5 +1,5 @@
 import type { FormRules } from 'element-plus';
-import type { checkboxInnerType, dateInnerType, inputInnerType, radioInnerType, selectInnerType, switchInnerType } from '../components/form/types';
+import type { checkboxInnerType, dateInnerType, fileInnerType, inputInnerType, radioInnerType, selectInnerType, switchInnerType } from '../components/form/types';
 
 type trigger = 'blur' | 'change';
 type ruleType =
@@ -577,16 +577,17 @@ export function formRules(
 }
 
 export function createRules(
-  column: (inputInnerType | switchInnerType | checkboxInnerType | radioInnerType | selectInnerType | dateInnerType)[],
+  column: (inputInnerType | switchInnerType | checkboxInnerType | radioInnerType | selectInnerType | dateInnerType|fileInnerType)[],
   notNeedChangeCheck: string[] = ['input']
 ): FormRules {
   const rules: { [key: string]: requiredType[] } = {};
   column
     .filter((item) => item.isRequired)
     .map((item) => {
+      const ruleKey = item.ruleKey || item.prop
       let required: requiredType;
       if (typeof item.isRequired === 'boolean') {
-        rules[item.prop] = formRules(item.label, 'notEmpty');
+        rules[ruleKey] = formRules(item.label, 'notEmpty');
         required = {
           required: true,
           message: item.label + '不能为空',
@@ -594,9 +595,9 @@ export function createRules(
         };
       } else if (typeof item.isRequired === 'string') {
         if (item.isRequired === 'numberAuto') {
-          rules[item.prop] = formRules(item.label, item.isRequired, item.maxlength, item.min, item.max);
+          rules[ruleKey] = formRules(item.label, item.isRequired, item.maxlength, item.min, item.max);
         } else {
-          rules[item.prop] = formRules(item.label, item.isRequired, item.maxlength, item.min, item.max);
+          rules[ruleKey] = formRules(item.label, item.isRequired, item.maxlength, item.min, item.max);
         }
         required = {
           required: true,
@@ -605,7 +606,7 @@ export function createRules(
           pattern: item.isRequired
         };
       } else {
-        rules[item.prop] = [
+        rules[ruleKey] = [
           {
             validator: item.isRequired,
             trigger: 'blur'
@@ -617,10 +618,10 @@ export function createRules(
         };
       }
       if (notNeedChangeCheck.indexOf(item.type) === -1) {
-        if (rules[item.prop] && Array.isArray(rules[item.prop])) rules[item.prop]?.push(required);
+        if (rules[ruleKey] && Array.isArray(rules[ruleKey])) rules[ruleKey]?.push(required);
       }
       if (item.multiple) {
-        rules[item.prop].push({
+        rules[ruleKey].push({
           required: true,
           message: item.label + '不能为空',
           trigger: 'blur',
@@ -633,7 +634,7 @@ export function createRules(
           }
         });
       }
-      rules[item.prop].push({ required: true, message: item.label + '不能为空', trigger: 'blur' });
+      rules[ruleKey].push({ required: true, message: item.label + '不能为空', trigger: 'blur' });
     });
   return rules;
 }

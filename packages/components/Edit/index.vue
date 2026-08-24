@@ -5,6 +5,7 @@
       :width="width"
       :title="isAdd ? title.add : title.edit"
       @before-close="handleClose"
+      :closeOnClickModal="closeOnClickModal"
     >
       <div
         class="editDialog"
@@ -37,7 +38,7 @@
           <div
             v-for="(columnItem, index) in columnFinal"
             :key="index"
-            :class="`class_${index} editItems`" :style="{ gap: gap + 'px' }"
+            :class="`class_${index} editItems`" :style="{ gap: `0 ${gap}px` }"
           >
             <div
               v-for="item in columnItem"
@@ -53,10 +54,10 @@
                 <el-form-item
                   :ref="(el: any) => dynamicCreateRef(el, item.prop)"
                   :label="item.label"
-                  :prop="item.prop"
+                  :prop="item.ruleKey || item.prop"
                   :class="item.class"
                   :rules="
-                    (rules[item.prop] || []).map((item1) => {
+                    (rules[item.ruleKey || item.prop] || []).map((item1) => {
                       item1.required =
                         typeof item.dynamicRequired === 'undefined' || (item.dynamicRequired && item.dynamicRequired(dynamicComputedMap));
                       return item1;
@@ -331,6 +332,7 @@ interface FormDialogProps {
 
   /** 行内表单模式 */
   inline?: boolean
+  closeOnClickModal?: boolean
 
   /** 表单域标签位置 */
   labelPosition?: 'left' | 'right' | 'top'
@@ -433,6 +435,7 @@ const props = withDefaults(defineProps<FormDialogProps>(), {
 
   // 表单布局
   inline: false,
+  closeOnClickModal: false,
   labelPosition: 'right',
   labelWidth: 'auto',
   labelSuffix: '',
