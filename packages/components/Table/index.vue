@@ -166,6 +166,10 @@
               :has-detail-icon="hasDetailIcon"
               :has-update-icon="hasUpdateIcon"
               :has-remove-icon="hasRemoveIcon"
+              :has-remove-disabled="hasRemoveDisabled"
+              :has-update-disabled="hasUpdateDisabled"
+              :has-detail-disabled="hasDetailDisabled"
+              :has-add-son-disabled="hasAddSonDisabled"
               :has-add-son-type="hasAddSonType"
               :has-detail-type="hasDetailType"
               :has-update-type="hasUpdateType"
@@ -382,6 +386,14 @@ export interface TableProps {
   hasUpdateType?: ButtonType
   /** 是否显示【删除】按钮（支持布尔值、自定义文本、函数动态控制） */
   hasRemove?: boolean | string | ((data: dataItemType) => boolean | string)
+  /** 是否禁用【删除】按钮（支持布尔值、函数动态控制） */
+  hasRemoveDisabled?: boolean | ((data: dataItemType) => boolean);
+  /** 是否禁用【修改】按钮（支持布尔值、函数动态控制） */
+  hasUpdateDisabled?: boolean | ((data: dataItemType) => boolean);
+  /** 是否禁用【详情】按钮（支持布尔值、函数动态控制） */
+  hasDetailDisabled?: boolean | ((data: dataItemType) => boolean);
+  /** 是否禁用【添加子菜单】按钮（支持布尔值、函数动态控制） */
+  hasAddSonDisabled?: boolean | ((data: dataItemType) => boolean);
   /** 【删除】按钮图标配置 */
   hasRemoveIcon?: object
   /** 【删除】按钮类型（对应 UI 库按钮类型） */

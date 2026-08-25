@@ -127,6 +127,10 @@ export interface TableOperationsProps {
   hasUpdateType?: string
   hasUpdateIcon?: object | object
   hasRemove?: boolean | ((data: dataItemType) => boolean | string) | string
+  hasRemoveDisabled?: boolean | ((data: dataItemType) => boolean)
+  hasUpdateDisabled?: boolean | ((data: dataItemType) => boolean)
+  hasDetailDisabled?: boolean | ((data: dataItemType) => boolean)
+  hasAddSonDisabled?: boolean | ((data: dataItemType) => boolean)
   hasRemoveType?: string
   hasRemoveIcon?: object | object
   moreButtonTrigger?: 'click' | 'hover'
@@ -338,7 +342,21 @@ const handleUpdate = (row: any) => {
 const handleRemove = (row: any) => {
   emit('remove', row)
 }
+const getButtonDisabled = (
+  condition: boolean | ((row: any) => boolean) | undefined,
+  row: any,
+  defaultLabel: boolean = false
+): boolean => {
+  // 如果是字符串，直接返回该字符串
+  if (typeof condition == 'function') {
+    return condition(row)
+  }
+  if (typeof condition == 'boolean') {
+    return condition
+  }
 
+  return defaultLabel
+}
 // 核心渲染函数：根据 item 类型返回对应的 VNode
 const renderButtonItem = (item: SlotContentItem, isInDropdown: boolean) => {
   // 如果是 VNode，直接返回
@@ -361,6 +379,7 @@ const renderButtonItem = (item: SlotContentItem, isInDropdown: boolean) => {
         icon: props.hasAddSonIcon,
         label: getButtonLabel(props.hasAddSon, row, '新增'),
         handler: () => handleAddSon(row),
+        disabled: getButtonDisabled(props.hasAddSonDisabled, row, false),
         eventName: 'onAddSon',
       },
       detail: {
@@ -370,6 +389,7 @@ const renderButtonItem = (item: SlotContentItem, isInDropdown: boolean) => {
         icon: props.hasDetailIcon,
         label: getButtonLabel(props.hasDetail, row, '详情'),
         handler: () => handleDetail(row),
+        disabled: getButtonDisabled(props.hasDetailDisabled, row, false),
         eventName: 'onDetail',
       },
       update: {
@@ -379,6 +399,7 @@ const renderButtonItem = (item: SlotContentItem, isInDropdown: boolean) => {
         icon: props.hasUpdateIcon,
         label: getButtonLabel(props.hasUpdate, row, '修改'),
         handler: () => handleUpdate(row),
+        disabled: getButtonDisabled(props.hasUpdateDisabled, row, false),
         eventName: 'onUpdate',
       },
       remove: {
@@ -388,6 +409,7 @@ const renderButtonItem = (item: SlotContentItem, isInDropdown: boolean) => {
         icon: props.hasRemoveIcon,
         label: getButtonLabel(props.hasRemove, row, '删除'),
         handler: () => handleRemove(row),
+        disabled: getButtonDisabled(props.hasRemoveDisabled, row, false),
         eventName: 'onRemove',
       },
     }
@@ -425,7 +447,8 @@ const renderButtonItem = (item: SlotContentItem, isInDropdown: boolean) => {
         loading: props.operationLoading,
         icon: config.icon,
         onClick: config.handler,
-        style: isInDropdown ? {  } : {},
+        disabled: config.disabled,
+        style: isInDropdown ? {} : {},
       },
       () => config.label
     )
