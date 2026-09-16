@@ -15,15 +15,12 @@
     :on-remove="handleOnRemove"
     :show-file-list="dataFinal.showFileList ?? true"
   >
-    <img
-      v-if="dataFinal.limitSize == 1 && (imageUrl || fileList[0]?.url) && dataFinal.uploadType == 'icon'"
-      :src="imageUrl || fileList[0]?.url"
-      class="avatar"
-      alt=""
-    />
-    <el-icon v-if="dataFinal.limitSize >= 1 || (!(imageUrl || fileList[0]?.url) && dataFinal.uploadType == 'icon')" class="avatar-uploader-icon">
-      <Plus />
-    </el-icon>
+    <template v-if="dataFinal.uploadType == 'icon'">
+      <img v-if="dataFinal.limitNum == 1 && (imageUrl || fileList[0]?.url)" :src="imageUrl || fileList[0]?.url" class="avatar" alt="" />
+      <el-icon v-if="dataFinal.limitNum >= 1 || !(imageUrl || fileList[0]?.url)" class="avatar-uploader-icon">
+        <Plus />
+      </el-icon>
+    </template>
 
     <el-button type="primary" v-if="dataFinal.uploadType == 'button'">点击上传</el-button>
     <template #tip>
