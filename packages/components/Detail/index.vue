@@ -16,7 +16,6 @@ import MyDialog from '../Dialog/index.vue'
 import { dataItemType, ObjectType } from '../js/types'
 import { tableColumnItem } from '../Table/index.vue'
 import { formatDisplayContent } from '../utils'
-import { constants } from 'node:buffer'
 
 type MyDialogInstance = InstanceType<typeof MyDialog>
 

@@ -124,6 +124,7 @@ const visibleChange = (visible: boolean) => {
   }
 }
 const remoteMethod = (e: string) => {
+  if (lastInputValue) e = e || lastInputValue;
   dataFinal.value?.remoteMethod?.(
     e,
     (data) => {
@@ -272,10 +273,11 @@ watch(
     }
   }
 );
+const getInnerOptions = () => selectOptions.value;
 
 const _ref = ref()
 defineExpose({
-  _ref,
+  _ref,getInnerOptions
 })
 </script>
 <style scoped lang="scss">

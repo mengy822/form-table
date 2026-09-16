@@ -1,186 +1,182 @@
 <template>
-    <el-card shadow="hover" class="table-plus table-plus-card">
-      <template #header v-if="showHeader">
-        <slot name="header">
-          <el-row :gutter="10">
-            <el-col :span="1.5" v-if="hasAdd && proxyProps[`onAdd`]">
-              <el-button
-                :loading="operationLoading"
-                type="primary"
-                :plain="hasTableTopPlain"
-                :icon="hasAddIcon"
-                @click.stop="handleAdd()"
-              >
-                {{ typeof hasAdd !== 'boolean' ? hasAdd : '新增' }}
-              </el-button>
-            </el-col>
-            <el-col
-              :span="1.5"
-              v-if="hasSelection && hasBatchRemove && proxyProps[`onBatchRemove`]"
+  <el-card shadow="hover" class="table-plus table-plus-card">
+    <template #header v-if="showHeader">
+      <slot name="header">
+        <el-row :gutter="10">
+          <el-col :span="1.5" v-if="hasAdd && proxyProps[`onAdd`]">
+            <el-button
+              :loading="operationLoading"
+              type="primary"
+              :plain="hasTableTopPlain"
+              :icon="hasAddIcon"
+              @click.stop="handleAdd()"
             >
-              <el-button
-                :loading="operationLoading"
-                :type="hasBatchRemoveType"
-                :plain="hasTableTopPlain"
-                :disabled="multipleSelection.length == 0"
-                :icon="hasBatchRemoveIcon"
-                @click.stop="handleBatchRemove()"
-              >
-                {{ typeof hasBatchRemove !== 'boolean' ? hasBatchRemove : '批量删除' }}
-              </el-button>
-            </el-col>
-            <el-col :span="1.5" v-if="hasExport && proxyProps[`onExport`]">
-              <el-button
-                :loading="operationLoading"
-                type="warning"
-                :disabled="dataListComputed.length === 0"
-                :plain="hasTableTopPlain"
-                :icon="hasExportIcon"
-                @click.stop="handleExport()"
-              >
-                {{ typeof hasExport !== 'boolean' ? hasExport : '导出' }}
-              </el-button>
-            </el-col>
-            <el-col :span="1.5" v-if="hasImport && proxyProps[`onImport`]">
-              <el-button
-                :loading="operationLoading"
-                type="info"
-                :plain="hasTableTopPlain"
-                :icon="hasImportIcon"
-                @click.stop="handleImport()"
-              >
-                {{ typeof hasImport !== 'boolean' ? hasImport : '导入' }}
-              </el-button>
-            </el-col>
-            <el-col :span="1.5" v-if="slots['tableOperation']">
-              <slot
-                name="tableOperation"
-                :data="operationData"
-                :loading="operationLoading"
-                :plain="hasTableTopPlain"
-              ></slot>
-            </el-col>
-            <right-toolbar
-              :search="proxyProps['onUpdate:showSearch']"
-              v-model:showSearch="showSearch"
-              v-model:columns="canHiddenColumns"
-              @queryTable="handleQuery(undefined, false)"
-            ></right-toolbar>
-          </el-row>
-        </slot>
-      </template>
-      <!-- :data="dataListComputed" -->
-      <el-table
-        :show-summary="showSummaryFinal"
-        :sum-text="sumText"
-        :summary-method="summaryMethod"
-        v-virtual="finalVirtualScrollConfig"
-        :span-method="spanMethodFinal"
-        class="table-plus-main"
-        :height="height || heightInner || maxHeight"
-        :max-height="maxHeight || maxHeightInner || height"
-        v-loading="loading"
-        @selection-change="handleSelectionChange"
-        :tree-props="treeProps"
-        ref="tableRef"
-        :highlight-current-row="highlightCurrentRow"
-        :current-row-key="currentRowKey"
-        :row-class-name="rowClassName"
-        :row-style="rowStyle"
-        :cell-class-name="cellClassName"
-        :cell-style="cellStyle"
-        :header-row-class-name="headerRowClassName"
-        :header-row-style="headerRowStyle"
-        :header-cell-class-name="headerCellClassName"
-        :header-cell-style="headerCellStyle"
-        :row-key="rowKey"
-        :empty-text="emptyText"
-        :lazy="lazy"
-        :load="loadFunComputed"
-        :default-expand-all="defaultExpandAll"
-        @expand-change="tableRowStatusChange"
-        @sort-change="onSort"
-        @current-change="handleCurrentChange"
-        @cell-click="handleCellClick"
-        @cell-dblclick="handleCellDblclick"
-        @cell-contextmenu="handleCellContextmenu"
-        @row-click="handleRowClick"
-        @row-contextmenu="handleRowContextmenu"
-        @row-dblclick="handleRowDblclick"
-        @header-click="handleHeaderClick"
-        @header-contextmenu="handleHeaderContextmenu"
+              {{ typeof hasAdd !== 'boolean' ? hasAdd : '新增' }}
+            </el-button>
+          </el-col>
+          <el-col :span="1.5" v-if="hasSelection && hasBatchRemove && proxyProps[`onBatchRemove`]">
+            <el-button
+              :loading="operationLoading"
+              :type="hasBatchRemoveType"
+              :plain="hasTableTopPlain"
+              :disabled="multipleSelection.length == 0"
+              :icon="hasBatchRemoveIcon"
+              @click.stop="handleBatchRemove()"
+            >
+              {{ typeof hasBatchRemove !== 'boolean' ? hasBatchRemove : '批量删除' }}
+            </el-button>
+          </el-col>
+          <el-col :span="1.5" v-if="hasExport && proxyProps[`onExport`]">
+            <el-button
+              :loading="operationLoading"
+              type="warning"
+              :disabled="dataListComputed.length === 0"
+              :plain="hasTableTopPlain"
+              :icon="hasExportIcon"
+              @click.stop="handleExport()"
+            >
+              {{ typeof hasExport !== 'boolean' ? hasExport : '导出' }}
+            </el-button>
+          </el-col>
+          <el-col :span="1.5" v-if="hasImport && proxyProps[`onImport`]">
+            <el-button
+              :loading="operationLoading"
+              type="info"
+              :plain="hasTableTopPlain"
+              :icon="hasImportIcon"
+              @click.stop="handleImport()"
+            >
+              {{ typeof hasImport !== 'boolean' ? hasImport : '导入' }}
+            </el-button>
+          </el-col>
+          <el-col :span="1.5" v-if="slots['tableOperation']">
+            <slot
+              name="tableOperation"
+              :data="operationData"
+              :loading="operationLoading"
+              :plain="hasTableTopPlain"
+            ></slot>
+          </el-col>
+          <right-toolbar
+            :search="proxyProps['onUpdate:showSearch']"
+            v-model:showSearch="showSearch"
+            v-model:columns="canHiddenColumns"
+            @queryTable="handleQuery(undefined, false)"
+          ></right-toolbar>
+        </el-row>
+      </slot>
+    </template>
+    <!-- :data="dataListComputed" -->
+    <el-table
+      :show-summary="showSummaryFinal"
+      :sum-text="sumText"
+      :summary-method="summaryMethod"
+      v-virtual="finalVirtualScrollConfig"
+      :span-method="spanMethodFinal"
+      class="table-plus-main"
+      :height="height || heightInner || maxHeight"
+      :max-height="maxHeight || maxHeightInner || height"
+      v-loading="loading"
+      @selection-change="handleSelectionChange"
+      :tree-props="treeProps"
+      ref="tableRef"
+      :highlight-current-row="highlightCurrentRow"
+      :current-row-key="currentRowKey"
+      :row-class-name="rowClassName"
+      :row-style="rowStyle"
+      :cell-class-name="cellClassName"
+      :cell-style="cellStyle"
+      :header-row-class-name="headerRowClassName"
+      :header-row-style="headerRowStyle"
+      :header-cell-class-name="headerCellClassName"
+      :header-cell-style="headerCellStyle"
+      :row-key="rowKey"
+      :empty-text="emptyText"
+      :lazy="lazy"
+      :load="loadFunComputed"
+      :default-expand-all="defaultExpandAll"
+      @expand-change="tableRowStatusChange"
+      @sort-change="onSort"
+      @current-change="handleCurrentChange"
+      @cell-click="handleCellClick"
+      @cell-dblclick="handleCellDblclick"
+      @cell-contextmenu="handleCellContextmenu"
+      @row-click="handleRowClick"
+      @row-contextmenu="handleRowContextmenu"
+      @row-dblclick="handleRowDblclick"
+      @header-click="handleHeaderClick"
+      @header-contextmenu="handleHeaderContextmenu"
+    >
+      <el-table-column
+        v-if="hasSelectionComputed"
+        type="selection"
+        fixed="left"
+        :reserve-selection="reserve"
+        :selectable="typeof hasSelection === 'boolean' ? () => true : hasSelection"
+        width="55"
+      />
+      <el-table-column
+        :fixed="hasIndexFixed"
+        v-if="hasIndexComputed"
+        :min-width="60"
+        :label="typeof hasIndex === 'boolean' ? '序号' : hasIndex"
       >
-        <el-table-column
-          v-if="hasSelectionComputed"
-          type="selection"
-          fixed="left"
-          :reserve-selection="reserve"
-          :selectable="typeof hasSelection === 'boolean' ? () => true : hasSelection"
-          width="55"
-        />
-        <el-table-column
-          :fixed="hasIndexFixed"
-          v-if="hasIndexComputed"
-          :min-width="60"
-          :label="typeof hasIndex === 'boolean' ? '序号' : hasIndex"
-        >
-          <template #default="scope">
-            {{
-              queryParams.pageSize * (queryParams.pageNum - 1) +
-              (getRealIndex(scope && scope.$index) || 0)
-            }}
-          </template>
-        </el-table-column>
-        <MyTableColumn
-          :defaultBlock="defaultBlock"
-          :data="dataListComputed"
-          :tableColumnFinal="tableColumnFinal"
-          :align="align"
-          v-bind="$attrs"
-        ></MyTableColumn>
+        <template #default="scope">
+          {{
+            queryParams.pageSize * (queryParams.pageNum - 1) +
+            (getRealIndex(scope && scope.$index) || 0)
+          }}
+        </template>
+      </el-table-column>
+      <MyTableColumn
+        :defaultBlock="defaultBlock"
+        :tableColumnFinal="tableColumnFinal"
+        :align="align"
+        v-bind="$attrs"
+      ></MyTableColumn>
 
-        <el-table-column
-          :fixed="operationFixed"
-          :align="operationAlign"
-          :width="operationWidthComputed"
-          v-if="hasOperationComputed"
-        >
-          <template #header>
-            <slot name="operationHeader">
-              {{ typeof hasOperation === 'boolean' ? '操作' : hasOperation }}
-            </slot>
-          </template>
-          <template #default="scope">
-            <TableOperations
-              :align="operationAlign"
-              :scope="scope"
-              :slots="slots"
-              :query-params="queryParams"
-              :has-operation-text="hasOperationText"
-              :has-operation-link="hasOperationLink"
-              :has-add-son="hasAddSon"
-              :has-detail="hasDetail"
-              :has-update="hasUpdate"
-              :has-remove="hasRemove"
-              :has-add-son-icon="hasAddSonIcon"
-              :has-detail-icon="hasDetailIcon"
-              :has-update-icon="hasUpdateIcon"
-              :has-remove-icon="hasRemoveIcon"
-              :has-remove-disabled="hasRemoveDisabled"
-              :has-update-disabled="hasUpdateDisabled"
-              :has-detail-disabled="hasDetailDisabled"
-              :has-add-son-disabled="hasAddSonDisabled"
-              :has-add-son-type="hasAddSonType"
-              :has-detail-type="hasDetailType"
-              :has-update-type="hasUpdateType"
-              :has-remove-type="hasRemoveType"
-              :proxy-props="proxyProps"
-              :moreButton="moreButton"
-              :moreButtonType="moreButtonType"
-              :moreButtonTrigger="moreButtonTrigger"
-              :hasOperationName="!hasOperationName"
-              :operationLoading="operationLoading"
-              :get-slot-content="
+      <el-table-column
+        :fixed="operationFixed"
+        :align="operationAlign"
+        :width="operationWidthComputed"
+        v-if="hasOperationComputed"
+      >
+        <template #header>
+          <slot name="operationHeader">
+            {{ typeof hasOperation === 'boolean' ? '操作' : hasOperation }}
+          </slot>
+        </template>
+        <template #default="scope">
+          <TableOperations
+            :align="operationAlign"
+            :scope="scope"
+            :slots="slots"
+            :query-params="queryParams"
+            :has-operation-text="hasOperationText"
+            :has-operation-link="hasOperationLink"
+            :has-add-son="hasAddSon"
+            :has-detail="hasDetail"
+            :has-update="hasUpdate"
+            :has-remove="hasRemove"
+            :has-add-son-icon="hasAddSonIcon"
+            :has-detail-icon="hasDetailIcon"
+            :has-update-icon="hasUpdateIcon"
+            :has-remove-icon="hasRemoveIcon"
+            :has-remove-disabled="hasRemoveDisabled"
+            :has-update-disabled="hasUpdateDisabled"
+            :has-detail-disabled="hasDetailDisabled"
+            :has-add-son-disabled="hasAddSonDisabled"
+            :has-add-son-type="hasAddSonType"
+            :has-detail-type="hasDetailType"
+            :has-update-type="hasUpdateType"
+            :has-remove-type="hasRemoveType"
+            :proxy-props="proxyProps"
+            :moreButton="moreButton"
+            :moreButtonType="moreButtonType"
+            :moreButtonTrigger="moreButtonTrigger"
+            :hasOperationName="!hasOperationName"
+            :operationLoading="operationLoading"
+            :get-slot-content="
                 getSlotContent({
                   data: scope.row,
                   index: queryParams.pageSize * (queryParams.pageNum - 1) + scope.$index + 1,
@@ -189,38 +185,38 @@
                   loading: operationLoading,
                 }).filter((item1: any) => item1)
               "
-              :simpTransVar="+simpTransVar"
-              @add-son="handleAddSon"
-              @detail="handleDetail"
-              @update="handleUpdate"
-              @remove="handleRemove"
-            >
-            </TableOperations>
-          </template>
-        </el-table-column>
-        <template #empty v-if="slots['empty']">
-          <slot name="empty"></slot>
+            :simpTransVar="+simpTransVar"
+            @add-son="handleAddSon"
+            @detail="handleDetail"
+            @update="handleUpdate"
+            @remove="handleRemove"
+          >
+          </TableOperations>
         </template>
-      </el-table>
-      <pagination
-        v-if="hasPage && !isTree"
-        class="table-plus-pagination"
-        v-show="totalComputed > 0"
-        :total="totalComputed"
-        v-model:page="queryParams.pageNum"
-        v-model:limit="queryParams.pageSize"
-        @pagination="handleQuery"
-        :layout="pageLayout"
-        :pagerCount="pagerCount"
-      >
-        <template #extra>
-          <span :key="key" v-for="(value, key, index) in extra" class="extra">
-            <span v-if="index === 0">&nbsp;</span>
-            {{ key }} :{{ value }}
-          </span>
-        </template>
-      </pagination>
-    </el-card>
+      </el-table-column>
+      <template #empty v-if="slots['empty']">
+        <slot name="empty"></slot>
+      </template>
+    </el-table>
+    <pagination
+      v-if="hasPage && !isTree"
+      class="table-plus-pagination"
+      v-show="totalComputed > 0"
+      :total="totalComputed"
+      v-model:page="queryParams.pageNum"
+      v-model:limit="queryParams.pageSize"
+      @pagination="handleQuery"
+      :layout="pageLayout"
+      :pagerCount="pagerCount"
+    >
+      <template #extra>
+        <span :key="key" v-for="(value, key, index) in extra" class="extra">
+          <span v-if="index === 0">&nbsp;</span>
+          {{ key }} :{{ value }}
+        </span>
+      </template>
+    </pagination>
+  </el-card>
 </template>
 
 <script setup lang="ts" name="MyTable">
@@ -336,7 +332,7 @@ export interface TableProps {
   /** 基础样式类（用于计算高度等） */
   baseClass?: string
   autoHeightExcludeClassName?: string[]
-  showHeader?: object | boolean;
+  showHeader?: object | boolean
   //默认对齐
   align?: 'center' | 'left' | 'right'
   operationAlign?: 'center' | 'left' | 'right'
@@ -387,13 +383,13 @@ export interface TableProps {
   /** 是否显示【删除】按钮（支持布尔值、自定义文本、函数动态控制） */
   hasRemove?: boolean | string | ((data: dataItemType) => boolean | string)
   /** 是否禁用【删除】按钮（支持布尔值、函数动态控制） */
-  hasRemoveDisabled?: boolean | ((data: dataItemType) => boolean);
+  hasRemoveDisabled?: boolean | ((data: dataItemType) => boolean)
   /** 是否禁用【修改】按钮（支持布尔值、函数动态控制） */
-  hasUpdateDisabled?: boolean | ((data: dataItemType) => boolean);
+  hasUpdateDisabled?: boolean | ((data: dataItemType) => boolean)
   /** 是否禁用【详情】按钮（支持布尔值、函数动态控制） */
-  hasDetailDisabled?: boolean | ((data: dataItemType) => boolean);
+  hasDetailDisabled?: boolean | ((data: dataItemType) => boolean)
   /** 是否禁用【添加子菜单】按钮（支持布尔值、函数动态控制） */
-  hasAddSonDisabled?: boolean | ((data: dataItemType) => boolean);
+  hasAddSonDisabled?: boolean | ((data: dataItemType) => boolean)
   /** 【删除】按钮图标配置 */
   hasRemoveIcon?: object
   /** 【删除】按钮类型（对应 UI 库按钮类型） */
@@ -787,6 +783,17 @@ const dataListComputed = computed({
     dataListInner.value = val
   },
 })
+watch(
+  () => props.dataList,
+  () => {
+    nextTick(() => {
+      dataListComputed.value = props.dataList || []
+    })
+  },
+  {
+    immediate: true,
+  }
+)
 // 组件级缓存，避免内存泄漏
 const slotContentCache = ref(new Map())
 const MAX_CACHE_SIZE = computed(() => {
@@ -1007,8 +1014,10 @@ onActivated(() => {
 })
 const isHeightCalculating = ref(false)
 
-let timer: any = null,idleId: any = null, rafId: any = null
-const hasIdleCallback = 'requestIdleCallback' in window;
+let timer: any = null,
+  idleId: any = null,
+  rafId: any = null
+const hasIdleCallback = 'requestIdleCallback' in window
 const heightChange = () => {
   // 防止重复计算（避免MutationObserver反馈循环）
   if (isHeightCalculating.value) return
@@ -1026,33 +1035,33 @@ const heightChange = () => {
     // return;
   }
   const executeAutoHeight = () => {
-    autoHeight(key);
-  };
-  if (rafId) cancelAnimationFrame(rafId);
-  if (idleId) cancelIdleCallback(idleId);
+    autoHeight(key)
+  }
+  if (rafId) cancelAnimationFrame(rafId)
+  if (idleId) cancelIdleCallback(idleId)
   // 使用 rAF 确保在下一帧执行
   rafId = requestAnimationFrame(() => {
-    rafId = null;
+    rafId = null
 
     if (hasIdleCallback) {
       // 支持 rIC，使用空闲时间执行
       idleId = requestIdleCallback(
         (deadline) => {
-          idleId = null;
+          idleId = null
           if (deadline.timeRemaining() > 0) {
-            executeAutoHeight();
+            executeAutoHeight()
           } else {
             // 没有空闲时间，延迟到下一帧
-            timer = setTimeout(executeAutoHeight, 16);
+            timer = setTimeout(executeAutoHeight, 16)
           }
         },
         { timeout: 1000 }
-      );
+      )
     } else {
       // 不支持 rIC，降级到 setTimeout
-      timer = setTimeout(executeAutoHeight, 50);
+      timer = setTimeout(executeAutoHeight, 50)
     }
-  });
+  })
   // timer = setTimeout(() => autoHeight(key), 500)
 }
 const operationWidthComputed = computed(() => {
@@ -1710,8 +1719,8 @@ const loadFunComputed = computed(() => {
 /** 获取子菜单列表 */
 const getChildrenList = async (row: any, treeNode: unknown, resolve: (data: any[]) => void) => {
   // const result: { data: any[] } = await handleQuery({ ...row, source: 'inner' }, false, 'inner')
-  let result:{data:any[]} = {data:[]};
-  if (props.loadFun) result = await handleQuery({ ...row, source: 'inner' }, false, 'inner');
+  let result: { data: any[] } = { data: [] }
+  if (props.loadFun) result = await handleQuery({ ...row, source: 'inner' }, false, 'inner')
   dataExpandMap.value[String(row[treeConfig.value.id])] = { row, treeNode, resolve }
   //需要设置默认显示子级
   const needSetDefaultHasChildren = props.needSetDefaultHasChildren

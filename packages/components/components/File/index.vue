@@ -16,15 +16,12 @@
     :show-file-list="dataFinal.showFileList ?? true"
   >
     <img
-      v-if="(imageUrl || fileList[0]?.url) && dataFinal.uploadType == 'icon'"
+      v-if="dataFinal.limitSize == 1 && (imageUrl || fileList[0]?.url) && dataFinal.uploadType == 'icon'"
       :src="imageUrl || fileList[0]?.url"
       class="avatar"
       alt=""
     />
-    <el-icon
-      v-if="!(imageUrl || fileList[0]?.url) && dataFinal.uploadType == 'icon'"
-      class="avatar-uploader-icon"
-    >
+    <el-icon v-if="dataFinal.limitSize >= 1 || (!(imageUrl || fileList[0]?.url) && dataFinal.uploadType == 'icon')" class="avatar-uploader-icon">
       <Plus />
     </el-icon>
 
@@ -157,7 +154,7 @@ const normalizeModelValue = (modelValue: typeof props.modelValue): UploadUserFil
 
   // 3. 处理对象数组
   if (isFileObjectArray(modelValue)) {
-    return modelValue.map((item, index) => getObj(url, index))
+    return modelValue.map((url, index) => getObj(url, index))
   }
 
   // 4. 处理单个字符串
@@ -190,6 +187,8 @@ const handleOnRemove = (file: any, uploadFiles: UploadUserFile[]) => {
 }
 // ============ 统一的更新函数（包含类型判断逻辑） ============
 const updateModelValue = (files: UploadUserFile[]) => {
+  if (dataFinal.value.httpRequest && fileList.value.find((item) => item.raw)) return;
+
   // console.log('触发更新')
   if (!files || files.length === 0) {
     // 清空
@@ -294,7 +293,7 @@ const handleRequest = (options: UploadRequestOptions): any => {
     dataFinal.value
       .httpRequest(options)
       .then((res: typeof props.modelValue) => {
-        updateModelValue(normalizeModelValue(res))
+        updateModelValue(fileList.value.filter((item) => !item.raw && (item.url || '').indexOf('blob:') == -1).concat(...normalizeModelValue(res)));
       })
       .catch(() => handleRemove(options.file))
   } else {
