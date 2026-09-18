@@ -89,7 +89,7 @@ const props = defineProps({
     default: undefined,
   },
 })
-const dataFinal = computed<fileInnerType>(() => {
+const dataFinal = computed<Omit<fileInnerType,'limitSize'|'limitNum'>&{limitSize:number,limitNum:number}>(() => {
   const data = { ...props.data }
   data.uploadType = data.uploadType ?? 'button'
   data.drag = data.drag ?? false
