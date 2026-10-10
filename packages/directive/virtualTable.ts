@@ -1313,11 +1313,11 @@ const virtualScrollDirective = {
               originData.splice(
                 index + 1,
                 0,
-                ...originDataChild[row[rowKey]].map((item: any) => {
+                ...(originDataChild[row[rowKey]] || []).map((item: any) => {
                   item[levelKey] = (row[levelKey] || 0) + 1;
                   item[parentIdKey] = row[rowKey];
                   return item;
-                })
+                }),
               );
             }
           }

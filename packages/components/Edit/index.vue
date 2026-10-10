@@ -308,7 +308,7 @@ interface FormDialogProps {
   notNeedChangeCheck?: string[]
 
   /** 提交按钮文本 */
-  submitButtonTxt?: { add: string; edit: string }
+  submitButtonTxt?: { add?: string; edit?: string }
 
   /** 取消按钮文本 */
   cancelButtonTxt?: string
@@ -317,7 +317,7 @@ interface FormDialogProps {
   width?: string
 
   /** 弹框标题 */
-  title?: { add: string; edit: string }
+  title?: { add?: string; edit?: string }
 
   /** 表单列配置（必填） */
   column: (

@@ -269,7 +269,7 @@ interface SearchFormProps {
   showSearchLabel?: boolean
 
   /** 搜索表单字段配置（必填） */
-  search: (inputInnerType | dateInnerType | selectInnerType | checkboxInnerType)[]
+  search: (inputInnerType | switchInnerType | checkboxInnerType | radioInnerType | selectInnerType | dateInnerType | fileInnerType)[]
 
   /** 搜索按钮配置 */
   searchButton?: (button | refresh | search | searchRefresh)[]
@@ -496,8 +496,11 @@ const formItemWidthComputed = (search: typeof searchComputed.value, callback = (
   nextTick(() => {
     const formPlusMainWidth = formPlusMain.value?.clientWidth
     const inputWidths: { [key: string]: number } = {}
-    const buttonsWidth = buttons.value?.[0]?.clientWidth ?? 0
-    // console.log(1)
+    let buttonsWidth = buttons.value[0]?.clientWidth ?? 0;
+    if (buttonsWidth === 0) {
+      const a = getComputedStyle(document.querySelector('.final_buttons'));
+      buttonsWidth = getDomComputed(a, 'width');
+    }
     for (const key in dynamicRefMap.value) {
       let computedStyle = getComputedStyle(dynamicRefMap.value[key].$el);
       if (computedStyle.length == 0) computedStyle = getComputedStyle(document.querySelector(`.my-form-item-${key.replace('Ref', '')}`));
@@ -826,6 +829,11 @@ defineExpose({ fold, dynamicRefMap, formPlusMain, buttons, updateData, getData, 
       .el-form-item {
         margin-bottom: 0;
         margin-top: 18px;
+        margin-right: 14px;
+
+        :deep(.el-form-item__label-wrap) {
+          margin-left: 0px !important;
+        }
       }
 
       .buttons {

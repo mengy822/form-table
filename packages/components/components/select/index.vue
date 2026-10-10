@@ -1,64 +1,64 @@
 <template>
-    <el-select-v2
-      :class="`_class${dataFinal.prop}`"
-      v-model="bindValue"
-      ref="_ref"
-      :style="{ width: dataFinal.width }"
-      :multiple="dataFinal.multiple"
-      :clearable="dataFinal.clearable"
-      :placeholder="'请选择' + dataFinal.label"
-      :disabled="dataFinal.disabled"
-      :value-key="dataFinal.valueKey"
-      :size="dataFinal.size"
-      :collapse-tags="dataFinal.collapseTags"
-      :collapse-tags-tooltip="dataFinal.collapseTagsTooltip"
-      :multiple-limit="dataFinal.multipleLimit"
-      :name="dataFinal.name"
-      :effect="dataFinal.effect"
-      :autocomplete="dataFinal.autocomplete"
-      :filterable="dataFinal.filterable"
-      :allow-create="dataFinal.allowCreate"
-      :filter-method="dataFinal.filterMethod"
-      :remote="dataFinal.remote"
-      :remote-method="remoteMethod"
-      :remote-show-suffix="dataFinal.remoteShowSuffix"
-      :loading="dataFinal.loading"
-      :loading-text="dataFinal.loadingText"
-      :no-match-text="dataFinal.noMatchText"
-      :no-data-text="dataFinal.noDataText"
-      :popper-class="dataFinal.popperClass"
-      :reserve-keyword="dataFinal.reserveKeyword"
-      :default-first-option="dataFinal.defaultFirstOption"
-      :teleported="dataFinal.teleported"
-      :append-to="dataFinal.appendTo"
-      :persistent="dataFinal.persistent"
-      :automatic-dropdown="dataFinal.automaticDropdown"
-      :clear-icon="dataFinal.clearIcon"
-      :fit-input-width="dataFinal.fitInputWidth"
-      :suffix-icon="dataFinal.suffixIcon"
-      :tag-type="dataFinal.tagType"
-      :tag-effect="dataFinal.tagEffect"
-      :validate-event="dataFinal.validateEvent"
-      :placement="dataFinal.placement"
-      :fallback-placements="dataFinal.fallbackPlacements"
-      :max-collapse-tags="dataFinal.maxCollapseTags"
-      :popper-options="dataFinal.popperOptions"
-      :empty-values="dataFinal.emptyValues"
-      :value-on-clear="dataFinal.valueOnClear"
-      :props="dataFinal.keyConfig"
-      @change="change"
-      @visible-change="visibleChange"
-      @remove-tag="dataFinal.removeTag"
-      @clear="dataFinal.clear"
-      @blur="blur"
-      @focus="dataFinal.focus"
-      :options="selectOptions"
-      v-bind="$attrs"
-    >
-      <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
-        <slot :name="name" v-bind="scopeData"></slot>
-      </template>
-    </el-select-v2>
+  <el-select-v2
+    :class="`_class${dataFinal.prop}`"
+    v-model="bindValue"
+    ref="_ref"
+    :style="{ width: dataFinal.width }"
+    :multiple="dataFinal.multiple"
+    :clearable="dataFinal.clearable"
+    :placeholder="'请选择' + dataFinal.label"
+    :disabled="dataFinal.disabled"
+    :value-key="dataFinal.valueKey"
+    :size="dataFinal.size"
+    :collapse-tags="dataFinal.collapseTags"
+    :collapse-tags-tooltip="dataFinal.collapseTagsTooltip"
+    :multiple-limit="dataFinal.multipleLimit"
+    :name="dataFinal.name"
+    :effect="dataFinal.effect"
+    :autocomplete="dataFinal.autocomplete"
+    :filterable="dataFinal.filterable"
+    :allow-create="dataFinal.allowCreate"
+    :filter-method="dataFinal.filterMethod"
+    :remote="dataFinal.remote"
+    :remote-method="remoteMethod"
+    :remote-show-suffix="dataFinal.remoteShowSuffix"
+    :loading="dataFinal.loading"
+    :loading-text="dataFinal.loadingText"
+    :no-match-text="dataFinal.noMatchText"
+    :no-data-text="dataFinal.noDataText"
+    :popper-class="dataFinal.popperClass"
+    :reserve-keyword="dataFinal.reserveKeyword"
+    :default-first-option="dataFinal.defaultFirstOption"
+    :teleported="dataFinal.teleported"
+    :append-to="dataFinal.appendTo"
+    :persistent="dataFinal.persistent"
+    :automatic-dropdown="dataFinal.automaticDropdown"
+    :clear-icon="dataFinal.clearIcon"
+    :fit-input-width="dataFinal.fitInputWidth"
+    :suffix-icon="dataFinal.suffixIcon"
+    :tag-type="dataFinal.tagType"
+    :tag-effect="dataFinal.tagEffect"
+    :validate-event="dataFinal.validateEvent"
+    :placement="dataFinal.placement"
+    :fallback-placements="dataFinal.fallbackPlacements"
+    :max-collapse-tags="dataFinal.maxCollapseTags"
+    :popper-options="dataFinal.popperOptions"
+    :empty-values="dataFinal.emptyValues"
+    :value-on-clear="dataFinal.valueOnClear"
+    :props="dataFinal.keyConfig"
+    @change="change"
+    @visible-change="visibleChange"
+    @remove-tag="dataFinal.removeTag"
+    @clear="dataFinal.clear"
+    @blur="blur"
+    @focus="dataFinal.focus"
+    :options="selectOptions"
+    v-bind="$attrs"
+  >
+    <template v-for="(_, name) in slots" #[getName(name)]="scopeData">
+      <slot :name="name" v-bind="scopeData"></slot>
+    </template>
+  </el-select-v2>
 </template>
 <script lang="ts">
 export default {
@@ -70,23 +70,32 @@ import { type PropType, ref, computed, watch, useSlots, nextTick } from 'vue'
 import type { selectInnerType } from '../form/types'
 import type { selectOptionsGroupType, selectOptionsType } from './types'
 import { checkExistence, getName } from '../../js/utils'
+import { findDefaultOptions } from '@/components/utils'
 
 const remoteOptions = ref<any[]>([])
-let lastInputValue = '';
-let setInputEvent = true;
+let finalRemoteOptions: any[] = []
+let lastInputValue = ''
+let setInputEvent = true
 const selectOptions = computed(() => {
-  const opts = checkExistence(remoteOptions.value) ? remoteOptions.value : dataFinal.value.options as Array<any>
+  const opts = checkExistence(remoteOptions.value)
+    ? remoteOptions.value
+    : (dataFinal.value.options as Array<any>)
   const errorData = opts.filter(
     (item: { value: null }) => item.value == null || typeof item.value == 'undefined'
   )
   if (errorData.length > 0) console.warn('部分数据错误,取消渲染', errorData)
-  return opts.filter(
-    (item: { value: null }) => item.value != null && typeof item.value != 'undefined'
-  )
+  return opts
+    .filter((item: { value: null }) => item.value != null && typeof item.value != 'undefined')
+    .map((item) => {
+      item.value = String(item.value)
+      return item
+    })
 })
 const visibleChange = (visible: boolean) => {
   dataFinal.value?.visibleChange?.(visible)
-
+  if (!visible) {
+    remoteOptions.value = finalRemoteOptions as any[]
+  }
   if (visible && dataFinal.value.filterable && dataFinal.value.multiple != true) {
     nextTick(() => {
       // 找到 input 元素并让内容可编辑
@@ -97,10 +106,10 @@ const visibleChange = (visible: boolean) => {
           (item: { value: any }) => item.value === bindValue.value
         )
         if (setInputEvent) {
-          input.addEventListener('input', (e:any) => {
-            lastInputValue = e.target.value;
-          });
-          setInputEvent = false;
+          input.addEventListener('input', (e: any) => {
+            lastInputValue = e.target.value
+          })
+          setInputEvent = false
         }
         if (selected && !input.value) {
           input.value = selected.label
@@ -124,7 +133,7 @@ const visibleChange = (visible: boolean) => {
   }
 }
 const remoteMethod = (e: string) => {
-  if (lastInputValue) e = e || lastInputValue;
+  if (lastInputValue) e = e || lastInputValue
   dataFinal.value?.remoteMethod?.(
     e,
     (data) => {
@@ -149,44 +158,51 @@ const props = defineProps({
     default: () => [],
   },
 })
+
+/**
+ * 主函数：设置默认值
+ */
 const setDefaultValue = (data: selectInnerType) => {
-  if (data.isDefault && (data.options as Array<any>).length > 0) {
-    if (props.type === '') {
-      const isDefault: selectOptionsType | undefined = (data.options as selectOptionsType[]).find(
-        (item: selectOptionsType) => !item[keyConfig.value.disabled]
-      )
-      // bindValue.value = (isDefault && isDefault.value) ?? ''
-      bindValue.value = (isDefault && isDefault[keyConfig.value.value]) ?? ''
-    } else {
-      const isDefaultGroup: selectOptionsGroupType | undefined = (
-        data.options as selectOptionsGroupType[]
-      ).find((item: selectOptionsGroupType) => !item[keyConfig.value.disabled])
-      const isDefault: selectOptionsType | undefined =
-        isDefaultGroup &&
-        (isDefaultGroup.options as selectOptionsType[]).find(
-          (item: selectOptionsType) => !item[keyConfig.value.disabled]
-        )
-      // bindValue.value = (isDefault && isDefault.value) ?? ''
-      bindValue.value = (isDefault && isDefault[keyConfig.value.value]) ?? ''
-    }
-    data.clearable = false
+  const { isDefault } = data
+
+  // 1. 未设置 / false 跳过（保留 0 和 ''）
+  if (isDefault === undefined || isDefault === false) return
+
+  // 2. 空数组跳过
+  if (Array.isArray(isDefault) && isDefault.length === 0) return
+
+  // 3. 无选项跳过
+  const options = data.options as selectOptionsGroupType[] | selectOptionsType[]
+  if (options.length === 0) return
+
+  // 4. 查找默认项
+  const matched = findDefaultOptions(data, props.type !== '')
+  if (matched.length === 0) return
+  // 5. 赋值：根据 bindValue 是否数组决定单选/多选
+  if (data.multiple) {
+    bindValue.value = matched.map((item) => item.value)
+  } else {
+    bindValue.value = matched[0].value ?? ''
   }
+
+  // 6. 设置默认值后禁用清除
+  data.clearable = false
 }
 const emits = defineEmits(['update:modelValue'])
 
 const change = (e: typeof props.modelValue) => {
   nextTick(() => {
-    dataFinal.value && dataFinal.value.change && dataFinal.value.change(e);
-  });
-};
+    dataFinal.value && dataFinal.value.change && dataFinal.value.change(e)
+  })
+}
 const updateModelValue = (e: typeof props.modelValue) => {
-  const selected = selectOptions.value.find((item) => item.value === e);
+  const selected = selectOptions.value.find((item) => item.value === e)
   if (selected && dataFinal.value && dataFinal.value.remote) {
-    lastInputValue = selected.label;
-    remoteOptions.value = [selected];
+    lastInputValue = selected.label
+    remoteOptions.value = [selected]
   }
-  emits('update:modelValue', e);
-};
+  emits('update:modelValue', e)
+}
 const blur = (e: any) => {
   dataFinal.value && dataFinal.value.blur && dataFinal.value.blur(e)
 }
@@ -246,38 +262,44 @@ const dataFinal = computed(() => {
   data.focus = data.focus || function () {}
   return data
 })
-const bindValue = computed({
+const bindValue = computed<typeof props.modelValue>({
   get() {
+    // console.log(!props.modelValue || props.modelValue.length === 0, props.modelValue);
     if (!checkExistence(props.modelValue)) setDefaultValue(dataFinal.value)
-    return props.modelValue
+    if (typeof props.modelValue === 'object') {
+      return props.modelValue.map(String)
+    }
+    return String(props.modelValue)
   },
   set(val) {
     // if (props.modelValue != val) {
+    finalRemoteOptions = remoteOptions.value
     updateModelValue(val)
-    // change(val)
+    change(val)
     // }
   },
 })
 watch(
   () => bindValue.value,
   () => {
-    change(bindValue.value);
+    change(bindValue.value)
     if (!checkExistence(bindValue.value)) {
-      lastInputValue = '';
+      lastInputValue = ''
       return
     }
-    const selected = selectOptions.value.find((item) => item.value === bindValue.value);
+    const selected = selectOptions.value.find((item) => item.value === bindValue.value)
     if (selected && dataFinal.value && dataFinal.value.remote) {
-      lastInputValue = selected.label;
-      remoteOptions.value = [selected];
+      lastInputValue = selected.label
+      remoteOptions.value = [selected]
     }
   }
-);
-const getInnerOptions = () => selectOptions.value;
+)
+const getInnerOptions = () => selectOptions.value
 
 const _ref = ref()
 defineExpose({
-  _ref,getInnerOptions
+  _ref,
+  getInnerOptions,
 })
 </script>
 <style scoped lang="scss">

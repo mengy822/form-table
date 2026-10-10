@@ -290,7 +290,11 @@ const handleRequest = (options: UploadRequestOptions): any => {
     dataFinal.value
       .httpRequest(options)
       .then((res: typeof props.modelValue) => {
-        updateModelValue(fileList.value.filter((item) => !item.raw && (item.url || '').indexOf('blob:') == -1).concat(...normalizeModelValue(res)));
+        updateModelValue(
+          fileList.value
+            .filter((item) => !item.raw && (item.url || '').indexOf('blob:') == -1 && item.name != options.file.name)
+            .concat(...normalizeModelValue(res))
+        );
       })
       .catch(() => handleRemove(options.file))
   } else {

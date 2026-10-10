@@ -364,14 +364,13 @@ export default defineComponent({
                   const item1 = propss[j]
                   lscontent = (lscontent as ObjectType)?.[item1] || undefined
                 }
-                const content =
-                formatDisplayContent({
-                  value:lscontent,
+                const content = formatDisplayContent({
+                  value: lscontent,
                   decimalPlaces: item.decimalPlaces,
                   defaultBlock: props.defaultBlock,
 
                   unit: item.unit,
-                  rowData:row,
+                  rowData: row,
                   other,
                   prop: item.prop,
                 })
@@ -391,15 +390,15 @@ export default defineComponent({
               lscontent = (lscontent as ObjectType)?.[item1] || undefined
             }
             const content = formatDisplayContent({
-                  value:lscontent,
-                  decimalPlaces: item.decimalPlaces,
-                  defaultBlock: props.defaultBlock,
+              value: lscontent,
+              decimalPlaces: item.decimalPlaces,
+              defaultBlock: props.defaultBlock,
 
-                  unit: item.unit,
-                  rowData:row,
-                  other,
-                  prop: item.prop,
-                })
+              unit: item.unit,
+              rowData: row,
+              other,
+              prop: item.prop,
+            })
             return content
           }
         }
@@ -645,24 +644,24 @@ export default defineComponent({
       )
 
       return h(
-              MyDialog,
-              {
-                ref: myDialog,
-                width: props.width,
-                title: props.title,
-                onBeforeClose: handleClose,
-                closeOnClickModal: props.closeOnClickModal,
-                style: {
-                  '--label-width': props.labelWidth,
-                  '--maxWidth': maxWidth.value,
-                  '--desColumn': props.desColumn,
-                },
-              },
-              {
-                default: () => detailContent,
-                footer: renderFooter,
-              }
-            )
+        MyDialog,
+        {
+          ref: myDialog,
+          width: props.width,
+          title: props.title,
+          onBeforeClose: handleClose,
+          closeOnClickModal: props.closeOnClickModal,
+          style: {
+            '--label-width': props.labelWidth,
+            '--maxWidth': maxWidth.value,
+            '--desColumn': props.desColumn,
+          },
+        },
+        {
+          default: () => detailContent,
+          footer: renderFooter,
+        }
+      )
     }
   },
 })
@@ -690,8 +689,9 @@ export default defineComponent({
 }
 
 :deep(.el-descriptions__body) {
-table-layout: fixed;
+  table-layout: fixed;
   .el-descriptions__table {
+    table-layout: fixed;
     .nesting {
       // padding: 0 !important;
     }

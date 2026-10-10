@@ -1,3 +1,5 @@
+import { selectInnerType } from '../components/form/types'
+import { selectOptionsGroupType, selectOptionsType } from '../components/select/types'
 import { dataItemType, ObjectType } from '../js/types'
 import { tableColumnItem } from '../Table/types'
 
@@ -202,4 +204,144 @@ export const formatDisplayContent = (data: {
     content = content + unit
   }
   return content
+}
+/**
+ * 展平分组/普通 options
+ * - 普通：原样返回
+ * - 分组：展平，组 disabled 继承给组内选项
+ * - 保留所有下标位（禁用项也占位）
+ */
+export const flattenOptions = (
+  options: selectOptionsType[] | selectOptionsGroupType[],
+  isGroup: boolean,
+): selectOptionsType[] => {
+  if (!isGroup) {
+    return options as selectOptionsType[]
+  }
+
+  return (options as selectOptionsGroupType[]).flatMap((group) =>
+    (group.options as selectOptionsType[]).map((item) => ({
+      ...item,
+      disabled: item.disabled || group.disabled,
+    })),
+  )
+}
+
+/**
+ * 按下标就近查找：目标 → 向上 → 向下
+ * 越界时：偏小从 0 向下，偏大从末尾向上
+ */
+export const findByIndex = (
+  flatOptions: selectOptionsType[],
+  index: number,
+): selectOptionsType | undefined => {
+  const len = flatOptions.length
+  if (len === 0) return undefined
+
+  // 1. 目标本身
+  if (index >= 0 && index < len && !flatOptions[index].disabled) {
+    return flatOptions[index]
+  }
+
+  // 2. 向上
+  const startUp = Math.min(index - 1, len - 1)
+  for (let i = startUp; i >= 0; i--) {
+    if (!flatOptions[i].disabled) return flatOptions[i]
+  }
+
+  // 3. 向下
+  const startDown = Math.max(index + 1, 0)
+  for (let i = startDown; i < len; i++) {
+    if (!flatOptions[i].disabled) return flatOptions[i]
+  }
+
+  return undefined
+}
+
+/**
+ * 单值匹配（带兜底）
+ * - string : value 匹配，没匹配到 → 第一个未禁用项
+ * - number : 下标就近查找，没找到 → 第一个未禁用项
+ * - 兜底   : 第一个未禁用项（boolean）
+ */
+export  const findSingleOption = (flatOptions: selectOptionsType[], isDefault: boolean | string | number): selectOptionsType | undefined => {
+  const fallback = () => flatOptions.find((item) => !item.disabled);
+
+  if (typeof isDefault === 'string') {
+    const matched = flatOptions.find((item) => !item.disabled && item.value === isDefault);
+    return matched ?? fallback();
+  }
+
+  if (typeof isDefault === 'number') {
+    const matched = findByIndex(flatOptions, isDefault);
+    return matched ?? fallback();
+  }
+
+  return fallback();
+};
+
+/**
+ * 多值匹配（按 value 去重）
+ * 数组元素支持 string / number 混合
+ */
+export const findMultipleOptions = (
+  flatOptions: selectOptionsType[],
+  targets: (string | number)[],
+): selectOptionsType[] => {
+  const result: selectOptionsType[] = []
+  const seen = new Set<string>()
+
+  for (const target of targets) {
+    let matched: selectOptionsType | undefined
+
+    if (typeof target === 'string') {
+      matched = flatOptions.find((item) => !item.disabled && item.value === target)
+    } else if (typeof target === 'number') {
+      matched = findByIndex(flatOptions, target)
+    }
+
+    if (matched && !seen.has(String(matched.value))) {
+      seen.add(String(matched.value))
+      result.push(matched)
+    }
+  }
+
+  return result
+}
+/**
+ * 统一入口（方案 B：仅结果为空时兜底）
+ * @param data        selectInnerType / checkboxInnerType
+ * @param isGroup     是否分组模式，默认 false
+ */
+export const findDefaultOptions = (
+  data: {
+    isDefault?: boolean | string | number | (string | number)[]
+    options: selectOptionsType[] | selectOptionsGroupType[]
+  },
+  isGroup = false,
+): selectOptionsType[] => {
+  const { isDefault } = data
+
+  // 1. 边界：未设置 / false / 空数组
+  if (isDefault === undefined || isDefault === false) return []
+  if (Array.isArray(isDefault) && isDefault.length === 0) return []
+
+  // 2. 展平
+  const flatOptions = flattenOptions(data.options as any[], isGroup)
+  if (flatOptions.length === 0) return []
+
+  // 3. 兜底函数
+  const fallback = () => flatOptions.find((item) => !item.disabled)
+
+  // 4. 数组：多值匹配（方案 B）
+  if (Array.isArray(isDefault)) {
+    const matched = findMultipleOptions(flatOptions, isDefault)
+    if (matched.length > 0) return matched
+    const fb = fallback()
+    return fb ? [fb] : []
+  }
+
+  // 5. 单值
+  const single = findSingleOption(flatOptions, isDefault)
+  return single ? [single] : []
 }
