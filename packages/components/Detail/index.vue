@@ -380,17 +380,17 @@ export default defineComponent({
               return contents.join(separator)
             }
 
-            let propss = [prop]
-            if (prop.indexOf('.') > -1) {
-              propss = prop.split('.')
-            }
-            let lscontent = row[propss[0]]
-            for (let j = 1; j < propss.length; j++) {
-              const item1 = propss[j]
-              lscontent = (lscontent as ObjectType)?.[item1] || undefined
-            }
+            // let propss = [prop]
+            // if (prop.indexOf('.') > -1) {
+            //   propss = prop.split('.')
+            // }
+            // let lscontent = row[propss[0]]
+            // for (let j = 1; j < propss.length; j++) {
+            //   const item1 = propss[j]
+            //   lscontent = (lscontent as ObjectType)?.[item1] || undefined
+            // }
             const content = formatDisplayContent({
-              value: lscontent,
+              value: row[prop],
               decimalPlaces: item.decimalPlaces,
               defaultBlock: props.defaultBlock,
 
@@ -479,8 +479,14 @@ export default defineComponent({
               const Component = createMarkRaw(item.funDom, dataFinal.value, item.prop)
               return h(Component)
             }
+            const innerother = {
+              ...attrs,
+              loading: false,
+              renderTxt: (context: string | number | boolean): string | number | boolean =>
+                context ?? props.defaultBlock,
+            }
+            const { content, classNames } = getColumnData(item, dataFinal.value, innerother)
 
-            const { content, classNames } = getColumnData(item, dataFinal.value, attrs)
             const finalClassNames = [
               `span span_${item.prop}`,
               `span_${item.prop}_${getValueByPath(dataFinal.value, item.prop)}`,

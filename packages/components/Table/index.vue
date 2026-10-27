@@ -113,19 +113,18 @@
         fixed="left"
         :reserve-selection="reserve"
         :selectable="typeof hasSelection === 'boolean' ? () => true : hasSelection"
-        width="55"
+        min-width="55"
       />
       <el-table-column
         :fixed="hasIndexFixed"
         v-if="hasIndexComputed"
-        :min-width="60"
+        :min-width="computedIndexWidth"
         :label="typeof hasIndex === 'boolean' ? '序号' : hasIndex"
       >
         <template #default="scope">
-          {{
-            queryParams.pageSize * (queryParams.pageNum - 1) +
-            (getRealIndex(scope && scope.$index) || 0)
-          }}
+          <div class="index">
+            {{ queryParams.pageSize * (queryParams.pageNum - 1) + (getRealIndex(scope && scope.$index) || 0) }}
+          </div>
         </template>
       </el-table-column>
       <MyTableColumn
@@ -800,6 +799,31 @@ const MAX_CACHE_SIZE = computed(() => {
   const dataLength = dataListComputed.value?.length || 0
   return Math.max(200, dataLength * 1.5)
 })
+// 序号列宽度相关常量
+const MIN_INDEX_WIDTH = 60; // 最小宽度
+const INDEX_PADDING = 32; // 单元格 padding + td border + 安全余量
+const DIGIT_WIDTH = 9; // 单个阿拉伯数字在常见字号下的像素宽度（覆盖 12-15px）
+
+/**
+ * 序号列宽度：根据当前页、当前视口内实际显示的最大序号位数动态计算
+ * - 不按全局 total 算，因为虚拟滚动只渲染一小段、未滚动时不应预留 6 位数宽度
+ * - 当前视口可见行数 = 优先取 _virtualScrollGetCurrentDisplayData()（虚拟模式），否则 dataListComputed.length
+ * - 序号公式（与模板 L117 一致）：pageSize*(pageNum-1) + startIndex + visibleIndex + 1
+ */
+const computedIndexWidth = computed(() => {
+  // 当前视口内实际渲染的行数（虚拟滚动只渲染可见窗口切片，非虚拟则是整页数据）
+  const visibleRows = tableRef.value?.$el?._virtualScrollGetCurrentDisplayData?.();
+  const visibleCount = visibleRows?.length || dataListComputed.value?.length || queryParams.value.pageSize || 1;
+
+  // 最大可见序号 = 分页偏移 + 虚拟滚动起始偏移 + 可见行数
+  const maxIndex = queryParams.value.pageSize * (queryParams.value.pageNum - 1) + startIndex.value + visibleCount;
+
+  const digitCount = String(Math.max(maxIndex, 1)).length;
+  const width = Math.max(MIN_INDEX_WIDTH, digitCount * DIGIT_WIDTH + INDEX_PADDING);
+  // eslint-disable-next-line no-console
+  // console.log('[IndexWidth] page=', queryParams.value.pageNum, ' visible=', visibleCount, ' maxIndex=', maxIndex, ' digits=', digitCount, ' → width=', width);
+  return width;
+});
 
 // 获取 slot 的虚拟节点内容
 const getSlotContent = (
@@ -1205,10 +1229,10 @@ const tableColumnFinal = computed({
   get() {
     if (tableColumn.value.length === 0) {
       tableColumn.value = deepClone(props.tableColumn)
-        .filter((item: { isTable: any }) => item.isTable || typeof item.isTable === 'undefined')
+        //.filter((item: { isTable: any }) => item.isTable || typeof item.isTable === 'undefined')
         .map((item: tableColumnItem, index: number) => {
           return computedTableColumn(item, index)
-        })
+        }).filter((s: any)=>s)
     }
     return tableColumn.value
   },
@@ -1269,6 +1293,9 @@ const spanMethodInner = ({
 }
 
 const computedTableColumn = (item: tableColumnItem, index: number) => {
+  if (!(item.isTable || typeof item.isTable === 'undefined')) {
+    return;
+  }
   if (props.isTree && index === 0 && !props.hasSelection) {
     item.align = 'left'
   }
@@ -1284,7 +1311,7 @@ const computedTableColumn = (item: tableColumnItem, index: number) => {
     item.sortable = false
     item.list = (item.list || []).map((item, index) => {
       return computedTableColumn(item, index)
-    })
+    }).filter((item) => item);
     return item
   }
   if (item.sortable) {
@@ -2192,6 +2219,7 @@ const handleNeedConfirmEvent = ({
 }
 const setCurrentRowIndex = (index: number) => {
   setCurrentRow(dataListComputed.value[index])
+  tableRef.value.$el?._virtualScrollToRow(index);
 }
 defineExpose({
   multipleSelection: multipleSelection.value,

@@ -112,7 +112,7 @@ const dataFinal = computed(() => {
     return item;
   });
   //设置默认值
-  setDefaultValue(data)
+  // setDefaultValue(data)
   data.change = data.change || function () {}
   return data
 })

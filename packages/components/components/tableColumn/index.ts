@@ -62,6 +62,15 @@ export default {
                 loading: other.loading,
               })
             } else if (column.funDom) {
+              column.tooltipFormatter =
+                column.tooltipFormatter ||
+                ((data) => {
+                  return h(
+                    'div',
+                    {},
+                    { default: () => column.funDom(data.row, column.prop, other) },
+                  )
+                })
               return column.funDom(row, column.prop, other)
             } else if (column.prop) {
               delete other.tableColumnFinal

@@ -246,7 +246,7 @@ const dataFinal = computed(() => {
     data.options = option
   }
   //设置默认值
-  setDefaultValue(data)
+  // setDefaultValue(data)
   // if (data && data.remote) {
   //   const selected = data.options.find((item) => item.value === props.modelValue);
   //   if (selected) {
@@ -304,6 +304,7 @@ defineExpose({
 </script>
 <style scoped lang="scss">
 :deep(.el-select__selection) {
-  min-width: 100px;
+  --select-val: v-bind("dataFinal.width || '100px'");
+  min-width: calc(var(--select-val) - 40px);
 }
 </style>

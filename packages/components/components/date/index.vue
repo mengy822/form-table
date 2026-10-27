@@ -50,11 +50,11 @@
       :range-separator="dataFinal.rangeSeparator ?? '-'"
       :start-placeholder="dataFinal.startPlaceholder ?? '开始日期'"
       :end-placeholder="dataFinal.endPlaceholder ?? '结束日期'"
-      :disabled-date="dataFinal.disabledDate"
+      :disabled-date="disabledDate"
       @blur="blur"
       @focus="dataFinal.focus"
       @clear="dataFinal.clear"
-      @calendar-change="dataFinal.calendarChange"
+      @calendar-change="calendarChange"
       @panel-change="dataFinal.panelChange"
       @visible-change="dataFinal.visibleChange"
       v-bind="$attrs"
@@ -129,6 +129,37 @@ const setDefaultValue = (data: typeof dataFinal.value) => {
     }
   }
 }
+const selectedDate = ref(null);
+// 2. 动态禁用日期
+const disabledDate = (time) => {
+  if (dataFinal.value.disabledDate) {
+    return dataFinal.value.disabledDate(time);
+  }
+  // 如果还未选择起始日期，则不限制
+  if (!selectedDate.value) return false;
+
+  const start = new Date(selectedDate.value);
+  // 计算允许的最晚日期：起始日期 + 最多天数
+  // --- 条件1：限制最多天数 ---
+  const maxDate = new Date(start);
+  maxDate.setDate(start.getDate() + (dataFinal.value.maxDays || 1) - 1);
+  const isOutOfRange = dataFinal.value.maxDays <= 0 ? false : time.getTime() < start.getTime() || time.getTime() > maxDate.getTime();
+
+  // --- 条件2：限制不能跨年 ---
+  const isDifferentYear = !dataFinal.value.allowCrossYear?time.getFullYear() !== start.getFullYear():false;
+
+  // 两个条件满足任意一个，就禁用该日期
+  return isOutOfRange || isDifferentYear;
+};
+const calendarChange = (val) => {
+  if (dataFinal.value.calendarChange) {
+    return dataFinal.value.calendarChange(val);
+  }
+  // val 是一个数组，当长度为 1 时，表示用户刚选完第一个日期
+   if (typeof val=='object'&&val && val.filter((a) => a).length === 1) {
+    selectedDate.value = val[0];
+  }
+};
 const dataFinal = computed(() => {
   let data = { ...props.data }
   data.dateType = data.dateType ?? 'datetimerange'
@@ -140,14 +171,15 @@ const dataFinal = computed(() => {
   if (isTime) {
     format = `HH:mm:ss`
   }
+  data.maxDays = (data.maxDays||0) > 0 ? data.maxDays : 1;
   data.valueFormat = data.valueFormat ?? format
   data.format = data.format ?? data.valueFormat ?? format
-  setDefaultValue(data)
+  // setDefaultValue(data)
   data.change = data.change || function () {}
   data.blur = data.blur || function () {}
   data.focus = data.focus || function () {}
   data.clear = data.clear || function () {}
-  data.calendarChange = data.calendarChange || function () {}
+  // data.calendarChange = data.calendarChange || function () {}
   data.panelChange = data.panelChange || function () {}
   data.visibleChange = data.visibleChange || function () {}
   return data

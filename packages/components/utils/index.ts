@@ -189,6 +189,14 @@ export const formatDisplayContent = (data: {
   other?: any
   prop: any
 }) => {
+  if ((data.prop as string).includes('.')) {
+    const props = data.prop.split('.')
+    let ls_data = data.rowData
+    props.forEach((prop: string | number) => {
+      ls_data = ls_data[prop]
+    })
+    data.value = ls_data
+  }
   let content = String(
     typeof data.value === 'number' && typeof data.decimalPlaces === 'number'
       ? formatNumber(data.value, data.decimalPlaces)

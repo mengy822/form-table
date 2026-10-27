@@ -5,6 +5,7 @@ export interface dateType {
   endPlaceholder?: string //时间范围结束时间
   aliases?: string //时间范围转义单字段
   editable?: boolean
+  maxDays?: number
   valueFormat?: string //时间绑定格式
   format?: string //时间显示格式
   width?: string //手动指定宽度
