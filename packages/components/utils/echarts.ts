@@ -3,7 +3,7 @@ const map1 = new Map();
 const resizeObserver = new ResizeObserver((entries) => {
   for (const entrie of entries) {
     const cb = map.get(entrie.target);
-    cb && cb();
+    cb && cb(entrie)
   }
 });
 

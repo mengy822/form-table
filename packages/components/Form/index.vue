@@ -1,209 +1,209 @@
 <template>
   <div v-show="showSearch" class="mb-[20px]">
     <el-card shadow="hover" class="form-plus-main-card">
-
+      <div
+        class="searchList form form-plus-main"
+        ref="formPlusMain"
+        :class="{ hide: !showSearch, show: showSearch }"
+      >
         <div
-          class="searchList form form-plus-main"
-          ref="formPlusMain"
-          :class="{ hide: !showSearch, show: showSearch }"
+          class="search_form_menu"
+          :gutter="gutter"
+          v-for="(rowItem, rowIndex) in searchFinal"
+          :class="{
+            hide: !(fold && rowIndex == 0) || !fold,
+            show: (fold && rowIndex == 0) || !fold,
+          }"
+          :key="JSON.stringify(rowItem)"
         >
-          <div
-            class="search_form_menu"
-            :gutter="gutter"
-            v-for="(rowItem, rowIndex) in searchFinal"
-            :class="{
-              hide: !(fold && rowIndex == 0) || !fold,
-              show: (fold && rowIndex == 0) || !fold,
-            }"
-            :key="JSON.stringify(rowItem)"
+          <el-form
+            ref="formRef"
+            v-show="showSearch"
+            :inline="true"
+            :model="dynamicComputedMap"
+            :label-width="labelWidth"
+            @submit.native.prevent="searchFun('search')"
           >
-            <el-form
-              ref="formRef"
-              v-show="showSearch"
-              :inline="true"
-              :model="dynamicComputedMap"
-              :label-width="labelWidth"
-              @submit.native.prevent="searchFun('search')"
+            <slot
+              v-for="(item, index) in rowItem"
+              :key="JSON.stringify(item)"
+              :name="`my-form-item-${item.prop}`"
+              :prop="item.prop"
+              :data="searchValue"
             >
-              <slot
-                v-for="(item, index) in rowItem"
-                :key="JSON.stringify(item)"
-                :name="`my-form-item-${item.prop}`"
+              <el-form-item
+                :ref="(el: any) => dynamicCreateRef(el, item.prop)"
+                :label="item.label"
                 :prop="item.prop"
-                :data="searchValue"
+                :class="`my-form-item my-form-item-${item.prop} my-form-item-${rowIndex} my-form-item-${rowIndex}-${index}`"
+                :rules="
+                  (rules[item.prop] || []).map((item1) => {
+                    item1.required =
+                      typeof item.dynamicRequired === 'undefined' ||
+                      (item.dynamicRequired && item.dynamicRequired(dynamicComputedMap))
+                    return item1
+                  })
+                "
+                v-if="
+                  typeof item.showFun === 'undefined' ||
+                  (item.showFun && item.showFun(dynamicComputedMap))
+                "
               >
-                <el-form-item
-                  :ref="(el: any) => dynamicCreateRef(el, item.prop)"
-                  :label="item.label"
-                  :prop="item.prop"
-                  :class="`my-form-item my-form-item-${item.prop} my-form-item-${rowIndex} my-form-item-${rowIndex}-${index}`"
-                  :rules="
-                    (rules[item.prop] || []).map((item1) => {
-                      item1.required =
-                        typeof item.dynamicRequired === 'undefined' || (item.dynamicRequired && item.dynamicRequired(dynamicComputedMap));
-                      return item1;
-                    })
-                  "
-                  v-if="
-                    typeof item.showFun === 'undefined' ||
-                    (item.showFun && item.showFun(dynamicComputedMap))
-                  "
+                <template #label v-if="slots[`label_${item.prop}`] || item.labelFunDom">
+                  <component
+                    v-if="item.funDom"
+                    :is="getFunDomComponent(item, dynamicComputedMap, 'labelFunDom')"
+                  />
+                  <slot
+                    v-else
+                    :name="`label_${item.prop}`"
+                    :prop="item.prop"
+                    :data="dynamicComputedMap"
+                  ></slot>
+                </template>
+                <template #error v-if="slots[`error_${item.prop}`] || item.errorFunDom">
+                  <component
+                    v-if="item.funDom"
+                    :is="getFunDomComponent(item, dynamicComputedMap, 'errorFunDom')"
+                  />
+                  <slot
+                    v-else
+                    :name="`error_${item.prop}`"
+                    :prop="item.prop"
+                    :data="dynamicComputedMap"
+                  ></slot>
+                </template>
+
+                <template #default>
+                  <component
+                    v-if="item.funDom"
+                    :is="getFunDomComponent(item, dynamicComputedMap)"
+                  />
+                  <slot v-else :name="item.prop" :prop="item.prop" :data="dynamicComputedMap">
+                    <Input
+                      :data="item"
+                      v-if="item.type === 'input'"
+                      v-model="dynamicComputedMap[item.prop]"
+                    >
+                      <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                        <slot :name="name" v-bind="scopeData"></slot>
+                      </template>
+                    </Input>
+                    <MyDate
+                      :data="item"
+                      v-if="item.type === 'date'"
+                      v-model="dynamicComputedMap[item.prop]"
+                    >
+                      <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                        <slot :name="name" v-bind="scopeData"></slot>
+                      </template>
+                    </MyDate>
+
+                    <Select
+                      :data="item"
+                      v-if="item.type === 'select'"
+                      v-model="dynamicComputedMap[item.prop]"
+                    >
+                      <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                        <slot :name="name" v-bind="scopeData"></slot>
+                      </template>
+                    </Select>
+                    <Switch
+                      :data="item"
+                      v-if="item.type === 'switch'"
+                      v-model="dynamicComputedMap[item.prop]"
+                    >
+                      <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                        <slot :name="name" v-bind="scopeData"></slot>
+                      </template>
+                    </Switch>
+                    <CheckBox
+                      :data="item"
+                      v-if="item.type === 'checkbox'"
+                      v-model="dynamicComputedMap[item.prop]"
+                    >
+                      <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                        <slot :name="name" v-bind="scopeData"></slot>
+                      </template>
+                    </CheckBox>
+                    <Radio
+                      :data="item"
+                      v-if="item.type === 'radio'"
+                      v-model="dynamicComputedMap[item.prop]"
+                    >
+                      <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
+                        <slot :name="name" v-bind="scopeData"></slot>
+                      </template>
+                    </Radio>
+                  </slot>
+                </template>
+              </el-form-item>
+            </slot>
+
+            <el-form-item v-if="rowIndex === 0" class="buttons">
+              <div style="display: flex" :gutter="gutter" ref="buttons">
+                <div
+                  v-for="item in searchButtonFinal"
+                  :key="JSON.stringify(item)"
+                  style="display: flex"
+                  class="my-form-buttons"
                 >
-                  <template #label v-if="slots[`label_${item.prop}`] || item.labelFunDom">
-                    <component
-                      v-if="item.funDom"
-                      :is="getFunDomComponent(item, dynamicComputedMap, 'labelFunDom')"
-                    />
-                    <slot
-                      v-else
-                      :name="`label_${item.prop}`"
-                      :prop="item.prop"
-                      :data="dynamicComputedMap"
-                    ></slot>
-                  </template>
-                  <template #error v-if="slots[`error_${item.prop}`] || item.errorFunDom">
-                    <component
-                      v-if="item.funDom"
-                      :is="getFunDomComponent(item, dynamicComputedMap, 'errorFunDom')"
-                    />
-                    <slot
-                      v-else
-                      :name="`error_${item.prop}`"
-                      :prop="item.prop"
-                      :data="dynamicComputedMap"
-                    ></slot>
-                  </template>
-
-                  <template #default>
-                    <component
-                      v-if="item.funDom"
-                      :is="getFunDomComponent(item, dynamicComputedMap)"
-                    />
-                    <slot v-else :name="item.prop" :prop="item.prop" :data="dynamicComputedMap">
-                      <Input
-                        :data="item"
-                        v-if="item.type === 'input'"
-                        v-model="dynamicComputedMap[item.prop]"
-                      >
-                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
-                          <slot :name="name" v-bind="scopeData"></slot>
-                        </template>
-                      </Input>
-                      <MyDate
-                        :data="item"
-                        v-if="item.type === 'date'"
-                        v-model="dynamicComputedMap[item.prop]"
-                      >
-                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
-                          <slot :name="name" v-bind="scopeData"></slot>
-                        </template>
-                      </MyDate>
-
-                      <Select
-                        :data="item"
-                        v-if="item.type === 'select'"
-                        v-model="dynamicComputedMap[item.prop]"
-                      >
-                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
-                          <slot :name="name" v-bind="scopeData"></slot>
-                        </template>
-                      </Select>
-                      <Switch
-                        :data="item"
-                        v-if="item.type === 'switch'"
-                        v-model="dynamicComputedMap[item.prop]"
-                      >
-                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
-                          <slot :name="name" v-bind="scopeData"></slot>
-                        </template>
-                      </Switch>
-                      <CheckBox
-                        :data="item"
-                        v-if="item.type === 'checkbox'"
-                        v-model="dynamicComputedMap[item.prop]"
-                      >
-                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
-                          <slot :name="name" v-bind="scopeData"></slot>
-                        </template>
-                      </CheckBox>
-                      <Radio
-                        :data="item"
-                        v-if="item.type === 'radio'"
-                        v-model="dynamicComputedMap[item.prop]"
-                      >
-                        <template v-for="(_, name) in slots" #[getName(name,item.prop)]="scopeData">
-                          <slot :name="name" v-bind="scopeData"></slot>
-                        </template>
-                      </Radio>
-                    </slot>
-                  </template>
-                </el-form-item>
-              </slot>
-
-              <el-form-item v-if="rowIndex === 0" class="buttons">
-                <div style="display: flex" :gutter="gutter" ref="buttons">
-                  <div
-                    v-for="item in searchButtonFinal"
-                    :key="JSON.stringify(item)"
-                    style="display: flex"
-                    class="my-form-buttons"
-                  >
-                    <el-button
-                      v-if="item.type === 'button'"
-                      :size="item.size ?? 'small'"
-                      :type="item.inputType ?? 'primary'"
-                      :icon="item.icon"
-                      @click="searchFun(item?.fun)"
-                      >{{ item.label }}
-                    </el-button>
-                    <el-button
-                      v-if="item.type === 'search'"
-                      :size="item.size ?? 'small'"
-                      :type="item.inputType ?? 'primary'"
-                      :icon="item.icon ?? Search"
-                      @click="searchFun(item?.fun)"
-                      >{{ item.label }}
-                    </el-button>
-                    <el-button
-                      v-if="item.type === 'search-refresh'"
-                      :size="item.size ?? 'default'"
-                      :type="item.inputType ?? 'primary'"
-                      :icon="item.icon ?? Search"
-                      @click="searchFun(item?.fun ?? 'search')"
-                      >{{ (item as searchRefresh).searchLabel }}
-                    </el-button>
-                    <el-button
-                      v-if="item.type === 'search-refresh'"
-                      :size="item.size ?? 'default'"
-                      :type="item.inputType ?? ''"
-                      :icon="item.icon ?? RefreshLeft"
-                      @click="searchFun('refresh')"
-                      >{{ (item as searchRefresh).refreshLabel }}
-                    </el-button>
-                    <el-button
-                      v-if="item.type === 'refresh'"
-                      :size="item.size ?? 'small'"
-                      :type="item.inputType ?? ''"
-                      :icon="item.icon ?? 'RefreshLeft'"
-                      @click="searchFun('refresh')"
-                      >{{ item.label }}
-                    </el-button>
-                  </div>
-                  <el-button class="fold" v-if="showFold" text @click="openList">
-                    {{ fold ? '展开' : '收起' }}
-                    <el-icon v-if="fold">
-                      <ArrowDown />
-                    </el-icon>
-                    <el-icon v-if="!fold">
-                      <ArrowUp />
-                    </el-icon>
+                  <el-button
+                    v-if="item.type === 'button'"
+                    :size="item.size ?? 'small'"
+                    :type="item.inputType ?? 'primary'"
+                    :icon="item.icon"
+                    @click="searchFun(item?.fun)"
+                    >{{ item.label }}
+                  </el-button>
+                  <el-button
+                    v-if="item.type === 'search'"
+                    :size="item.size ?? 'small'"
+                    :type="item.inputType ?? 'primary'"
+                    :icon="item.icon ?? Search"
+                    @click="searchFun(item?.fun)"
+                    >{{ item.label }}
+                  </el-button>
+                  <el-button
+                    v-if="item.type === 'search-refresh'"
+                    :size="item.size ?? 'default'"
+                    :type="item.inputType ?? 'primary'"
+                    :icon="item.icon ?? Search"
+                    @click="searchFun(item?.fun ?? 'search')"
+                    >{{ (item as searchRefresh).searchLabel }}
+                  </el-button>
+                  <el-button
+                    v-if="item.type === 'search-refresh'"
+                    :size="item.size ?? 'default'"
+                    :type="item.inputType ?? ''"
+                    :icon="item.icon ?? RefreshLeft"
+                    @click="searchFun('refresh')"
+                    >{{ (item as searchRefresh).refreshLabel }}
+                  </el-button>
+                  <el-button
+                    v-if="item.type === 'refresh'"
+                    :size="item.size ?? 'small'"
+                    :type="item.inputType ?? ''"
+                    :icon="item.icon ?? 'RefreshLeft'"
+                    @click="searchFun('refresh')"
+                    >{{ item.label }}
                   </el-button>
                 </div>
-              </el-form-item>
-              <!-- </div> -->
-            </el-form>
-          </div>
+                <el-button class="fold" v-if="showFold" text @click="openList">
+                  {{ fold ? '展开' : '收起' }}
+                  <el-icon v-if="fold">
+                    <ArrowDown />
+                  </el-icon>
+                  <el-icon v-if="!fold">
+                    <ArrowUp />
+                  </el-icon>
+                </el-button>
+              </div>
+            </el-form-item>
+            <!-- </div> -->
+          </el-form>
         </div>
+      </div>
     </el-card>
   </div>
 </template>
@@ -245,6 +245,7 @@ import { useDebounceThrottle } from '../utils/hooks/index'
 import { createRules } from '../utils/rules'
 import { getDomComputed, getComputedStyle } from '../js/utils'
 import { useFunDom } from '../utils/funDom'
+import { addWindowResize, removeWindowResize } from '../utils/echarts'
 //父传子参数
 // 定义 Props 类型接口
 interface SearchFormProps {
@@ -269,7 +270,15 @@ interface SearchFormProps {
   showSearchLabel?: boolean
 
   /** 搜索表单字段配置（必填） */
-  search: (inputInnerType | switchInnerType | checkboxInnerType | radioInnerType | selectInnerType | dateInnerType | fileInnerType)[]
+  search: (
+    | inputInnerType
+    | switchInnerType
+    | checkboxInnerType
+    | radioInnerType
+    | selectInnerType
+    | dateInnerType
+    | fileInnerType
+  )[]
 
   /** 搜索按钮配置 */
   searchButton?: (button | refresh | search | searchRefresh)[]
@@ -458,26 +467,41 @@ const searchComputed = computed(() => {
       return item
     })
 })
+const innerDomResize = (f = true) => {
+  if (!f) {
+    removeWindowResize(formPlusMain.value)
+    return
+  }
+  addWindowResize(formPlusMain.value, (e: { contentRect: { width: Event } }) =>
+    formItemWidthComputedListenerHandler(e.contentRect.width)
+  )
+}
 
 onMounted(() => {
-  window.addEventListener('resize', formItemWidthComputedListenerHandler)
+  // window.addEventListener('resize', formItemWidthComputedListenerHandler);
+  innerDomResize()
 })
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', formItemWidthComputedListenerHandler)
+onUnmounted(() => {
+  innerDomResize(false)
+  // window.removeEventListener('resize', formItemWidthComputedListenerHandler);
 })
 onActivated(() => {
-  window.addEventListener('resize', formItemWidthComputedListenerHandler)
+  innerDomResize()
+  // window.addEventListener('resize', formItemWidthComputedListenerHandler);
 })
 onDeactivated(() => {
-  window.removeEventListener('resize', formItemWidthComputedListenerHandler)
+  innerDomResize(false)
+  // window.removeEventListener('resize', formItemWidthComputedListenerHandler);
 })
-let wwidth = window.innerWidth;
+let wwidth = 0
 //用于监听大小改变的回调
-const formItemWidthComputedListener = (event?: UIEvent) => {
-  if (wwidth == window.innerWidth) {
-    return;
+const formItemWidthComputedListener = (event: number = window.innerWidth) => {
+  event = parseInt(String(event))
+  if (event == 0) return
+  if (wwidth == event) {
+    return
   }
-  wwidth = window.innerWidth;
+  wwidth = event
   // console.log('大小改变')
   formItemWidthComputed(searchComputed.value)
 }
@@ -496,14 +520,17 @@ const formItemWidthComputed = (search: typeof searchComputed.value, callback = (
   nextTick(() => {
     const formPlusMainWidth = formPlusMain.value?.clientWidth
     const inputWidths: { [key: string]: number } = {}
-    let buttonsWidth = buttons.value[0]?.clientWidth ?? 0;
+    let buttonsWidth = buttons.value[0]?.clientWidth ?? 0
     if (buttonsWidth === 0) {
-      const a = getComputedStyle(document.querySelector('.final_buttons'));
-      buttonsWidth = getDomComputed(a, 'width');
+      const a = getComputedStyle(document.querySelector('.final_buttons'))
+      buttonsWidth = getDomComputed(a, 'width')
     }
     for (const key in dynamicRefMap.value) {
-      let computedStyle = getComputedStyle(dynamicRefMap.value[key].$el);
-      if (computedStyle.length == 0) computedStyle = getComputedStyle(document.querySelector(`.my-form-item-${key.replace('Ref', '')}`));
+      let computedStyle = getComputedStyle(dynamicRefMap.value[key].$el)
+      if (computedStyle.length == 0)
+        computedStyle = getComputedStyle(
+          document.querySelector(`.my-form-item-${key.replace('Ref', '')}`)
+        )
 
       inputWidths[key] = getDomComputed(computedStyle, 'width') + 6 * 2
       if (isNaN(inputWidths[key])) {
@@ -545,13 +572,11 @@ const formItemWidthComputed = (search: typeof searchComputed.value, callback = (
 // ============ 新增：结构变化监听（支持部分重建） ============
 
 // 获取配置项的唯一标识
-const getItemKey = (item: typeof props.search[0]) => `${item.prop}-${item.type}`
+const getItemKey = (item: (typeof props.search)[0]) => `${item.prop}-${item.type}`
 
 // 获取当前所有配置项的 key 列表
 const getStructureKeys = (searchList: typeof props.search) => {
-  return searchList
-    .filter(item => item.isForm ?? true)
-    .map(item => getItemKey(item))
+  return searchList.filter((item) => item.isForm ?? true).map((item) => getItemKey(item))
 }
 
 // 部分更新：增删单个配置项
@@ -566,11 +591,11 @@ const partialUpdate = async (
 
   if (action === 'add') {
     // 新增：找到正确的位置插入
-    const item = search.find(i => getItemKey(i) === key)
+    const item = search.find((i) => getItemKey(i) === key)
     if (!item) return
 
     // 获取当前所有配置的 key 顺序
-    const allKeys = search.map(i => getItemKey(i))
+    const allKeys = search.map((i) => getItemKey(i))
     const targetIndex = allKeys.indexOf(key)
 
     // 将新项插入到 searchFinal 对应的位置
@@ -597,12 +622,11 @@ const partialUpdate = async (
         searchFinal.value.push([item])
       }
     }
-
   } else {
     // 删除：从 searchFinal 中移除
     for (let rowIndex = 0; rowIndex < searchFinal.value.length; rowIndex++) {
       const row = searchFinal.value[rowIndex]
-      const itemIndex = row.findIndex(i => getItemKey(i) === key)
+      const itemIndex = row.findIndex((i) => getItemKey(i) === key)
       if (itemIndex !== -1) {
         row.splice(itemIndex, 1)
         break
@@ -610,7 +634,7 @@ const partialUpdate = async (
     }
 
     // 删除空行
-    searchFinal.value = searchFinal.value.filter(row => row.length > 0)
+    searchFinal.value = searchFinal.value.filter((row) => row.length > 0)
     if (searchFinal.value.length === 0) {
       searchFinal.value = [[]]
     }
@@ -621,7 +645,7 @@ const partialUpdate = async (
 
   // 处理值的变化
   if (action === 'add') {
-    const item = search.find(i => getItemKey(i) === key)
+    const item = search.find((i) => getItemKey(i) === key)
     if (item) {
       let f = false
       switch (item.type) {
@@ -642,7 +666,10 @@ const partialUpdate = async (
           }
           break
         case 'select':
-          if (!(item as selectInnerType).multiple && (item as checkboxInnerType).valueType !== 'string') {
+          if (
+            !(item as selectInnerType).multiple &&
+            (item as checkboxInnerType).valueType !== 'string'
+          ) {
             f = true
           } else {
             dynamicComputedFun(item.prop, 'string', ',')
@@ -692,11 +719,9 @@ const fullRebuild = async (search: typeof props.search) => {
 //处理搜索表单
 // ✅ 新增：计算结构标识（只包含 prop 和 type，不包含 options 等动态属性）
 const getStructureSign = (searchList: typeof props.search) => {
-  return searchList
-    .filter((item) => item.isForm ?? true)
-    .map((item) => `${item.prop}-${item.type}`)
-    // .join('|');
-};
+  return searchList.filter((item) => item.isForm ?? true).map((item) => `${item.prop}-${item.type}`)
+  // .join('|');
+}
 
 // ============ 替换：只监听结构变化（增删），不监听属性修改 ============
 
@@ -710,8 +735,8 @@ watch(
     const newKeys = newKeysStr.split('|').filter(Boolean)
     const oldKeys = oldKeysStr?.split('|').filter(Boolean) || []
 
-    const added = newKeys.filter(k => !oldKeys.includes(k))
-    const removed = oldKeys.filter(k => !newKeys.includes(k))
+    const added = newKeys.filter((k) => !oldKeys.includes(k))
+    const removed = oldKeys.filter((k) => !newKeys.includes(k))
 
     console.log('📊 结构变化:', { added, removed })
 

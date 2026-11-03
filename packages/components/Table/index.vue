@@ -30,7 +30,7 @@
             <el-button
               :loading="operationLoading"
               type="warning"
-              :disabled="dataListComputed.length === 0"
+              :disabled="hasExportDisabled(queryParams, totalComputed) ||dataListComputed.length === 0"
               :plain="hasTableTopPlain"
               :icon="hasExportIcon"
               @click.stop="handleExport()"
@@ -355,6 +355,7 @@ export interface TableProps {
   hasImportIcon?: object
   /** 是否显示【导出】按钮（支持布尔值、自定义文本、函数动态控制） */
   hasExport?: boolean | string | ((data: dataItemType) => boolean | string)
+  hasExportDisabled?: (data: dataItemType, dali: any) => boolean;
   /** 【导出】按钮图标配置 */
   hasExportIcon?: object
   /** 操作按钮是否显示文本 */
@@ -649,6 +650,7 @@ const props = withDefaults(defineProps<TableProps>(), {
   hasImport: true,
   hasImportIcon: () => Upload,
   hasExport: true,
+  hasExportDisabled: () => true,
   hasExportIcon: () => Download,
   hasTableTopPlain: true,
   // 操作列通用配置
