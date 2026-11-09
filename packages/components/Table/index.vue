@@ -650,7 +650,7 @@ const props = withDefaults(defineProps<TableProps>(), {
   hasImport: true,
   hasImportIcon: () => Upload,
   hasExport: true,
-  hasExportDisabled: () => true,
+  hasExportDisabled: () => false,
   hasExportIcon: () => Download,
   hasTableTopPlain: true,
   // 操作列通用配置

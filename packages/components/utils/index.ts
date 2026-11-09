@@ -193,7 +193,7 @@ export const formatDisplayContent = (data: {
     const props = data.prop.split('.')
     let ls_data = data.rowData
     props.forEach((prop: string | number) => {
-      ls_data = ls_data[prop]
+      ls_data = ls_data?.[prop]
     })
     data.value = ls_data
   }

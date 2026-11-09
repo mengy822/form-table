@@ -18,6 +18,7 @@
       :end-placeholder="dataFinal.endPlaceholder ?? '结束日期'"
       :disabled-date="dataFinal.disabledDate"
       :shortcuts="dataFinal.shortcuts"
+      :picker-options="dataFinal.pickerOptions"
       v-bind="$attrs"
       @blur="blur"
       @focus="dataFinal.focus"

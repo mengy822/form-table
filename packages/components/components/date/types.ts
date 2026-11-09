@@ -10,6 +10,7 @@ export interface dateType {
   format?: string //时间显示格式
   width?: string //手动指定宽度
   shortcuts?: any[]
+  pickerOptions?: object
   dateType?:
     | 'year'
     | 'years'

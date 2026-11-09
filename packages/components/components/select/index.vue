@@ -76,6 +76,7 @@ const remoteOptions = ref<any[]>([])
 let finalRemoteOptions: any[] = []
 let lastInputValue = ''
 let setInputEvent = true
+let isComposing = false;
 const selectOptions = computed(() => {
   const opts = checkExistence(remoteOptions.value)
     ? remoteOptions.value
@@ -91,6 +92,19 @@ const selectOptions = computed(() => {
       return item
     })
 })
+onMounted(() => {
+  // 在组件挂载或首次拿到 input 时绑定
+  const input = _ref.value?.$el?.querySelector('.el-select__input');
+  if (input) {
+    input.addEventListener('compositionstart', () => {
+      isComposing = true;
+    });
+    input.addEventListener('compositionend', () => {
+      isComposing = false;
+      // 可选：组合结束后再做你原本的选中项回填逻辑
+    });
+  }
+});
 const visibleChange = (visible: boolean) => {
   dataFinal.value?.visibleChange?.(visible)
   if (!visible) {
@@ -100,7 +114,7 @@ const visibleChange = (visible: boolean) => {
     nextTick(() => {
       // 找到 input 元素并让内容可编辑
       const input = _ref.value?.$el?.querySelector('.el-select__input')
-      if (input) {
+      if (input && !isComposing) {
         // 获取当前选中项的 label
         const selected = selectOptions.value.find(
           (item: { value: any }) => item.value === bindValue.value
@@ -122,15 +136,15 @@ const visibleChange = (visible: boolean) => {
       }
     })
   }
-  if (!visible) {
-    nextTick(() => {
-      // 找到 input 元素并让内容可编辑
-      const input = _ref.value?.$el?.querySelector('.el-select__input')
-      if (input) {
-        input.blur()
-      }
-    })
-  }
+  // if (!visible) {
+  //   nextTick(() => {
+  //     // 找到 input 元素并让内容可编辑
+  //     const input = _ref.value?.$el?.querySelector('.el-select__input')
+  //     if (input) {
+  //       input.blur()
+  //     }
+  //   })
+  // }
 }
 const remoteMethod = (e: string) => {
   if (lastInputValue) e = e || lastInputValue
