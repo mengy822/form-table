@@ -30,7 +30,9 @@
             <el-button
               :loading="operationLoading"
               type="warning"
-              :disabled="hasExportDisabled(queryParams, totalComputed) ||dataListComputed.length === 0"
+              :disabled="
+                hasExportDisabled(queryParams, totalComputed) || dataListComputed.length === 0
+              "
               :plain="hasTableTopPlain"
               :icon="hasExportIcon"
               @click.stop="handleExport()"
@@ -123,7 +125,10 @@
       >
         <template #default="scope">
           <div class="index">
-            {{ queryParams.pageSize * (queryParams.pageNum - 1) + (getRealIndex(scope && scope.$index) || 0) }}
+            {{
+              queryParams.pageSize * (queryParams.pageNum - 1) +
+              (getRealIndex(scope && scope.$index) || 0)
+            }}
           </div>
         </template>
       </el-table-column>
@@ -355,7 +360,7 @@ export interface TableProps {
   hasImportIcon?: object
   /** 是否显示【导出】按钮（支持布尔值、自定义文本、函数动态控制） */
   hasExport?: boolean | string | ((data: dataItemType) => boolean | string)
-  hasExportDisabled?: (data: dataItemType, dali: any) => boolean;
+  hasExportDisabled?: (data: dataItemType, dali: any) => boolean
   /** 【导出】按钮图标配置 */
   hasExportIcon?: object
   /** 操作按钮是否显示文本 */
@@ -802,9 +807,9 @@ const MAX_CACHE_SIZE = computed(() => {
   return Math.max(200, dataLength * 1.5)
 })
 // 序号列宽度相关常量
-const MIN_INDEX_WIDTH = 60; // 最小宽度
-const INDEX_PADDING = 32; // 单元格 padding + td border + 安全余量
-const DIGIT_WIDTH = 9; // 单个阿拉伯数字在常见字号下的像素宽度（覆盖 12-15px）
+const MIN_INDEX_WIDTH = 60 // 最小宽度
+const INDEX_PADDING = 32 // 单元格 padding + td border + 安全余量
+const DIGIT_WIDTH = 9 // 单个阿拉伯数字在常见字号下的像素宽度（覆盖 12-15px）
 
 /**
  * 序号列宽度：根据当前页、当前视口内实际显示的最大序号位数动态计算
@@ -814,18 +819,20 @@ const DIGIT_WIDTH = 9; // 单个阿拉伯数字在常见字号下的像素宽度
  */
 const computedIndexWidth = computed(() => {
   // 当前视口内实际渲染的行数（虚拟滚动只渲染可见窗口切片，非虚拟则是整页数据）
-  const visibleRows = tableRef.value?.$el?._virtualScrollGetCurrentDisplayData?.();
-  const visibleCount = visibleRows?.length || dataListComputed.value?.length || queryParams.value.pageSize || 1;
+  const visibleRows = tableRef.value?.$el?._virtualScrollGetCurrentDisplayData?.()
+  const visibleCount =
+    visibleRows?.length || dataListComputed.value?.length || queryParams.value.pageSize || 1
 
   // 最大可见序号 = 分页偏移 + 虚拟滚动起始偏移 + 可见行数
-  const maxIndex = queryParams.value.pageSize * (queryParams.value.pageNum - 1) + startIndex.value + visibleCount;
+  const maxIndex =
+    queryParams.value.pageSize * (queryParams.value.pageNum - 1) + startIndex.value + visibleCount
 
-  const digitCount = String(Math.max(maxIndex, 1)).length;
-  const width = Math.max(MIN_INDEX_WIDTH, digitCount * DIGIT_WIDTH + INDEX_PADDING);
+  const digitCount = String(Math.max(maxIndex, 1)).length
+  const width = Math.max(MIN_INDEX_WIDTH, digitCount * DIGIT_WIDTH + INDEX_PADDING)
   // eslint-disable-next-line no-console
   // console.log('[IndexWidth] page=', queryParams.value.pageNum, ' visible=', visibleCount, ' maxIndex=', maxIndex, ' digits=', digitCount, ' → width=', width);
-  return width;
-});
+  return width
+})
 
 // 获取 slot 的虚拟节点内容
 const getSlotContent = (
@@ -1234,7 +1241,8 @@ const tableColumnFinal = computed({
         //.filter((item: { isTable: any }) => item.isTable || typeof item.isTable === 'undefined')
         .map((item: tableColumnItem, index: number) => {
           return computedTableColumn(item, index)
-        }).filter((s: any)=>s)
+        })
+        .filter((s: any) => s)
     }
     return tableColumn.value
   },
@@ -1296,7 +1304,7 @@ const spanMethodInner = ({
 
 const computedTableColumn = (item: tableColumnItem, index: number) => {
   if (!(item.isTable || typeof item.isTable === 'undefined')) {
-    return;
+    return
   }
   if (props.isTree && index === 0 && !props.hasSelection) {
     item.align = 'left'
@@ -1311,9 +1319,11 @@ const computedTableColumn = (item: tableColumnItem, index: number) => {
   }
   if ((item.list || []).length > 0) {
     item.sortable = false
-    item.list = (item.list || []).map((item, index) => {
-      return computedTableColumn(item, index)
-    }).filter((item) => item);
+    item.list = (item.list || [])
+      .map((item, index) => {
+        return computedTableColumn(item, index)
+      })
+      .filter((item) => item)
     return item
   }
   if (item.sortable) {
@@ -1766,11 +1776,7 @@ const getChildrenList = async (row: any, treeNode: unknown, resolve: (data: any[
       return item
     }) ||
     []
-  // 菜单的子菜单清空后关闭展开
-  if (children.length == 0) {
-    // fix: 处理当菜单只有一个子菜单并被删除，需要将父菜单的展开状态关闭
-    tableRef.value?.updateKeyChildren(row[treeConfig.value.id], children)
-  }
+
   resolve(children)
 }
 /** 刷新展开的菜单数据 */
@@ -2091,8 +2097,16 @@ const handleRemove = (row: dataItemType) => {
     type: props.removeType,
   })
     .then(() => {
-      emits('remove', row, (flag: string | boolean | Promise<any> = true, ...obj: any[]) => {
-        removeCallback(flag, ...obj)
+      emits('remove', row, async (flag: string | boolean | Promise<any> = true, ...obj: any[]) => {
+        await removeCallback(flag, ...obj)
+        if (props.isTree) {
+          const children = dataChildrenListMap.value[row[treeConfig.value.parentId] as string]
+          // 菜单的子菜单清空后关闭展开
+          if (children.length == 0) {
+            // fix: 处理当菜单只有一个子菜单并被删除，需要将父菜单的展开状态关闭
+            tableRef.value?.updateKeyChildren(row[treeConfig.value.parentId] as string, children)
+          }
+        }
       })
     })
     .catch(() => {
@@ -2221,7 +2235,7 @@ const handleNeedConfirmEvent = ({
 }
 const setCurrentRowIndex = (index: number) => {
   setCurrentRow(dataListComputed.value[index])
-  tableRef.value.$el?._virtualScrollToRow(index);
+  tableRef.value.$el?._virtualScrollToRow(index)
 }
 defineExpose({
   multipleSelection: multipleSelection.value,
