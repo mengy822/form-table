@@ -1,5 +1,5 @@
 export default function MapLoader({
-  key = '78c0e9587a42052fad5633f7b17bf38c',
+  key = '',
   version = '2.0',
   plugins = [
     'AMap.Geocoder',
@@ -14,7 +14,7 @@ export default function MapLoader({
       resolve(window.AMap)
     } else {
       window._AMapSecurityConfig = {
-        securityJsCode: '4fc272887892466d150156bee580b0c3',
+        securityJsCode: '',
       }
       const script = document.createElement('script')
       script.type = 'text/javascript'

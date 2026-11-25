@@ -38,6 +38,7 @@ export { default as MyImport } from './components/Import/index.vue' // ✅ 路�
 export { default as MyDialog } from './components/Dialog/index.vue'
 export { default as MyEcharts } from './components/Echarts/index.vue'
 export { default as MyMap } from './components/Map/index.vue'
+export { default as TextEllipsis } from './components/TextEllipsis/index.vue'
 
 // 子组件
 export { default as MyInput } from './components/components/input/index.vue'

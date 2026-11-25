@@ -1,682 +1,660 @@
-<script lang="ts">
-import {
-  defineComponent,
-  markRaw,
-  ref,
-  nextTick,
-  computed,
-  h,
-  VNode,
-  Fragment,
-  onBeforeUnmount,
-} from 'vue' // [优化] 添加 onBeforeUnmount
-import { ElConfigProvider, ElDescriptions, ElDescriptionsItem, ElButton } from 'element-plus'
-import { deepClone, getDomComputed, getComputedStyle } from '../js/utils'
-import MyDialog from '../Dialog/index.vue'
-import { dataItemType, ObjectType } from '../js/types'
-import { tableColumnItem } from '../Table/index.vue'
-import { formatDisplayContent } from '../utils'
+<script setup lang="ts">
+import { markRaw, ref, nextTick, computed, h, Fragment, onBeforeUnmount, useSlots, useAttrs, type VNode, type Component, type Slot } from 'vue';
+import { ElDescriptions, ElDescriptionsItem, ElButton } from 'element-plus';
+import type { DescriptionsItemProps } from 'element-plus';
+import { deepClone, getDomComputed, getComputedStyle } from '../js/utils';
+import MyDialog from '../Dialog/index.vue';
+import type { dataItemType, ObjectType } from '../js/types';
+import type { tableColumnItem } from '../Table/index.vue';
+import { formatDisplayContent } from '../utils';
 
-type MyDialogInstance = InstanceType<typeof MyDialog>
+// ============ 类型定义 ============
+type MyDialogInstance = InstanceType<typeof MyDialog>;
 
-interface DesDialogProps {
-  width?: string
-  labelWidth?: string
-  title?: string
-  desBorder?: boolean
-  desColumn?: number
-  desDirection?: 'vertical' | 'horizontal'
-  desSize?: '' | 'large' | 'default' | 'small'
-  desTitle?: string
-  desExtra?: string
-  column?: (tableColumnItem & { useRander?: boolean })[]
-  defaultBlock?: string
-  dataConfig?: { data: string; status: string | number | boolean; code: string }
-  nestedDefaultBorder?: boolean
-  sonDirection?: 'vertical' | 'horizontal' // [优化] 补充缺失的 props 类型定义
-}
+type DataRecord = Record<string, unknown>;
+type ColumnItem = tableColumnItem & {
+  useRander?: boolean;
+  /** 嵌套子列 */
+  list?: ColumnItem[];
+  /** 自定义跨度 */
+  span?: number;
+  /** 跨行 */
+  rowspan?: number;
+  /** 自定义单元格宽度 */
+  width?: string;
+  /** 内容对齐 */
+  align?: 'left' | 'center' | 'right';
+  /** label对齐 */
+  labelAlign?: 'left' | 'center' | 'right';
+  /** 单元格class */
+  className?: string;
+  /** label class */
+  labelClassName?: string;
+  /** 自定义格式化函数 */
+  fun?: (row: DataRecord, prop: string, other?: DataRecord) => string;
+  /** 自定义渲染组件 */
+  funDom?: (row: dataItemType, prop: string, other: DataRecord) => VNode;
+  /** 动态class函数 */
+  classFun?: (row: DataRecord, prop: string, other?: DataRecord) => string;
+  /** 是否显示 */
+  showFun?: (row: DataRecord, prop: string) => boolean;
+  /** 小数位数 */
+  decimalPlaces?: number;
+  /** 单位 */
+  unit?: string;
+  /** 嵌套内部单独配置 column */
+  desColumn?: number;
+  /** 嵌套内部单独配置 labelWidth */
+  labelWidth?: string;
+};
+type ProcessedColumnItem = ColumnItem & { colIndex: number };
 
+// 分隔符类型
+const SEPARATORS = [',', '~', '-', '/'] as const;
+type Separator = (typeof SEPARATORS)[number];
+
+// 嵌套描述配置
 interface NestedDescriptionsConfig {
-  border?: boolean
-  column?: number
-  direction?: 'vertical' | 'horizontal'
-  size?: '' | 'large' | 'default' | 'small'
+  border?: boolean;
+  column?: number;
+  direction?: 'vertical' | 'horizontal';
+  size?: '' | 'large' | 'default' | 'small';
 }
 
-// 分隔符列表
-const SEPARATORS = [',', '~', '-', '/'] as const
-type Separator = (typeof SEPARATORS)[number]
-
-// 判断是否为有效的嵌套配置
-const isValidNestedList = (list: any): boolean => {
-  return Array.isArray(list) && list.length > 0
+// ============ 导出 expose 类型 ============
+export interface MyDetailExposed {
+  /** 初始化详情数据 */
+  init: (data: DataRecord | Promise<unknown>, openCb?: (data: DataRecord) => void) => Promise<void>;
+  /** 关闭详情弹窗 */
+  close: () => void;
+  /** 更新指定字段的数据 */
+  updateData: <T = unknown>(prop: string, data: T) => void;
+  /** 获取指定字段的数据 */
+  getData: <T = unknown>(prop: string) => T | undefined;
 }
 
-export default defineComponent({
-  name: 'MyDetail',
-  components: {
-    MyDialog,
-    ElConfigProvider,
-    ElDescriptions,
-    ElDescriptionsItem,
-    ElButton,
-  },
-  props: {
-    width: {
-      type: String,
-      default: '50%',
-    },
-    labelWidth: {
-      type: String,
-      default: '80px',
-    },
-    title: {
-      type: String,
-      default: '详情',
-    },
-    desBorder: {
-      type: Boolean,
-      default: false,
-    },
-    closeOnClickModal: {
-      type: Boolean,
-      default: false,
-    },
-    desColumn: {
-      type: Number,
-      default: 2,
-    },
-    desDirection: {
-      type: String as () => 'vertical' | 'horizontal',
-      default: 'horizontal',
-    },
-    sonDirection: {
-      type: String as () => 'vertical' | 'horizontal',
-      default: 'vertical',
-    },
-    desSize: {
-      type: String as () => '' | 'large' | 'default' | 'small',
-      default: '',
-    },
-    desTitle: {
-      type: String,
-      default: '',
-    },
-    desExtra: {
-      type: String,
-      default: '',
-    },
-    column: {
-      type: Array as () => (tableColumnItem & { useRander?: boolean })[],
-      required: true,
-    },
-    defaultBlock: {
-      type: String,
-      default: '-',
-    },
-    dataConfig: {
-      type: Object,
-      default: () => ({ data: 'data', status: 200, code: 'code' }),
-    },
-    nestedDefaultBorder: {
-      type: Boolean,
-      default: true,
-    },
-  },
-  emits: ['close'],
-  setup(props, { slots, emit, attrs, expose }) {
-    const myDialog = ref<MyDialogInstance | null>(null)
-    const dataFinal = ref<{ [key: string]: any }>({})
-    const maxWidth = ref('400px')
-    // [优化] 添加组件缓存，避免重复创建
-    const componentCache = ref<Map<string, any>>(new Map())
+// ============ Props 定义 ============
+const props = withDefaults(
+  defineProps<{
+    width?: string;
+    labelWidth?: string;
+    title?: string;
+    desBorder?: boolean;
+    closeOnClickModal?: boolean;
+    desColumn?: number;
+    desDirection?: 'vertical' | 'horizontal';
+    sonDirection?: 'vertical' | 'horizontal';
+    desSize?: '' | 'large' | 'default' | 'small';
+    desTitle?: string;
+    desExtra?: string;
+    column: ColumnItem[];
+    defaultBlock?: string;
+    dataConfig?: { data: string; status: string | number | boolean; code: string };
+    nestedDefaultBorder?: boolean;
+  }>(),
+  {
+    width: '50%',
+    labelWidth: '80px',
+    title: '详情',
+    desBorder: false,
+    closeOnClickModal: false,
+    desColumn: 2,
+    desDirection: 'horizontal',
+    sonDirection: 'vertical',
+    desSize: '',
+    desTitle: '',
+    desExtra: '',
+    defaultBlock: '-',
+    dataConfig: () => ({ data: 'data', status: 200, code: 'code' }),
+    nestedDefaultBorder: true
+  }
+);
 
-    const display = computed(() => {
-      return slots.left || slots.right ? 'grid' : 'block'
-    })
+// ============ Emits 定义 ============
+const emit = defineEmits<{
+  close: [data?: DataRecord];
+}>();
 
-    const gridTemplateColumns = computed(() => {
-      return `${slots.left ? 'auto ' : ''}1fr${slots.right ? ' auto' : ''}`
-    })
+// ============ 获取 slots 和 attrs ============
+const slots = useSlots();
+const attrs = useAttrs();
 
-    // [优化] 优化 desBorder 计算属性，避免每次都遍历
-    const hasNestedItems = computed(() => {
-      return columnFinal.value.some((item) => isValidNestedList(item.list))
-    })
+// ============ 响应式数据 ============
+const myDialog = ref<MyDialogInstance | null>(null);
+const dataFinal = ref<DataRecord>({});
+const maxWidth = ref<string>('400px');
+const componentCache = ref<Map<string, Component>>(new Map());
 
-    const desBorder = computed(() => {
-      return props.desBorder || hasNestedItems.value
-    })
+// ============ 工具函数 ============
+/** 判断是否为有效嵌套列表 */
+const isValidNestedList = (list: unknown): list is ColumnItem[] => {
+  return Array.isArray(list) && list.length > 0;
+};
 
-    const createMarkRaw = (
-      myRender: tableColumnItem['funDom'],
-      data: dataItemType,
-      prop: string,
-      other = {}
-    ) => {
-      // [优化] 使用缓存避免重复创建相同的组件
-      const cacheKey = `${prop}_${JSON.stringify(Object.keys(data))}`
-      if (componentCache.value.has(cacheKey)) {
-        return componentCache.value.get(cacheKey)
-      }
+/** 根据路径取值 */
+const getValueByPath = (obj: unknown, path: string): unknown => {
+  if (!path) return undefined;
+  if (path.indexOf('.') === -1) {
+    return (obj as DataRecord)?.[path];
+  }
+  const keys = path.split('.');
+  let result: unknown = obj;
+  for (const key of keys) {
+    if (result === null || result === undefined) return undefined;
+    result = (result as DataRecord)?.[key];
+  }
+  return result;
+};
 
-      const innerother = {
-        ...other,
-        ...attrs,
-        loading: false,
-        renderTxt: (context: string | number | boolean) => context ?? props.defaultBlock,
-      }
-      const component = markRaw({
-        render() {
-          return myRender!(data, prop, innerother)
-        },
-      })
+// ============ 计算属性 ============
+const display = computed((): 'grid' | 'block' => {
+  return slots.left || slots.right ? 'grid' : 'block';
+});
 
-      componentCache.value.set(cacheKey, component)
-      return component
+const gridTemplateColumns = computed((): string => {
+  return `${slots.left ? 'auto ' : ''}1fr${slots.right ? ' auto' : ''}`;
+});
+
+const hasNestedItems = computed((): boolean => {
+  return columnFinal.value.some((item) => isValidNestedList(item.list));
+});
+
+const desBorder = computed((): boolean => {
+  return props.desBorder || hasNestedItems.value;
+});
+
+// ============ 核心方法 ============
+/** 创建缓存自定义渲染组件 */
+const createMarkRaw = (
+  myRender: NonNullable<tableColumnItem['funDom']>,
+  data: dataItemType,
+  prop: string,
+  other: DataRecord = {}
+): Component => {
+  const cacheKey = `${prop}_${JSON.stringify(Object.keys(data))}`;
+  if (componentCache.value.has(cacheKey)) {
+    return componentCache.value.get(cacheKey)!;
+  }
+
+  const innerother: DataRecord & {
+    loading: boolean;
+    renderTxt: (context: string | number | boolean) => string | number | boolean;
+  } = {
+    ...other,
+    ...attrs,
+    loading: false,
+    renderTxt: (context: string | number | boolean): string | number | boolean => context ?? props.defaultBlock
+  };
+
+  const component = markRaw({
+    render() {
+      return myRender(data, prop, innerother);
+    }
+  });
+
+  componentCache.value.set(cacheKey, component);
+  return component;
+};
+
+/** 多字段分隔拼接 */
+const getSplitColumnData = (
+  column: tableColumnItem,
+  rowData: DataRecord,
+  separator: Separator,
+  other?: DataRecord
+): { content: string; classNames: string } => {
+  const itemprops = column.prop.split(separator);
+  const contents: string[] = [];
+  const classNamesList: string[] = [];
+
+  itemprops.forEach((propPath: string) => {
+    let value: unknown;
+    if (column.fun) {
+      value = column.fun(rowData, propPath.trim(), other);
+    } else {
+      value = getValueByPath(rowData, propPath.trim());
     }
 
-    // 获取字段值的辅助函数（支持点号路径）
-    const getValueByPath = (obj: any, path: string): any => {
-      if (!path) return undefined
-      if (path.indexOf('.') === -1) {
-        return obj[path]
+    const content = formatDisplayContent({
+      value,
+      decimalPlaces: column.decimalPlaces,
+      defaultBlock: props.defaultBlock,
+      unit: column.unit,
+      rowData,
+      other,
+      prop: propPath
+    });
+
+    contents.push(content);
+    if (column.classFun) {
+      const className = column.classFun(rowData, propPath.trim(), other) || '';
+      if (className) classNamesList.push(className);
+    }
+  });
+
+  return {
+    content: contents.join(separator),
+    classNames: classNamesList.join(separator)
+  };
+};
+
+/** 获取字段展示内容与class */
+const getColumnData = (
+  columnItem: tableColumnItem,
+  rowData: DataRecord = dataFinal.value,
+  other?: DataRecord
+): { content: string; classNames: string } => {
+  if (isValidNestedList(columnItem.list)) {
+    return { content: '', classNames: '' };
+  }
+
+  const nowSeparator = SEPARATORS.find((item) => columnItem.prop.indexOf(item) > -1);
+
+  if (nowSeparator) {
+    return getSplitColumnData(columnItem, rowData, nowSeparator, other);
+  }
+
+  let content: string;
+  if (columnItem.fun) {
+    const result = columnItem.fun(rowData, columnItem.prop, other);
+    content = result ?? props.defaultBlock;
+  } else {
+    const value = getValueByPath(rowData, columnItem.prop);
+    content = formatDisplayContent({
+      value,
+      decimalPlaces: columnItem.decimalPlaces,
+      defaultBlock: props.defaultBlock,
+      unit: columnItem.unit,
+      rowData,
+      other,
+      prop: columnItem.prop
+    });
+  }
+
+  let classNames = '';
+  if (columnItem.classFun) {
+    classNames = columnItem.classFun(rowData, columnItem.prop, other) || '';
+  }
+
+  return { content, classNames };
+};
+
+/** 判断是否存在嵌套子项 */
+const hasNestedData = (item: tableColumnItem): item is tableColumnItem & { list: ColumnItem[] } => {
+  return isValidNestedList(item.list);
+};
+
+/** 简单渲染错误捕获 */
+const withErrorBoundary = (renderFn: () => VNode | null, fallback?: VNode): VNode | null => {
+  try {
+    const result = renderFn();
+    return result !== null && result !== undefined ? result : fallback || null;
+  } catch (error) {
+    console.error('渲染错误:', error);
+    return fallback || h('div', { class: 'render-error', style: { color: 'red' } }, '渲染失败');
+  }
+};
+
+/** 预处理列，补齐span、索引、嵌套 */
+const processColumnsWithPosition = (
+  columns: ColumnItem[],
+  startIndex: number = 0,
+  nest: boolean = false,
+  nowDesColumn: number = props.desColumn
+): ProcessedColumnItem[] => {
+  const result: ProcessedColumnItem[] = [];
+  let currentIndex = startIndex;
+  let desColumnCount = 0;
+
+  for (let i = 0; i < columns.length; i++) {
+    const item = { ...columns[i] } as ColumnItem & { colIndex?: number };
+    const hasNested = hasNestedData(item);
+
+    item.align = item.align ?? 'left';
+
+    if (hasNested) {
+      if (result.length > 0 && !nest) {
+        const prevItem = result[result.length - 1];
+        const remainingSpan = nowDesColumn - desColumnCount;
+
+        result[result.length - 1] = {
+          ...prevItem,
+          span: remainingSpan + (prevItem.span || 0)
+        };
       }
-      const keys = path.split('.')
-      let result = obj
-      for (const key of keys) {
-        if (result === null || result === undefined) return undefined
-        result = result[key]
-      }
-      return result
+      item.span = item.span ?? 1;
+      if (!nest) item.span = nowDesColumn;
+
+      const nestedList = (item.list || []) as ColumnItem[];
+      const nestedDesColumn = nestedList[0]?.desColumn ?? props.desColumn;
+
+      result.push({
+        ...item,
+        colIndex: 1,
+        list: processColumnsWithPosition(nestedList, 0, true, nestedDesColumn)
+      } as ProcessedColumnItem);
+      continue;
+    } else {
+      let defaultSpan = 1;
+      if (isValidNestedList(item.list)) defaultSpan = nowDesColumn;
+      item.span = item.span ?? defaultSpan;
+      desColumnCount = item.span % nowDesColumn;
     }
 
-    // 处理带分隔符的 prop，获取拼接后的数据和样式
-    const getSplitColumnData = (
-      column: tableColumnItem,
-      rowData: any,
-      separator: Separator,
-      other?: any
-    ): { content: string; classNames: string } => {
-      const itemprops = column.prop.split(separator)
-      const contents: string[] = []
-      const classNamesList: string[] = []
+    item.rowspan = item.rowspan ?? 1;
+    if (!item.showFun) item.showFun = () => true;
 
-      itemprops.forEach((propPath: string) => {
-        let value: any
-        if (column.fun) {
-          value = column.fun(rowData, propPath.trim(), other)
-        } else {
-          value = getValueByPath(rowData, propPath.trim())
-        }
+    item.unit = item.unit ?? '';
 
-        const content = formatDisplayContent({
-          value,
-          decimalPlaces: column.decimalPlaces,
-          defaultBlock: props.defaultBlock,
-          unit: column.unit,
-          rowData,
-          other,
-          prop: propPath,
-        })
+    if (!item.fun && !hasNested) {
+      item.fun = (row: DataRecord, prop: string, other?: DataRecord): string => {
+        const separator = SEPARATORS.find((sep) => prop.indexOf(sep) > -1);
 
-        contents.push(content)
+        if (separator) {
+          const itemprops = prop.split(separator);
+          const contents: string[] = [];
 
-        if (column.classFun) {
-          const className = column.classFun(rowData, propPath.trim(), other) || ''
-          if (className) classNamesList.push(className)
-        }
-      })
+          itemprops.forEach((propPath) => {
+            const trimmedPath = propPath.trim();
+            const lscontent: unknown = getValueByPath(row, trimmedPath);
 
-      return {
-        content: contents.join(separator),
-        classNames: classNamesList.join(separator),
-      }
-    }
-
-    const getColumnData = (
-      columnColumn: tableColumnItem,
-      rowData: any = dataFinal.value,
-      other?: any
-    ): { content: string; classNames: string } => {
-      if (isValidNestedList(columnColumn.list)) {
-        return { content: '', classNames: '' }
-      }
-
-      const nowSeparator = SEPARATORS.find((item) => columnColumn.prop.indexOf(item) > -1)
-
-      if (nowSeparator) {
-        return getSplitColumnData(columnColumn, rowData, nowSeparator, other)
-      }
-
-      let content: string
-      if (columnColumn.fun) {
-        content = columnColumn.fun(rowData, columnColumn.prop, other) ?? props.defaultBlock
-      } else {
-        let value = getValueByPath(rowData, columnColumn.prop)
-        content = formatDisplayContent({
-          value,
-          decimalPlaces: columnColumn.decimalPlaces,
-          defaultBlock: props.defaultBlock,
-
-          unit: columnColumn.unit,
-          rowData,
-          other,
-          prop: columnColumn.prop,
-        })
-      }
-
-      let classNames = ''
-      if (columnColumn.classFun) {
-        classNames = columnColumn.classFun(rowData, columnColumn.prop, other) || ''
-      }
-
-      return { content, classNames }
-    }
-
-    const hasNestedData = (item: tableColumnItem): boolean => {
-      return isValidNestedList(item.list)
-    }
-
-    // [优化] 添加错误边界包装函数
-    const withErrorBoundary = (renderFn: () => VNode | null, fallback?: VNode) => {
-      try {
-        const result = renderFn()
-        return result !== null && result !== undefined ? result : fallback || null
-      } catch (error) {
-        console.error('渲染错误:', error)
-        return fallback || h('div', { class: 'render-error', style: { color: 'red' } }, '渲染失败')
-      }
-    }
-
-    // 处理 column，计算每个字段的位置和 span
-    const processColumnsWithPosition = (
-      columns: (tableColumnItem & { useRander?: boolean })[],
-      startIndex: number = 0,
-      nest: boolean = false,
-      nowDesColumn: number = props.desColumn
-    ): (tableColumnItem & {
-      useRander?: boolean
-      colIndex: number
-    })[] => {
-      const result: (tableColumnItem & {
-        useRander?: boolean
-        colIndex: number
-      })[] = []
-      let currentIndex = startIndex
-      let desColumn = 0
-      for (let i = 0; i < columns.length; i++) {
-        const item = { ...columns[i] }
-        const hasNested = hasNestedData(item)
-
-        item.align = item.align ?? 'left'
-
-        if (hasNested) {
-          // 嵌套字段本身不占位，不加入结果
-          // 让前一项占满剩余空间
-          if (result.length > 0 && !nest) {
-            const prevItem = result[result.length - 1]
-            const remainingSpan = nowDesColumn - desColumn
-
-            result[result.length - 1].span = remainingSpan + (prevItem.span || 0)
-          }
-          item.span = item.span ?? 1
-          if (!nest) item.span = nowDesColumn
-
-          result.push({
-            ...item,
-            colIndex: 1,
-            list: processColumnsWithPosition(
-              item.list || [],
-              0,
-              true,
-              (item.list || [])[0].desColumn ?? props.desColumn
-            ),
-          })
-          continue
-        } else {
-          let defaultSpan = 1
-          if (isValidNestedList(item.list)) defaultSpan = nowDesColumn
-          item.span = item.span ?? defaultSpan
-          desColumn = item.span % nowDesColumn
-        }
-        // console.log(item.span,item.label,nowDesColumn,!nest)
-        item.rowspan = item.rowspan ?? 1
-        if (!item.showFun) item.showFun = () => true
-
-        item.unit = item.unit ?? ''
-
-        if (!item.fun && !hasNested) {
-          item.fun = (row: any, prop: string, other?: any) => {
-            const separator = SEPARATORS.find((sep) => prop.indexOf(sep) > -1)
-
-            if (separator) {
-              const itemprops = prop.split(separator)
-              const contents: string[] = []
-
-              itemprops.forEach((propPath) => {
-                let propss = [propPath.trim()]
-                if (propPath.indexOf('.') > -1) {
-                  propss = propPath.split('.')
-                }
-                let lscontent = row[propss[0]]
-                for (let j = 1; j < propss.length; j++) {
-                  const item1 = propss[j]
-                  lscontent = (lscontent as ObjectType)?.[item1] || undefined
-                }
-                const content = formatDisplayContent({
-                  value: lscontent,
-                  decimalPlaces: item.decimalPlaces,
-                  defaultBlock: props.defaultBlock,
-
-                  unit: item.unit,
-                  rowData: row,
-                  other,
-                  prop: item.prop,
-                })
-                contents.push(content)
-              })
-
-              return contents.join(separator)
-            }
-
-            // let propss = [prop]
-            // if (prop.indexOf('.') > -1) {
-            //   propss = prop.split('.')
-            // }
-            // let lscontent = row[propss[0]]
-            // for (let j = 1; j < propss.length; j++) {
-            //   const item1 = propss[j]
-            //   lscontent = (lscontent as ObjectType)?.[item1] || undefined
-            // }
             const content = formatDisplayContent({
-              value: row[prop],
+              value: lscontent,
               decimalPlaces: item.decimalPlaces,
               defaultBlock: props.defaultBlock,
-
               unit: item.unit,
               rowData: row,
               other,
-              prop: item.prop,
-            })
-            return content
-          }
+              prop: item.prop
+            });
+            contents.push(content);
+          });
+
+          return contents.join(separator);
         }
 
-        result.push({ ...item, colIndex: currentIndex })
-        currentIndex = (currentIndex + (item.span || 1)) % props.desColumn
-      }
-
-      return result
+        const value = getValueByPath(row, prop);
+        const content = formatDisplayContent({
+          value,
+          decimalPlaces: item.decimalPlaces,
+          defaultBlock: props.defaultBlock,
+          unit: item.unit,
+          rowData: row,
+          other,
+          prop: item.prop
+        });
+        return content;
+      };
     }
-    const deepColumn = computed(() => {
-      return deepClone(props.column)
+
+    result.push({
+      ...item,
+      colIndex: currentIndex
+    } as ProcessedColumnItem);
+    currentIndex = (currentIndex + (item.span ?? 1)) % props.desColumn;
+  }
+
+  return result;
+};
+
+const deepColumn = computed((): ColumnItem[] => {
+  return deepClone(props.column) as ColumnItem[];
+});
+
+const columnFinal = computed((): ProcessedColumnItem[] => {
+  const filtered = deepColumn.value.filter(
+    (item) => typeof (item as { isForm?: boolean }).isForm === 'undefined' || (item as { isForm?: boolean }).isForm
+  );
+  return processColumnsWithPosition(filtered, 0);
+});
+
+// 构建描述列表
+const renderDescriptions = (
+  items: ProcessedColumnItem[],
+  title: string = props.desTitle,
+  desDirection: typeof props.desDirection = props.desDirection,
+  desColumn: typeof props.desColumn = props.desColumn,
+  labelWidth: typeof props.labelWidth = props.labelWidth
+): VNode => {
+  const renderNormalItem = (
+    item: ProcessedColumnItem,
+    renderLabel: () => VNode | string,
+    renderDefaultContent: () => VNode | string
+  ): VNode | null => {
+    const showItem = item.showFun?.(dataFinal.value, item.prop) ?? true;
+    if (!showItem) return null;
+
+    const propsOpt: DescriptionsItemProps = {
+      span: item.span,
+      rowspan: item.rowspan,
+      width: item.width,
+      align: item.align,
+      labelAlign: item.labelAlign,
+      className: item.className,
+      labelClassName: item.labelClassName
+    };
+    return h(ElDescriptionsItem, propsOpt, {
+      default: renderDefaultContent,
+      label: renderLabel
+    });
+  };
+
+  const allItems = items
+    .map((item): VNode | null => {
+      const renderLabel = (): VNode | string => {
+        const labelSlotKey = `label_${item.prop}` as keyof typeof slots;
+        const labelSlot = slots[labelSlotKey];
+        if (labelSlot) {
+          return labelSlot({
+            prop: item.prop,
+            nowData: getValueByPath(dataFinal.value, item.prop),
+            row: dataFinal.value
+          }) as VNode;
+        }
+        return h(Fragment, null, [item.label]);
+      };
+
+      const renderDefaultContent = (): VNode | string => {
+        const contentSlot = slots[item.prop as keyof typeof slots];
+        if (contentSlot) {
+          return contentSlot({
+            prop: item.prop,
+            nowData: getValueByPath(dataFinal.value, item.prop),
+            row: dataFinal.value
+          }) as VNode;
+        }
+
+        if (item.funDom) {
+          const Component = createMarkRaw(item.funDom, dataFinal.value as dataItemType, item.prop);
+          return h(Component);
+        }
+        const innerother: DataRecord & {
+          loading: boolean;
+          renderTxt: (context: string | number | boolean) => string | number | boolean;
+        } = {
+          ...attrs,
+          loading: false,
+          renderTxt: (context: string | number | boolean): string | number | boolean => context ?? props.defaultBlock
+        };
+        const { content, classNames } = getColumnData(item, dataFinal.value, innerother as DataRecord);
+        const finalClassNames = [`span span_${item.prop}`, `span_${item.prop}_${String(getValueByPath(dataFinal.value, item.prop))}`, classNames]
+          .filter(Boolean)
+          .join(' ');
+
+        return h('span', { class: finalClassNames }, content);
+      };
+
+      if (isValidNestedList(item.list)) {
+        const nestedItems = item.list as ProcessedColumnItem[];
+
+        return h(ElDescriptionsItem, {
+          span: item.span,
+          rowspan: item.rowspan,
+          width: item.width,
+          align: item.align,
+          labelAlign: item.labelAlign,
+          className: `${item.className || ''} nesting`,
+          labelClassName: item.labelClassName
+        }, {
+          default: () =>
+            renderDescriptions(
+              nestedItems,
+              '',
+              props.sonDirection,
+              (item as { desColumn?: number }).desColumn ?? props.desColumn,
+              (item as { labelWidth?: string }).labelWidth ?? labelWidth
+            ),
+          label: renderLabel
+        });
+      }
+      return renderNormalItem(item, renderLabel, renderDefaultContent);
     })
-    const columnFinal = computed(() => {
-      const filtered = deepColumn.value.filter(
-        (item: { isForm: any }) => typeof item.isForm === 'undefined' || item.isForm
-      )
-      const items = processColumnsWithPosition(filtered, 0)
-      return items
-    })
+    .filter((item): item is VNode => item !== null);
+  const childspan = new Set(items.map((item) => item.span || 1)).size;
+  return withErrorBoundary(
+    () =>
+      h(ElDescriptions, {
+        border: true,
+        column: desColumn,
+        direction: desDirection,
+        size: props.desSize,
+        title: title,
+        extra: props.desExtra,
+        class: `detail ${desBorder.value ? '' : 'isNotBorder'} ${childspan == 1 ? '' : '_flex'}`,
+        labelWidth: labelWidth
+      }, {
+        default: () => allItems
+      }),
+    h('div', { class: 'render-error' }, '描述列表渲染失败')
+  ) as VNode;
+};
 
-    // 构建普通描述列表
-    const renderDescriptions = (
-      items: any[],
-      title: string = props.desTitle,
-      desDirection: typeof props.desDirection = props.desDirection,
-      desColumn: typeof props.desColumn = props.desColumn,
-      labelWidth: typeof props.labelWidth = props.labelWidth
-    ) => {
-      const renderNormalItem = (item: any, renderLabel: any, renderDefaultContent: any) => {
-        const showItem = item.showFun?.(dataFinal.value, item.prop) ?? true
-        if (!showItem) return null
-
-        return h(
-          ElDescriptionsItem,
-          {
-            label: renderLabel,
-            span: item.span,
-            rowspan: item.rowspan,
-            width: item.width,
-            align: item.align,
-            labelAlign: item.labelAlign,
-            className: item.className,
-            labelClassName: item.labelClassName,
-          },
-          {
-            default: renderDefaultContent,
-            label: renderLabel,
-          }
-        )
-      }
-
-      const allItems = items
-        .map((item) => {
-          const renderLabel = () => {
-            const labelSlot = slots[`label_${item.prop}`]
-            if (labelSlot) {
-              return labelSlot({
-                prop: item.prop,
-                nowData: getValueByPath(dataFinal.value, item.prop),
-                row: dataFinal.value,
-              })
-            }
-            return h(Fragment, null, [item.label])
-          }
-
-          const renderDefaultContent = () => {
-            const contentSlot = slots[item.prop]
-            if (contentSlot) {
-              return contentSlot({
-                prop: item.prop,
-                nowData: getValueByPath(dataFinal.value, item.prop),
-                row: dataFinal.value,
-              })
-            }
-
-            if (item.funDom) {
-              const Component = createMarkRaw(item.funDom, dataFinal.value, item.prop)
-              return h(Component)
-            }
-            const innerother = {
-              ...attrs,
-              loading: false,
-              renderTxt: (context: string | number | boolean): string | number | boolean =>
-                context ?? props.defaultBlock,
-            }
-            const { content, classNames } = getColumnData(item, dataFinal.value, innerother)
-
-            const finalClassNames = [
-              `span span_${item.prop}`,
-              `span_${item.prop}_${getValueByPath(dataFinal.value, item.prop)}`,
-              classNames,
-            ]
-              .filter(Boolean)
-              .join(' ')
-
-            return h('span', { class: finalClassNames }, content)
-          }
-
-          if (isValidNestedList(item.list)) {
-            return h(
-              ElDescriptionsItem,
-              {
-                label: renderLabel,
-                span: item.span,
-                rowspan: item.rowspan,
-                width: item.width,
-                align: item.align,
-                labelAlign: item.labelAlign,
-                className: `${item.className} nesting`,
-                labelClassName: item.labelClassName,
-              },
-              {
-                default: () =>
-                  renderDescriptions(
-                    item.list,
-                    '',
-                    props.sonDirection,
-                    item['desColumn'],
-                    item['labelWidth']
-                  ),
-                label: renderLabel,
-              }
-            )
-          }
-          return renderNormalItem(item, renderLabel, renderDefaultContent)
-        })
-        .filter(Boolean)
-
-      return withErrorBoundary(
-        () =>
-          h(
-            ElDescriptions,
-            {
-              border: true,
-              column: desColumn,
-              direction: desDirection,
-              size: props.desSize,
-              title: title,
-              extra: props.desExtra,
-              class: `detail ${desBorder.value ? '' : 'isNotBorder'}`,
-              labelWidth: labelWidth,
-            },
-            {
-              default: () => allItems,
-            }
-          ),
-        h('div', { class: 'render-error' }, '描述列表渲染失败')
-      )
+// ============ 暴露的方法 ============
+const init = async (data: DataRecord | Promise<unknown> = {}, openCb: (data: DataRecord) => void = () => {}): Promise<void> => {
+  let finaldata: DataRecord = {};
+  if (data instanceof Promise) {
+    let res: unknown;
+    try {
+      res = await data;
+    } catch (e) {
+      openCb({});
+      return;
     }
-
-    const renderLeftSlot = () => {
-      if (!slots.left) return null
-      return withErrorBoundary(() => slots.left!({ data: dataFinal.value }))
+    const config = props.dataConfig;
+    const resRecord = res as DataRecord;
+    if (resRecord[config.code] === config.status) {
+      finaldata = (resRecord[config.data] as DataRecord) || {};
     }
-
-    const renderRightSlot = () => {
-      if (!slots.right) return null
-      return withErrorBoundary(() => slots.right!({ data: dataFinal.value }))
+  } else {
+    finaldata = { ...data };
+  }
+  dataFinal.value = { ...finaldata };
+  myDialog.value?.init();
+  nextTick(() => {
+    const baseClassElement = document.querySelector('.detailDialog') as HTMLElement | null;
+    if (baseClassElement) {
+      const baseClassStyle = getComputedStyle(baseClassElement);
+      const w = getDomComputed(baseClassStyle, 'width');
+      const labelW = Number(props.labelWidth.replace('px', ''));
+      maxWidth.value = `${w / props.desColumn - labelW}px`;
     }
+    openCb(dataFinal.value);
+  });
+};
 
-    const renderFooter = () => {
-      if (slots.footer) {
-        return withErrorBoundary(() => slots.footer!({ data: dataFinal.value }))
-      }
-      return h('div', { class: 'dialog-footer' }, [
-        h(
-          ElButton,
-          {
-            onClick: () => myDialog.value?.handleClose(),
-          },
-          '关闭'
-        ),
-      ])
-    }
-    const close = () => {
-      myDialog.value?.handleClose()
-    }
-    const handleClose = (cb: () => void) => {
-      dataFinal.value = {}
-      // [优化] 清理组件缓存
-      componentCache.value.clear()
-      emit('close')
-      cb()
-    }
+const close = (): void => {
+  myDialog.value?.handleClose();
+};
 
-    const init = async (
-      data: { [key: string]: any } | Promise<any> = {},
-      openCb: (data: any) => void = () => {}
-    ) => {
-      let finaldata = {}
-      if (data instanceof Promise) {
-        let res
-        try {
-          res = await data
-        } catch (e) {
-          openCb({})
-          return
-        }
-        if (res[props.dataConfig.code] === props.dataConfig.status) {
-          finaldata = res[props.dataConfig.data]
-        }
-      } else {
-        finaldata = { ...data }
-      }
-      dataFinal.value = { ...finaldata }
-      myDialog.value?.init()
-      nextTick(() => {
-        const baseClassStyle = getComputedStyle(document.querySelector('.detailDialog'))
-        // console.log(getDomComputed(baseClassStyle, 'height') ,className)
-        maxWidth.value =
-          getDomComputed(baseClassStyle, 'width') / props.desColumn -
-          Number(props.labelWidth.replace('px', '')) +
-          'px'
+const handleClose = (cb: () => void): void => {
+  dataFinal.value = {};
+  componentCache.value.clear();
+  emit('close', dataFinal.value);
+  cb();
+};
 
-        openCb(dataFinal.value)
-      })
-    }
+const updateData = <T = unknown,>(prop: string, data: T): void => {
+  dataFinal.value[prop] = data;
+};
 
-    const updateData = (prop: string, data: any): void => {
-      dataFinal.value[prop] = data
-    }
+const getData = <T = unknown,>(prop: string): T | undefined => {
+  return dataFinal.value[prop] as T | undefined;
+};
 
-    const getData = (prop: string): any => {
-      return dataFinal.value[prop]
-    }
+// ============ 生命周期 ============
+onBeforeUnmount(() => {
+  componentCache.value.clear();
+});
 
-    // [优化] 组件卸载时清理缓存，防止内存泄漏
-    onBeforeUnmount(() => {
-      componentCache.value.clear()
-    })
+// ============ 使用 defineExpose ============
+defineExpose<MyDetailExposed>({
+  init,
+  close,
+  updateData,
+  getData
+});
 
-    expose({ init, close, updateData, getData })
+// ============ 渲染函数 ============
+const renderLeftSlot = (): VNode | null => {
+  if (!slots.left) return null;
+  return withErrorBoundary(() => slots.left!({ data: dataFinal.value }));
+};
 
-    return () => {
-      const detailContent = h(
-        'div',
-        {
-          class: 'detailDialog',
-          style: {
-            display: display.value,
-            gridGap: '20px',
-            gridTemplateColumns: gridTemplateColumns.value,
-            maxHeight: '50vh',
-            overflowY: 'auto',
-          },
-        },
-        [renderLeftSlot(), renderDescriptions(columnFinal.value), renderRightSlot()].filter(Boolean)
-      )
+const renderRightSlot = (): VNode | null => {
+  if (!slots.right) return null;
+  return withErrorBoundary(() => slots.right!({ data: dataFinal.value }));
+};
 
-      return h(
-        MyDialog,
-        {
-          ref: myDialog,
-          width: props.width,
-          title: props.title,
-          onBeforeClose: handleClose,
-          closeOnClickModal: props.closeOnClickModal,
-          style: {
-            '--label-width': props.labelWidth,
-            '--maxWidth': maxWidth.value,
-            '--desColumn': props.desColumn,
-          },
-        },
-        {
-          default: () => detailContent,
-          footer: renderFooter,
-        }
-      )
-    }
-  },
-})
+const renderFooter = (): VNode | string => {
+  if (slots.footer) {
+    return withErrorBoundary(() => slots.footer!({ data: dataFinal.value })) as VNode;
+  }
+  return h('div', { class: 'dialog-footer' }, [
+    h(ElButton, { onClick: () => myDialog.value?.handleClose() }, '关闭')
+  ]);
+};
 </script>
+
+<template>
+  <MyDialog
+    ref="myDialog"
+    :width="width"
+    :title="title"
+    :close-on-click-modal="closeOnClickModal"
+    :style="{
+      '--label-width': labelWidth,
+      '--maxWidth': maxWidth,
+      '--desColumn': desColumn
+    }"
+    @before-close="handleClose"
+  >
+    <div
+      class="detailDialog"
+      :style="{
+        display: display,
+        gridGap: '20px',
+        gridTemplateColumns: gridTemplateColumns,
+        maxHeight: '50vh',
+        overflowY: 'auto'
+      }"
+    >
+      <slot name="left" :data="dataFinal" />
+      <component :is="renderDescriptions(columnFinal)" />
+      <slot name="right" :data="dataFinal" />
+    </div>
+    <template #footer>
+      <slot name="footer" :data="dataFinal">
+        <div class="dialog-footer">
+          <ElButton @click="myDialog?.handleClose()">关闭</ElButton>
+        </div>
+      </slot>
+    </template>
+  </MyDialog>
+</template>
 
 <style scoped lang="scss">
 .isNotBorder {
   :deep(.el-descriptions__table) {
-    //.el-descriptions__body {
     .el-descriptions__label {
       vertical-align: top;
     }
@@ -689,38 +667,37 @@ export default defineComponent({
     .el-descriptions__content {
       width: calc(var(--maxWidth) - 0) !important;
     }
+  }
+}
 
-    //}
+:deep(.el-descriptions._flex) {
+  > .el-descriptions__body {
+    > .el-descriptions__table {
+      table-layout: auto;
+    }
   }
 }
 
 :deep(.el-descriptions__body) {
   table-layout: fixed;
+
   .el-descriptions__table {
     table-layout: fixed;
-    .nesting {
-      // padding: 0 !important;
-    }
     tbody {
       tr {
         td {
           width: calc(100% / var(--desColumn));
         }
+
         .el-descriptions__label {
           min-width: var(--label-width);
-          // display: table-cell;
-          // vertical-align: top;
         }
 
         .el-descriptions__content {
-          //display: table-cell;
           word-break: break-all;
           word-wrap: break-word;
           vertical-align: top;
           width: calc(var(--maxWidth) - 0);
-        }
-        .el-descriptions__cell {
-          // [优化] 删除注释掉的代码
         }
       }
     }
@@ -732,7 +709,6 @@ export default defineComponent({
   overflow-y: auto;
 }
 
-// [优化] 添加错误状态样式
 .render-error {
   padding: 20px;
   text-align: center;
@@ -740,7 +716,4 @@ export default defineComponent({
   background-color: #fef0f0;
   border-radius: 4px;
 }
-// :deep(.el-descriptions__content) {
-//   max-width: var(--maxWidth);
-// }
 </style>
